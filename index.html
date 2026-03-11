@@ -677,6 +677,7 @@
     <div class="sidebar-title">Processos</div>
     <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo POP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
   </div>
   <div class="sidebar-list" id="sidebar-list"></div>
 </div>
@@ -735,6 +736,31 @@
 
   <!-- Cards -->
   <div id="pat-cards"></div>
+</div>
+
+<!-- BI MODULE -->
+<div id="bi-module" style="display:none;">
+  <div style="padding:28px 32px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--cage-blue);margin:0 0 4px;">📊 Painel BI</h2>
+        <div style="font-size:13px;color:var(--text-muted);">CAGE-RS — Indicadores e Processos · Power BI</div>
+      </div>
+      <button class="btn btn-outline" onclick="showBiModule(false)" style="font-size:13px;">✕ Fechar painel</button>
+    </div>
+    <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);border:1px solid var(--cage-border);">
+      <iframe
+        title="CAGE - Processos"
+        width="100%"
+        height="600"
+        src="https://app.powerbi.com/reportEmbed?reportId=c4cf960c-1c0c-49d4-92ff-3cc87f43656b&autoAuth=true&ctid=83bd090b-756e-4a02-a512-e5ea02c03041&actionBarEnabled=true&reportCopilotInEmbed=true"
+        frameborder="0"
+        allowFullScreen="true"
+        style="display:block;">
+      </iframe>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center;">O painel requer autenticação com sua conta Microsoft. Caso não carregue, <a href="https://app.powerbi.com/reportEmbed?reportId=c4cf960c-1c0c-49d4-92ff-3cc87f43656b&autoAuth=true&ctid=83bd090b-756e-4a02-a512-e5ea02c03041" target="_blank" style="color:var(--cage-accent);">abra em nova aba</a>.</div>
+  </div>
 </div>
 
 <!-- MODAL PLANO DE TRABALHO -->
@@ -1256,23 +1282,24 @@
           <span class="bpmn-file-name" id="bpmn-file-name">—</span>
         </div>
         <div class="bpmn-toolbar-actions">
-          <button class="bpmn-tool-btn" onclick="bpmnZoom(0.15)" title="Zoom in">＋</button>
+          <button class="bpmn-tool-btn" onclick="imgZoom(0.15)" title="Zoom in">＋</button>
           <span class="bpmn-zoom-label" id="bpmn-zoom-label">100%</span>
-          <button class="bpmn-tool-btn" onclick="bpmnZoom(-0.15)" title="Zoom out">－</button>
-          <button class="bpmn-tool-btn" onclick="bpmnFit()" title="Fit to screen">⛶</button>
+          <button class="bpmn-tool-btn" onclick="imgZoom(-0.15)" title="Zoom out">－</button>
+          <button class="bpmn-tool-btn" onclick="bpmnFit()" title="Encaixar na tela">⛶</button>
           <div class="bpmn-divider"></div>
-          <button class="bpmn-tool-btn" onclick="exportBpmnSvg()" title="Baixar imagem">↓ Imagem</button>
+          <button class="bpmn-tool-btn" id="bpmn-extract-btn" onclick="extractFluxoFromImage()" style="display:none;background:rgba(124,58,237,.3);color:#c4b5fd;border-color:rgba(124,58,237,.5);">🤖 Extrair Fluxo com IA</button>
+          <button class="bpmn-tool-btn" onclick="exportBpmnSvg()" title="Baixar imagem">⬇ Baixar</button>
           <button class="bpmn-tool-btn bpmn-tool-danger" onclick="resetBpmn()" title="Trocar arquivo">🔄 Trocar</button>
         </div>
       </div>
       <div class="bpmn-canvas-wrap">
-          <div class="bpmn-loading" id="bpmn-loading">
+        <div class="bpmn-loading" id="bpmn-loading" style="display:none;">
           <div class="bpmn-spinner"></div>
-          <span>Carregando diagrama...</span>
+          <span>Carregando imagem...</span>
         </div>
         <div class="bpmn-error" id="bpmn-error" style="display:none;">
           <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
-          <div class="bpmn-error-title">Não foi possível renderizar o arquivo</div>
+          <div class="bpmn-error-title">Não foi possível carregar a imagem</div>
           <div class="bpmn-error-desc" id="bpmn-error-msg"></div>
           <button class="btn btn-outline" style="margin-top:16px;" onclick="resetBpmn()">Tentar outro arquivo</button>
         </div>
@@ -2147,6 +2174,10 @@ function switchPop(pop, tabEl) {
   const target = document.getElementById(prefix + '-visao-geral');
   if(target) target.classList.add('active');
 
+  // Close BI / PAT modules when switching pops
+  const _biMod = document.getElementById('bi-module');
+  if(_biMod) _biMod.style.display = 'none';
+  document.getElementById('pat-module').classList.remove('active');
   if(typeof renderSidebar === 'function') renderSidebar();
 
   const labelEl = document.getElementById('current-pop-label');
@@ -2734,57 +2765,84 @@ function showBpmn(tab) {
   }
 }
 
-function restoreFluxoImg(dataUrl) {
+function showBpmnImage(dataUrl) {
+  // Switch to viewer
   document.getElementById('bpmn-upload-area').style.display = 'none';
   document.getElementById('bpmn-viewer-wrap').style.display = 'flex';
   document.getElementById('bpmn-viewer-wrap').style.flexDirection = 'column';
   document.getElementById('bpmn-loading').style.display = 'flex';
   document.getElementById('bpmn-error').style.display = 'none';
-  document.getElementById('bpmn-file-name').textContent = 'Imagem salva';
+  document.getElementById('bpmn-canvas').style.display = 'none';
 
-  let imgWrap = document.getElementById('bpmn-image-viewer');
-  if(imgWrap) imgWrap.remove();
+  // Remove old viewer
+  const old = document.getElementById('bpmn-image-viewer');
+  if(old) old.remove();
 
-  imgWrap = document.createElement('div');
-  imgWrap.id = 'bpmn-image-viewer';
-  imgWrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#e8edf4;cursor:grab;';
+  // Build image viewer
+  const wrap = document.createElement('div');
+  wrap.id = 'bpmn-image-viewer';
+  wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#e8edf4;cursor:grab;';
+
   const inner = document.createElement('div');
   inner.id = 'bpmn-img-inner';
-  inner.style.cssText = 'will-change:transform;transform:translate(0px,0px) scale(1);transform-origin:center center;transition:none;';
+  inner.style.cssText = 'will-change:transform;transform:translate(0px,0px) scale(1);transform-origin:center center;';
+
   const img = document.createElement('img');
   img.id = 'bpmn-img-el';
   img.draggable = false;
-  img.style.cssText = 'display:block;max-width:90vw;max-height:65vh;border-radius:8px;box-shadow:0 6px 32px rgba(0,0,0,.22);user-select:none;pointer-events:none;';
+  img.style.cssText = 'display:block;max-width:88vw;max-height:62vh;border-radius:8px;box-shadow:0 6px 32px rgba(0,0,0,.22);user-select:none;pointer-events:none;';
+
   img.onload = () => {
     document.getElementById('bpmn-loading').style.display = 'none';
     window._imgState = { zoom:1, tx:0, ty:0 };
     applyImgTransform();
     updateZoomLabel();
-    // Show extract button if image loaded
     const btn = document.getElementById('bpmn-extract-btn');
     if(btn) btn.style.display = 'inline-flex';
   };
+  img.onerror = () => {
+    document.getElementById('bpmn-loading').style.display = 'none';
+    showBpmnError('Não foi possível exibir a imagem.');
+  };
   img.src = dataUrl;
-  inner.appendChild(img);
-  imgWrap.appendChild(inner);
-  document.querySelector('.bpmn-canvas-wrap').appendChild(imgWrap);
 
-  // Re-wire pan/zoom (same as loadImageFile)
-  let dragging=false, startX, startY, startTx, startTy;
-  imgWrap.addEventListener('mousedown', ev => {
-    if(ev.button!==0) return; dragging=true;
-    startX=ev.clientX; startY=ev.clientY;
-    startTx=window._imgState.tx; startTy=window._imgState.ty;
-    imgWrap.style.cursor='grabbing'; ev.preventDefault();
+  inner.appendChild(img);
+  wrap.appendChild(inner);
+  document.querySelector('.bpmn-canvas-wrap').appendChild(wrap);
+
+  // Pan — mouse
+  let drag=false, ox, oy, otx, oty;
+  wrap.addEventListener('mousedown', e => {
+    if(e.button!==0) return;
+    drag=true; ox=e.clientX; oy=e.clientY;
+    otx=window._imgState.tx; oty=window._imgState.ty;
+    wrap.style.cursor='grabbing'; e.preventDefault();
   });
-  window.addEventListener('mousemove', ev => {
-    if(!dragging) return;
-    window._imgState.tx=startTx+(ev.clientX-startX);
-    window._imgState.ty=startTy+(ev.clientY-startY);
+  window.addEventListener('mousemove', e => {
+    if(!drag) return;
+    window._imgState.tx = otx+(e.clientX-ox);
+    window._imgState.ty = oty+(e.clientY-oy);
     applyImgTransform();
   });
-  window.addEventListener('mouseup', () => { if(!dragging) return; dragging=false; imgWrap.style.cursor='grab'; });
-  imgWrap.addEventListener('wheel', ev => { ev.preventDefault(); imgZoom(ev.deltaY<0?0.1:-0.1); }, {passive:false});
+  window.addEventListener('mouseup', () => { drag=false; wrap.style.cursor='grab'; });
+
+  // Pan — touch
+  let touch=null;
+  wrap.addEventListener('touchstart', e => {
+    if(e.touches.length===1) touch={x:e.touches[0].clientX,y:e.touches[0].clientY,tx:window._imgState.tx,ty:window._imgState.ty};
+  },{passive:true});
+  wrap.addEventListener('touchmove', e => {
+    if(e.touches.length===1&&touch){e.preventDefault();window._imgState.tx=touch.tx+(e.touches[0].clientX-touch.x);window._imgState.ty=touch.ty+(e.touches[0].clientY-touch.y);applyImgTransform();}
+  },{passive:false});
+  wrap.addEventListener('touchend', ()=>{touch=null;});
+
+  // Zoom — wheel
+  wrap.addEventListener('wheel', e => { e.preventDefault(); imgZoom(e.deltaY<0?0.12:-0.12); },{passive:false});
+}
+
+function restoreFluxoImg(dataUrl) {
+  showBpmnImage(dataUrl);
+  document.getElementById('bpmn-file-name').textContent = 'Imagem salva';
 }
 
 function hideBpmnIfNeeded() {
@@ -2838,150 +2896,31 @@ function resetBpmn() {
 }
 
 function loadImageFile(file) {
-  // Show viewer panel
-  document.getElementById('bpmn-upload-area').style.display = 'none';
-  document.getElementById('bpmn-viewer-wrap').style.display = 'flex';
-  document.getElementById('bpmn-viewer-wrap').style.flexDirection = 'column';
-  document.getElementById('bpmn-loading').style.display = 'flex';
-  document.getElementById('bpmn-error').style.display = 'none';
-  document.getElementById('bpmn-file-name').textContent = file.name;
+  if(!file) return;
 
-  // Hide BPMN canvas
-  document.getElementById('bpmn-canvas').style.display = 'none';
-
-  // Remove old image viewer if present
-  let imgWrap = document.getElementById('bpmn-image-viewer');
-  if(imgWrap) imgWrap.remove();
-
-  // ── Limite de tamanho: 2MB ──────────────────────────────────
-  const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-  if(file.size > MAX_SIZE) {
-    showToast('⚠️ Imagem muito grande (' + (file.size/1024/1024).toFixed(1) + 'MB). Máximo permitido: 2MB. Reduza o tamanho e tente novamente.', 'warn');
-    document.getElementById('bpmn-loading').style.display = 'none';
-    document.getElementById('bpmn-upload-area').style.display = 'block';
+  // Size check
+  const MAX = 2 * 1024 * 1024;
+  if(file.size > MAX) {
+    showToast('Imagem muito grande (' + (file.size/1024/1024).toFixed(1) + 'MB). Máximo: 2MB.', 'warn');
     return;
   }
-
-  // Aviso preventivo entre 1MB e 2MB
-  if(file.size > 1 * 1024 * 1024) {
-    showToast('⚠️ Imagem grande (' + (file.size/1024).toFixed(0) + 'KB). Pode aumentar o tamanho do dado salvo.', 'warn');
-  }
+  if(file.size > 1024*1024) showToast('Imagem grande — pode demorar um pouco.', 'warn');
 
   const reader = new FileReader();
-  reader.onload = e => {
-    // Container: overflow hidden, pan via transform
-    imgWrap = document.createElement('div');
-    imgWrap.id = 'bpmn-image-viewer';
-    imgWrap.style.cssText = [
-      'position:absolute;inset:0;overflow:hidden;',
-      'display:flex;align-items:center;justify-content:center;',
-      'background:#e8edf4;cursor:grab;'
-    ].join('');
-
-    // Inner wrapper that we translate to pan
-    const inner = document.createElement('div');
-    inner.id = 'bpmn-img-inner';
-    inner.style.cssText = 'will-change:transform;transform:translate(0px,0px) scale(1);transform-origin:center center;transition:none;';
-
-    const img = document.createElement('img');
-    img.id = 'bpmn-img-el';
-    img.draggable = false;
-    img.style.cssText = [
-      'display:block;max-width:90vw;max-height:65vh;',
-      'border-radius:8px;box-shadow:0 6px 32px rgba(0,0,0,.22);',
-      'user-select:none;pointer-events:none;'
-    ].join('');
-
-    // Wait for the image to fully render before hiding the spinner
-    img.onload = () => {
-      document.getElementById('bpmn-loading').style.display = 'none';
-      window._imgState = { zoom: 1, tx: 0, ty: 0 };
-      applyImgTransform();
-      updateZoomLabel();
-      const btn = document.getElementById('bpmn-extract-btn');
-      if(btn) btn.style.display = 'inline-flex';
-    };
-    img.onerror = () => {
-      showBpmnError('Não foi possível carregar a imagem. Verifique o formato (JPG/PNG).');
-    };
-
-    img.src = e.target.result;
-    // Save image to DATA for persistence and PPT export
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    // Save to DATA immediately
     const p = popPrefix(currentPop);
     if(!DATA[p]) DATA[p] = {};
-    DATA[p].fluxoImg = e.target.result;
+    DATA[p].fluxoImg = dataUrl;
+    document.getElementById('bpmn-file-name').textContent = file.name;
     markChanged();
-
-    inner.appendChild(img);
-    imgWrap.appendChild(inner);
-    document.querySelector('.bpmn-canvas-wrap').appendChild(imgWrap);
-    // Loading spinner stays until img.onload fires
-
-    // ── Pan via mouse drag ──────────────────────
-    let dragging = false, startX, startY, startTx, startTy;
-
-    imgWrap.addEventListener('mousedown', ev => {
-      if(ev.button !== 0) return;
-      dragging = true;
-      startX = ev.clientX;
-      startY = ev.clientY;
-      startTx = window._imgState.tx;
-      startTy = window._imgState.ty;
-      imgWrap.style.cursor = 'grabbing';
-      ev.preventDefault();
-    });
-
-    window.addEventListener('mousemove', ev => {
-      if(!dragging) return;
-      window._imgState.tx = startTx + (ev.clientX - startX);
-      window._imgState.ty = startTy + (ev.clientY - startY);
-      applyImgTransform();
-    });
-
-    window.addEventListener('mouseup', () => {
-      if(!dragging) return;
-      dragging = false;
-      imgWrap.style.cursor = 'grab';
-    });
-
-    // ── Pan via touch ───────────────────────────
-    let touchStart = null;
-    imgWrap.addEventListener('touchstart', ev => {
-      if(ev.touches.length === 1) {
-        touchStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY,
-                       tx: window._imgState.tx, ty: window._imgState.ty };
-      }
-    }, { passive: true });
-
-    imgWrap.addEventListener('touchmove', ev => {
-      if(ev.touches.length === 1 && touchStart) {
-        ev.preventDefault();
-        window._imgState.tx = touchStart.tx + (ev.touches[0].clientX - touchStart.x);
-        window._imgState.ty = touchStart.ty + (ev.touches[0].clientY - touchStart.y);
-        applyImgTransform();
-      }
-    }, { passive: false });
-
-    imgWrap.addEventListener('touchend', () => { touchStart = null; });
-
-    // ── Scroll wheel zoom ───────────────────────
-    imgWrap.addEventListener('wheel', ev => {
-      ev.preventDefault();
-      imgZoom(ev.deltaY < 0 ? 0.1 : -0.1);
-    }, { passive: false });
+    showBpmnImage(dataUrl);
   };
-
-  reader.onerror = () => showBpmnError('Erro ao ler a imagem. Tente novamente.');
-  // Timeout fallback: if loading takes more than 15s, show error
-  const _loadTimeout = setTimeout(() => {
-    const loading = document.getElementById('bpmn-loading');
-    if(loading && loading.style.display !== 'none') {
-      showBpmnError('Tempo esgotado ao carregar a imagem. Tente um arquivo menor (< 5MB).');
-    }
-  }, 15000);
-  const _origImgOnload = img => { clearTimeout(_loadTimeout); };
+  reader.onerror = () => showToast('Erro ao ler o arquivo. Tente novamente.', 'warn');
   reader.readAsDataURL(file);
 }
+
 
 function applyImgTransform() {
   const inner = document.getElementById('bpmn-img-inner');
@@ -3586,6 +3525,29 @@ function renderSidebar() {
   });
 
   el.innerHTML = html || '<div style="padding:24px 16px;color:rgba(255,255,255,.3);font-size:12px;text-align:center;">Nenhum POP cadastrado.</div>';
+}
+
+
+// ═══ BI MODULE ══════════════════════════════════════════════
+function showBiModule(show=true) {
+  const bi = document.getElementById('bi-module');
+  const pat = document.getElementById('pat-module');
+  const allPops = document.querySelectorAll('.pop-content');
+  const navTabs = document.querySelector('.nav-tabs');
+  const popSwitcher = document.getElementById('pop-switcher-bar');
+  if(show) {
+    allPops.forEach(p => p.classList.remove('active'));
+    pat.classList.remove('active');
+    if(navTabs) navTabs.style.display = 'none';
+    if(popSwitcher) popSwitcher.style.display = 'none';
+    bi.style.display = 'block';
+  } else {
+    bi.style.display = 'none';
+    if(navTabs) navTabs.style.display = '';
+    if(popSwitcher) popSwitcher.style.display = '';
+    const activePopEl = document.getElementById('pop-' + popDomId(currentPop));
+    if(activePopEl) activePopEl.classList.add('active');
+  }
 }
 
 // ═══ PAT MODULE ════════════════════════════════════════
@@ -4441,13 +4403,24 @@ function runSearch(raw) {
   const allKeys = ['d', 'r', ...Object.keys(DATA).filter(k => k!=='d' && k!=='r' && k!=='pat')];
   allKeys.forEach(key => {
     const pop = DATA[key];
-    if(!pop || !pop.faqs) return;
-    pop.faqs.forEach((f, i) => {
+    if(!pop) return;
+
+    // Search FAQs
+    (pop.faqs||[]).forEach((f, i) => {
       if(f.pending) return;
       const inQ = f.q && f.q.toLowerCase().includes(lower);
       const inA = f.a && f.a.toLowerCase().includes(lower);
       if(inQ || inA) {
-        results.push({ key, popName: popDisplayName(key), faq: f, idx: i, inQ, inA });
+        results.push({ type:'faq', key, popName: popDisplayName(key), faq: f, idx: i });
+      }
+    });
+
+    // Search Normas
+    (pop.normas||[]).forEach((n, i) => {
+      const inCode = n.code && n.code.toLowerCase().includes(lower);
+      const inName = n.name && n.name.toLowerCase().includes(lower);
+      if(inCode || inName) {
+        results.push({ type:'norma', key, popName: popDisplayName(key), norma: n, idx: i });
       }
     });
   });
@@ -4463,12 +4436,44 @@ function runSearch(raw) {
     return;
   }
 
-  resultsEl.innerHTML = results.map(r => `
-    <div class="search-result-item" onclick="goToFaq('${r.key}', ${r.idx})">
-      <div class="search-result-pop">📋 ${r.popName}</div>
-      <div class="search-result-q">${highlight(r.faq.q, q)}</div>
-      ${r.faq.a ? `<div class="search-result-a">${highlight(r.faq.a.substring(0,180) + (r.faq.a.length>180?'…':''), q)}</div>` : ''}
-    </div>`).join('');
+  resultsEl.innerHTML = results.map(r => {
+    if(r.type === 'faq') return `
+      <div class="search-result-item" onclick="goToFaq('${r.key}', ${r.idx})">
+        <div class="search-result-pop">📋 ${r.popName} · FAQ</div>
+        <div class="search-result-q">${highlight(r.faq.q, q)}</div>
+        ${r.faq.a ? `<div class="search-result-a">${highlight(r.faq.a.substring(0,180)+(r.faq.a.length>180?'…':''), q)}</div>` : ''}
+      </div>`;
+    if(r.type === 'norma') return `
+      <div class="search-result-item" onclick="goToNorma('${r.key}', ${r.idx})">
+        <div class="search-result-pop">📜 ${r.popName} · Normas</div>
+        <div class="search-result-q">${highlight(r.norma.code, q)}</div>
+        ${r.norma.name ? `<div class="search-result-a">${highlight(r.norma.name, q)}</div>` : ''}
+        ${r.norma.url ? `<div style="font-size:11px;color:var(--cage-accent);margin-top:4px;">🔗 ${r.norma.url}</div>` : ''}
+      </div>`;
+    return '';
+  }).join('');
+}
+
+function goToNorma(key, normaIdx) {
+  closeSearchModal();
+  showPatModule(false);
+  switchPop(key);
+  setTimeout(() => {
+    showSection('normas-revisoes', null, true);
+    setTimeout(() => {
+      const container = document.getElementById(popPrefix(key)+'-norm-list');
+      if(container) {
+        const items = container.querySelectorAll('.norm-item');
+        const el = items[normaIdx];
+        if(el) {
+          el.scrollIntoView({ behavior:'smooth', block:'center' });
+          el.style.outline = '2px solid var(--cage-accent)';
+          el.style.borderRadius = '8px';
+          setTimeout(() => { el.style.outline=''; }, 2500);
+        }
+      }
+    }, 120);
+  }, 80);
 }
 
 function goToFaq(key, faqIdx) {
