@@ -504,6 +504,9 @@
   .sidebar-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
   .sidebar-group{margin-bottom:2px;}
   .sidebar-group-label{padding:8px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);}
+  .sidebar-macro-label{display:flex;align-items:center;gap:6px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);margin-top:4px;}
+  .sidebar-macro-label:first-child{border-top:none;margin-top:0;}
+  .sidebar-macro-icon{font-size:12px;}
   .sidebar-item{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;font-weight:500;color:rgba(255,255,255,.6);cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
   .sidebar-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9);}
   .sidebar-item.active{background:rgba(255,255,255,.1);color:white;border-left-color:var(--cage-accent);}
@@ -1274,7 +1277,21 @@
                 <div class="npop-row">
                   <div>
                     <label>Macroprocesso</label>
-                    <input class="modal-input" id="nf-macro" type="text" placeholder="Ex: Promoção da Integridade">
+                    <select class="modal-input" id="nf-macro">
+              <option value="">Selecione o macroprocesso...</option>
+              <option>Auditoria</option>
+              <option>Contabilidade</option>
+              <option>Controle</option>
+              <option>Gestão Estratégica</option>
+              <option>Comunicação e Relacionamento Institucional</option>
+              <option>Orientação</option>
+              <option>Transparência</option>
+              <option>Promoção da Integridade</option>
+              <option>Gestão de Dados</option>
+              <option>Gestão Administrativa</option>
+              <option>Gestão de TIC</option>
+              <option>Gestão de Pessoas</option>
+            </select>
                   </div>
                   <div>
                     <label>Processo Pai</label>
@@ -1840,7 +1857,8 @@ const DATA = {
       {icon:"🏛️",code:"Lei nº 14.133/2021",name:"Lei Federal de Licitações e Contratos Administrativos"},
       {icon:"📄",code:"IN CAGE 006/2022",name:"Instrução Normativa CAGE nº 006 de 2022 (versão anterior)"}
     ],
-    revisions: [{num:"0",date:"02/03/2026",desc:"Emissão Inicial.",author:"Edison Weber Woycinck"}]
+    revisions: [{num:"0",date:"02/03/2026",desc:"Emissão Inicial.",author:"Edison Weber Woycinck"}],
+    meta: { name:"Tratar Denúncias", macro:"Promoção da Integridade", processo:"Tratar Denúncias e Representações" }
   },
 
   r: {
@@ -1917,7 +1935,8 @@ const DATA = {
       {icon:"⚖️",code:"LC 13.451/2010",name:"Lei Complementar estadual — referência principal do processo"},
       {icon:"📄",code:"IN 006/2023",name:"Instrução Normativa CAGE 006/2023"}
     ],
-    revisions: [{num:"0",date:"09/03/2026",desc:"Emissão Inicial.",author:"Edison Weber Woycinck"}]
+    revisions: [{num:"0",date:"09/03/2026",desc:"Emissão Inicial.",author:"Edison Weber Woycinck"}],
+    meta: { name:"Tratar Representações", macro:"Promoção da Integridade", processo:"Tratar Denúncias e Representações" }
   }
 };
 
@@ -2028,24 +2047,49 @@ document.addEventListener('DOMContentLoaded', () => {
 function popPrefix(pop) {
   if(pop === 'denuncias') return 'd';
   if(pop === 'representacoes') return 'r';
-  return pop; // new pops use their key directly as prefix
+  if(pop === 'd') return 'd';
+  if(pop === 'r') return 'r';
+  return pop;
+}
+function popKey(pop) {
+  if(pop === 'denuncias') return 'd';
+  if(pop === 'representacoes') return 'r';
+  return pop;
+}
+function popDomId(pop) {
+  if(pop === 'd') return 'denuncias';
+  if(pop === 'r') return 'representacoes';
+  return pop;
 }
 
 function switchPop(pop, tabEl) {
-  currentPop = pop;
+  const key    = popKey(pop);
+  const domId  = popDomId(pop);
   const prefix = popPrefix(pop);
+  currentPop = key;
+
   document.querySelectorAll('.pop-content').forEach(el => el.classList.remove('active'));
-  document.getElementById('pop-' + pop).classList.add('active');
+  const popEl = document.getElementById('pop-' + domId);
+  if(!popEl) { console.warn('switchPop: no DOM element for pop-' + domId); return; }
+  popEl.classList.add('active');
+
   document.querySelectorAll('.pop-tab').forEach(t => t.classList.remove('active'));
-  tabEl.classList.add('active');
-  // Reset to visao-geral
+  if(tabEl && tabEl.classList) tabEl.classList.add('active');
+
   currentSection = 'visao-geral';
   document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active', i===0));
-  // Hide all sections inside the now-active pop, then show visao-geral
-  const activePop = document.getElementById('pop-' + pop);
-  activePop.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  popEl.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(prefix + '-visao-geral');
   if(target) target.classList.add('active');
+
+  if(typeof renderSidebar === 'function') renderSidebar();
+
+  const labelEl = document.getElementById('current-pop-label');
+  if(labelEl) {
+    const names = { d:'Tratar Denuncias', r:'Tratar Representacoes' };
+    labelEl.textContent = names[key] || (DATA[key] && DATA[key].meta && DATA[key].meta.name) || key;
+  }
+
   if(editMode) enableEditables(true);
 }
 
@@ -2053,7 +2097,7 @@ function switchPop(pop, tabEl) {
 function showSection(id, tab, silent) {
   currentSection = id;
   const prefix = popPrefix(currentPop);
-  const activePop = document.getElementById('pop-' + currentPop);
+  const activePop = document.getElementById('pop-' + popDomId(currentPop));
   activePop.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(prefix + '-' + id);
   if(target) target.classList.add('active');
@@ -3318,33 +3362,78 @@ function closeSidebar() {
   document.body.classList.remove('sidebar-open');
 }
 
+
+const MACROPROCESSOS = ['Auditoria', 'Contabilidade', 'Controle', 'Gestão Estratégica', 'Comunicação e Relacionamento Institucional', 'Orientação', 'Transparência', 'Promoção da Integridade', 'Gestão de Dados', 'Gestão Administrativa', 'Gestão de TIC', 'Gestão de Pessoas'];
+const MACRO_ICONS = {'Auditoria': '🔍', 'Contabilidade': '📒', 'Controle': '🎛', 'Gestão Estratégica': '🧭', 'Comunicação e Relacionamento Institucional': '📣', 'Orientação': '💡', 'Transparência': '🔎', 'Promoção da Integridade': '🛡', 'Gestão de Dados': '📊', 'Gestão Administrativa': '🏢', 'Gestão de TIC': '💻', 'Gestão de Pessoas': '👥'};
+
 function renderSidebar() {
   const el = document.getElementById('sidebar-list');
   if(!el) return;
 
-  // Build list of all POPs
-  const pops = [
-    { key:'d', label:'Tratar Denúncias',      icon:'📋', cls:'pop-denuncias' },
-    { key:'r', label:'Tratar Representações',  icon:'📄', cls:'pop-representacoes' },
-  ];
-  // Add dynamic POPs
-  Object.keys(DATA).filter(k => k !== 'd' && k !== 'r').forEach(k => {
-    pops.push({ key: k, label: DATA[k]?.meta?.name || 'Novo POP', icon: '📝', cls: 'pop-novo' });
-  });
-
   const isPatActive = document.getElementById('pat-module')?.classList.contains('active');
 
-  el.innerHTML = `
-    <div class="sidebar-group">
-      <div class="sidebar-group-label">POPs Cadastrados</div>
-      ${pops.map(p => `
-        <div class="sidebar-item ${!isPatActive && currentPop === p.key ? 'active' : ''}"
-             onclick="closeSidebar(); showPatModule(false); switchPop('${p.key}');">
-          <span class="sidebar-item-icon">${p.icon}</span>
-          <span class="sidebar-item-name">${p.label}</span>
-          <span class="sidebar-item-badge">${(DATA[p.key]?.steps||[]).length} etapas</span>
-        </div>`).join('')}
-    </div>`;
+  // Build list of all POPs
+  const pops = [
+    { key:'d', label: DATA.d?.meta?.name || 'Tratar Denúncias',     macro: DATA.d?.meta?.macro || 'Promoção da Integridade' },
+    { key:'r', label: DATA.r?.meta?.name || 'Tratar Representações', macro: DATA.r?.meta?.macro || 'Promoção da Integridade' },
+    ...Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat').map(k => ({
+      key: k,
+      label: DATA[k]?.meta?.name || 'Novo POP',
+      macro: DATA[k]?.meta?.macro || ''
+    }))
+  ];
+
+  // Group by macroprocesso
+  const groups = {};
+  pops.forEach(p => {
+    const m = p.macro || '— Sem Macroprocesso';
+    if(!groups[m]) groups[m] = [];
+    groups[m].push(p);
+  });
+
+  // Build sidebar: first show known macros in order, then any extras
+  const orderedKeys = [...MACROPROCESSOS, '— Sem Macroprocesso'];
+  let html = '';
+
+  orderedKeys.forEach(macro => {
+    const items = groups[macro];
+    if(!items || !items.length) return;
+    const icon = MACRO_ICONS[macro] || '📁';
+    html += `
+      <div class="sidebar-group">
+        <div class="sidebar-group-label sidebar-macro-label">
+          <span class="sidebar-macro-icon">${icon}</span>${macro}
+        </div>
+        ${items.map(p => `
+          <div class="sidebar-item ${!isPatActive && currentPop === p.key ? 'active' : ''}"
+               onclick="closeSidebar(); showPatModule(false); switchPop('${p.key}');">
+            <span class="sidebar-item-icon">📋</span>
+            <span class="sidebar-item-name">${p.label}</span>
+            <span class="sidebar-item-badge">${(DATA[p.key]?.steps||[]).length} etapas</span>
+          </div>`).join('')}
+      </div>`;
+  });
+
+  // Any macro not in the standard list
+  Object.keys(groups).forEach(macro => {
+    if(orderedKeys.includes(macro)) return;
+    const icon = '📁';
+    html += `
+      <div class="sidebar-group">
+        <div class="sidebar-group-label sidebar-macro-label">
+          <span class="sidebar-macro-icon">${icon}</span>${macro}
+        </div>
+        ${groups[macro].map(p => `
+          <div class="sidebar-item ${!isPatActive && currentPop === p.key ? 'active' : ''}"
+               onclick="closeSidebar(); showPatModule(false); switchPop('${p.key}');">
+            <span class="sidebar-item-icon">📋</span>
+            <span class="sidebar-item-name">${p.label}</span>
+            <span class="sidebar-item-badge">${(DATA[p.key]?.steps||[]).length} etapas</span>
+          </div>`).join('')}
+      </div>`;
+  });
+
+  el.innerHTML = html || '<div style="padding:24px 16px;color:rgba(255,255,255,.3);font-size:12px;text-align:center;">Nenhum POP cadastrado.</div>';
 }
 
 // ═══ PAT MODULE ════════════════════════════════════════
@@ -3374,7 +3463,7 @@ function showPatModule(show = true) {
     if(navTabs) navTabs.style.display = '';
     if(popSwitcher) popSwitcher.style.display = '';
     // Re-activate current pop
-    const activePopEl = document.getElementById('pop-' + (currentPop === 'd' ? 'denuncias' : currentPop === 'r' ? 'representacoes' : currentPop));
+    const activePopEl = document.getElementById('pop-' + popDomId(currentPop));
     if(activePopEl) activePopEl.classList.add('active');
   }
 }
