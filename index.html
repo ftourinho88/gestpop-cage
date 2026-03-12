@@ -2742,7 +2742,9 @@ function sanitizePop(p) {
   if(!Array.isArray(d.steps))      d.steps = [];
   if(!Array.isArray(d.roles))      d.roles = [];
   if(!Array.isArray(d.indicators)) d.indicators = [];
-  if(!Array.isArray(d.faq))        d.faq = [];
+  if(!Array.isArray(d.faqs))       d.faqs = [];
+  if(Array.isArray(d.faq) && !d.faqs.length) { d.faqs = d.faq; } // migrar campo antigo
+  delete d.faq;
   if(!Array.isArray(d.normas))     d.normas = [];
   if(!Array.isArray(d.revisions))  d.revisions = [];
   if(!d.ficha)                     d.ficha = {};
@@ -4462,6 +4464,11 @@ function applyPermissions() {
 
   const hasAccess = isEditor || isViewer; // qualquer um dos dois tem acesso ao sistema
 
+  // Atualizar cards da home imediatamente ao aplicar permissões
+  document.querySelectorAll('.home-card-editor').forEach(el => {
+    el.style.display = isEditor ? '' : 'none';
+  });
+
   if(hasAccess) {
     // Viewer e Editor: removem overlay de bloqueio
     document.getElementById('access-request-overlay')?.remove();
@@ -4568,6 +4575,36 @@ async function submitAccessRequest() {
       '<span style="color:#16a34a;font-weight:600;">✅ Solicitação enviada! O administrador será notificado.</span>';
     setTimeout(() => showAccessRequestOverlay(), 1500);
   }
+}
+
+// ── sanitizePopData — garante estrutura mínima de um POP ────
+function sanitizePopData(pd) {
+  if(!pd) return pd;
+  // steps
+  if(!Array.isArray(pd.steps)) pd.steps = [];
+  pd.steps = pd.steps.map(s => ({
+    title:       s?.title       || 'Etapa',
+    subtitle:    s?.subtitle    || '',
+    responsible: s?.responsible || '',
+    respClass:   s?.respClass   || 'resp-green',
+    note:        s?.note        || '',
+    decision:    s?.decision    || null,
+    actions:     Array.isArray(s?.actions) ? s.actions.map(a => (typeof a === 'string' ? {type:'atividade',text:a,actor:''} : {...a})) : []
+  }));
+  if(pd.steps.length === 0) {
+    pd.steps = [{ title:'Etapa 1', subtitle:'', responsible:'Responsável', respClass:'resp-green', actions:[{type:'atividade',text:'Nova ação',actor:''}] }];
+  }
+  // currentStep
+  if(typeof pd.currentStep !== 'number' || pd.currentStep >= pd.steps.length) pd.currentStep = 0;
+  // outros arrays
+  if(!Array.isArray(pd.faqs))       pd.faqs       = [];
+  if(!Array.isArray(pd.normas))     pd.normas     = [];
+  if(!Array.isArray(pd.roles))      pd.roles      = [];
+  if(!Array.isArray(pd.indicators)) pd.indicators = [];
+  if(!Array.isArray(pd.revisions))  pd.revisions  = [];
+  if(!pd.meta)   pd.meta   = {};
+  if(!pd.ficha)  pd.ficha  = {};
+  return pd;
 }
 
 // ── saveToCloud ──────────────────────────────────────────────
@@ -4686,23 +4723,8 @@ async function loadFromCloud() {
     const payload = data.data;
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
-    // Merge seguro: só sobrescreve campos que existem no payload
-    function safeMerge(target, source) {
-      if(!source || typeof source !== 'object') return;
-      Object.keys(source).forEach(k => {
-        if(source[k] !== undefined && source[k] !== null) target[k] = source[k];
-      });
-      // Garantir estrutura mínima
-      if(!Array.isArray(target.steps) || target.steps.length === 0) target.steps = target.steps || [];
-      if(typeof target.currentStep !== 'number') target.currentStep = 0;
-      // Corrigir currentStep fora do range
-      if(target.steps.length > 0 && target.currentStep >= target.steps.length) {
-        target.currentStep = 0;
-      }
-    }
-
-    if(payload.d) safeMerge(DATA.d, payload.d);
-    if(payload.r) safeMerge(DATA.r, payload.r);
+    if(payload.d) { Object.assign(DATA.d, payload.d); sanitizePopData(DATA.d); }
+    if(payload.r) { Object.assign(DATA.r, payload.r); sanitizePopData(DATA.r); }
     if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : (payload.pat?.items ? payload.pat : []);
     if(payload.arqOverrides) {
       DATA._arqOverrides = payload.arqOverrides;
@@ -7047,9 +7069,14 @@ function homeRefresh() {
   const acEl = document.getElementById('home-arq-count');
   if(acEl) acEl.textContent = macros + ' macroprocessos · ' + procs + ' processos';
 
-  // Hide editor card if not editor
+  // Mostrar card editor só após permissão resolvida (currentUser definido)
+  // Se currentUser ainda null, manter oculto até checkEditorPermission terminar
   document.querySelectorAll('.home-card-editor').forEach(el => {
-    el.style.display = isEditor ? '' : 'none';
+    if(!currentUser) {
+      el.style.display = 'none'; // ainda carregando — ocultar por segurança
+    } else {
+      el.style.display = isEditor ? '' : 'none';
+    }
   });
 
   // POPs grid
