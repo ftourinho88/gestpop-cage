@@ -4414,8 +4414,11 @@ function applyPermissions() {
       showPatModule(false);
     }
     if(editMode) toggleEditMode();
-    // Mostrar overlay de solicitação de acesso se ainda não existe
-    if(!document.getElementById('access-request-overlay')) {
+    // Só mostrar overlay de acesso restrito se o usuário JÁ está logado
+    // (auth-overlay escondido = usuário autenticado mas sem permissão)
+    const authOverlay = document.getElementById('auth-overlay');
+    const authVisible = authOverlay && authOverlay.style.display !== 'none';
+    if(!authVisible && currentUser && !document.getElementById('access-request-overlay')) {
       showAccessRequestOverlay();
     }
   }
@@ -4651,7 +4654,7 @@ async function loadRequestsList() {
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
       </div>
-      ${isPending ? '<div style="display:flex;gap:8px;margin-top:10px;"><button onclick="handleRequest('' + r.email + '','' + (r.name||'') + '','aprovado')" style="flex:1;background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Aprovar</button><button onclick="handleRequest('' + r.email + '','' + (r.name||'') + '','rejeitado')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Rejeitar</button></div>' : ''}
+      ${isPending ? `<div style="display:flex;gap:8px;margin-top:10px;"><button onclick="handleRequest('${r.email}','${(r.name||'').replace(/'/g,"\\'")}','aprovado')" style="flex:1;background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Aprovar</button><button onclick="handleRequest('${r.email}','${(r.name||'').replace(/'/g,"\\'")}','rejeitado')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Rejeitar</button></div>` : ''}
     </div>`;
   }).join('');
 }
@@ -4822,9 +4825,13 @@ function initSupabase() {
       await loadFromCloud();
     } else {
       currentUser = null;
+      isEditor = false;
+      isAdmin  = false;
       document.getElementById('auth-overlay').style.display = 'flex';
       document.getElementById('user-chip').style.display = 'none';
       document.getElementById('sync-indicator').style.display = 'none';
+      // Remover overlay de acesso restrito para não bloquear o botão Google
+      document.getElementById('access-request-overlay')?.remove();
     }
   });
   // Check existing session
