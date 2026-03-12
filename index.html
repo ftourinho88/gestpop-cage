@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>GestPROC · CAGE-RS — Gestão de Processos CAGE</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2607,7 +2610,7 @@ function switchPop(pop, tabEl) {
   // Close BI / PAT modules when switching pops
   const _biMod = document.getElementById('bi-module');
   if(_biMod) _biMod.style.display = 'none';
-  document.getElementById('pat-module').classList.remove('active');
+  document.getElementById('pat-module').classList.remove('active'); document.getElementById('pat-module').style.display = 'none';
   if(typeof renderSidebar === 'function') renderSidebar();
 
   const labelEl = document.getElementById('current-pop-label');
@@ -4210,19 +4213,26 @@ function showPatModule(show = true) {
   const popSwitcher = document.getElementById('pop-switcher-bar');
 
   if(show) {
-    allPops.forEach(p => p.classList.remove('active'));
+    hideHome();
+    // Esconder todos os outros módulos
+    ['repo-module','drops-module','arq-module','bi-module','quadro-module'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    allPops.forEach(p => { p.classList.remove('active'); });
     if(navTabs) navTabs.style.display = 'none';
     if(popSwitcher) popSwitcher.style.display = 'none';
+    // Mostrar PAT — usar style.display para sobrepor qualquer CSS inline anterior
+    pat.style.display = 'block';
     pat.classList.add('active');
     renderPat();
     populatePatPopSelect();
-    // Update sidebar active state
     renderSidebar();
   } else {
+    pat.style.display = 'none';
     pat.classList.remove('active');
     if(navTabs) navTabs.style.display = '';
     if(popSwitcher) popSwitcher.style.display = '';
-    // Re-activate current pop
     const activePopEl = document.getElementById('pop-' + popDomId(currentPop));
     if(activePopEl) activePopEl.classList.add('active');
   }
@@ -4608,20 +4618,30 @@ function sanitizePopData(pd) {
 }
 
 // ── saveToCloud ──────────────────────────────────────────────
+let _saveInProgress = false;
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
+  if(_saveInProgress && attempt === 1) {
+    // Já salvando — aguardar e tentar novamente
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  if(_saveInProgress && attempt === 1) return; // ainda ocupado, ignorar
+  _saveInProgress = true;
   setSyncStatus('syncing');
 
   try { harvestEditables(); } catch(e) { console.warn('harvestEditables:', e); }
 
-  const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat' && k !== '_arqOverrides');
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops']);
+  const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
   const payload = {
     d:            DATA.d,
     r:            DATA.r,
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
-    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] }))
+    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
+    repoDocs:     REPO_DOCS || [],
+    drops:        DROPS     || []
   };
 
   try {
@@ -4670,11 +4690,13 @@ async function saveToCloud(attempt=1) {
         await new Promise(r => setTimeout(r, attempt * 1500));
         return saveToCloud(attempt + 1);
       }
+      _saveInProgress = false;
       setSyncStatus('error');
       showToast('❌ Erro ao salvar: ' + error.message, 'warn');
       return;
     }
 
+    _saveInProgress = false;
     setSyncStatus('synced');
     document.getElementById('unsaved-dot').style.display = 'none';
     showToast('☁️ Dados salvos!', 'success');
@@ -4682,6 +4704,7 @@ async function saveToCloud(attempt=1) {
     logHistory('Salvou alterações').catch(e => console.warn('logHistory:', e));
 
   } catch(e) {
+    _saveInProgress = false;
     console.error('saveToCloud exception:', e);
     if(attempt < 3) {
       await new Promise(r => setTimeout(r, attempt * 1500));
@@ -4725,7 +4748,9 @@ async function loadFromCloud() {
 
     if(payload.d) { Object.assign(DATA.d, payload.d); sanitizePopData(DATA.d); }
     if(payload.r) { Object.assign(DATA.r, payload.r); sanitizePopData(DATA.r); }
-    if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : (payload.pat?.items ? payload.pat : []);
+    if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : [];
+    if(Array.isArray(payload.repoDocs)) { REPO_DOCS = payload.repoDocs; }
+    if(Array.isArray(payload.drops))    { DROPS     = payload.drops; dropsRender(); }
     if(payload.arqOverrides) {
       DATA._arqOverrides = payload.arqOverrides;
       _arqData = null;
@@ -5167,7 +5192,7 @@ function showQuadroModule(show=true) {
   const el = document.getElementById('quadro-module');
   if(show) {
     document.querySelectorAll('.pop-content').forEach(p=>p.classList.remove('active'));
-    document.getElementById('pat-module').classList.remove('active');
+    document.getElementById('pat-module').classList.remove('active'); document.getElementById('pat-module').style.display = 'none';
     const bi = document.getElementById('bi-module');
     if(bi) bi.style.display='none';
     const navTabs = document.querySelector('.nav-tabs');
@@ -7699,23 +7724,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// SAVE/LOAD CLOUD — patch to include REPO_DOCS and DROPS
+// SAVE/LOAD CLOUD — REPO_DOCS e DROPS integrados ao payload
 // ═══════════════════════════════════════════════════════════
-const _origSaveToCloud2 = saveToCloud;
-saveToCloud = async function() {
-  // Inject repo and drops into DATA before saving
-  DATA._repoDocs = REPO_DOCS;
-  DATA._drops    = DROPS;
-  return _origSaveToCloud2.apply(this, arguments);
-};
-
-const _origLoadFromCloud2 = loadFromCloud;
-loadFromCloud = async function() {
-  const result = await _origLoadFromCloud2.apply(this, arguments);
-  if(DATA._repoDocs) { REPO_DOCS = DATA._repoDocs; delete DATA._repoDocs; }
-  if(DATA._drops)    { DROPS    = DATA._drops;    delete DATA._drops; }
-  return result;
-};
+// (integrado diretamente em saveToCloud e loadFromCloud abaixo)
 
 // Patch showHome to hide repo/drops
 const _origShowHome2 = showHome;
