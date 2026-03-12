@@ -2739,7 +2739,7 @@ function renderStep(p, i) {
   const s = DATA[p].steps[i];
   const em = editMode;
   const ce = em ? 'contenteditable="true"' : '';
-  const actHTML = s.actions.map((a,ai)=>{
+  const actHTML = (s.actions||[]).map((a,ai)=>{
     const obj = actionObj(a);
     const t = ACTION_TYPES[obj.type] || ACTION_TYPES.atividade;
     const actorHTML = obj.actor ? `<span class="action-actor">👤 ${obj.actor}</span>` : '';
@@ -3736,6 +3736,15 @@ function mountNewPopTab(key, label, silent=false) {
   document.querySelector('main').insertBefore(div, document.getElementById('bpmn-module'));
 
   // 11. Render all dynamic sections
+  // Garantir steps sanitizados antes de renderizar
+  if(!Array.isArray(DATA[key]?.steps)) DATA[key].steps = [];
+  DATA[key].steps = DATA[key].steps.map(s => ({
+    ...s,
+    actions: Array.isArray(s?.actions) ? s.actions : []
+  }));
+  if(DATA[key].steps.length === 0) {
+    DATA[key].steps = [{ title:'Etapa 1', subtitle:'', responsible:'Responsável', respClass:'resp-green', actions:[{type:'atividade',text:'Nova ação',actor:''}] }];
+  }
   renderStep(key, 0);
   renderRoles(key);
   renderIndicators(key);
@@ -4675,8 +4684,21 @@ async function loadFromCloud() {
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
         if(!pd) return;
+        // Sanitizar steps antes de montar — garante que actions nunca é undefined
+        if(Array.isArray(pd.steps)) {
+          pd.steps = pd.steps.map(s => ({
+            ...s,
+            actions: Array.isArray(s?.actions) ? s.actions : [],
+            title: s?.title || 'Etapa',
+            subtitle: s?.subtitle || '',
+            responsible: s?.responsible || '',
+            respClass: s?.respClass || 'resp-green'
+          }));
+        } else {
+          pd.steps = [];
+        }
+        if(typeof pd.currentStep !== 'number' || pd.currentStep >= (pd.steps?.length||0)) pd.currentStep = 0;
         DATA[key] = pd;
-        if(!Array.isArray(DATA[key].steps)) DATA[key].steps = [];
         if(!document.getElementById('pop-' + key)) {
           mountNewPopTab(key, pd.meta?.name || 'POP', true);
         }
