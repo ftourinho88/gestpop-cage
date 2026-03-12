@@ -630,6 +630,27 @@
   .pat-filter-btn{padding:5px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid var(--cage-border);background:white;cursor:pointer;color:var(--text-secondary);transition:all .15s;}
   .pat-filter-btn.active{background:var(--cage-blue);color:white;border-color:var(--cage-blue);}
 
+
+  /* ── HOME PAGE ── */
+  .home-card {
+    background: white;
+    border-radius: 14px;
+    padding: 24px 22px 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    transition: transform .15s, box-shadow .15s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .home-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.13); }
+  .home-card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .home-card-title { font-size: 15px; font-weight: 700; color: #0a2540; }
+  .home-card-desc { font-size: 13px; color: #64748b; line-height: 1.5; flex: 1; }
+  .home-card-footer { font-size: 12px; color: #94a3b8; font-weight: 500; margin-top: 4px; }
+  .home-card-editor-badge { color: #3b82f6; }
+  #home-stats > div { background: white; border-radius: 10px; padding: 14px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); min-width: 120px; }
+
 </style>
 </head>
 <body>
@@ -658,7 +679,7 @@
   <div class="header-inner">
     <div class="header-brand">
       <div class="header-logo">G</div>
-      <div class="header-title"><strong>GestPROC · CAGE-RS</strong>Gestão de Processos CAGE</div>
+      <div class="header-title" onclick="showHome()" style="cursor:pointer;" title="Ir para o início"><strong>GestPROC · CAGE-RS</strong>Gestão de Processos CAGE</div>
     </div>
     <div class="header-meta">
       <div class="sync-indicator" id="sync-indicator" style="display:none;">
@@ -703,7 +724,8 @@
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
     <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo POP</button>
-    <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
+        <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showArqModule();" style="margin-top:4px;background:rgba(139,92,246,.12);color:#c4b5fd;border-color:rgba(139,92,246,.25);">🏛 Arquitetura de Processos</button>
@@ -737,6 +759,58 @@
 </nav>
 
 <main class="main">
+
+<!-- ══════════════════ HOME PAGE ══════════════════ -->
+<div id="home-page" style="display:none;padding:40px 32px 60px;max-width:1100px;margin:0 auto;">
+  <div style="margin-bottom:36px;">
+    <div style="font-family:'DM Serif Display',serif;font-size:32px;color:#0a2540;line-height:1.2;">Bem-vindo ao <span style="color:#00a86b;">GestPROC</span></div>
+    <div style="font-size:15px;color:#64748b;margin-top:8px;">Gestão de Processos CAGE-RS — selecione um módulo para começar</div>
+  </div>
+  <div id="home-stats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:36px;"></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
+    <div class="home-card" onclick="showHomePops()" style="border-top:4px solid #00a86b;">
+      <div class="home-card-icon" style="background:#f0faf5;color:#00a86b;">📋</div>
+      <div class="home-card-title">Procedimentos Operacionais</div>
+      <div class="home-card-desc">Visualize, edite e crie POPs. Acesse fluxos BPMN, FAQs, normas e fichas técnicas.</div>
+      <div class="home-card-footer" id="home-pops-count">—</div>
+    </div>
+    <div class="home-card" onclick="showArqModule()" style="border-top:4px solid #8b5cf6;">
+      <div class="home-card-icon" style="background:#f5f3ff;color:#8b5cf6;">🏛</div>
+      <div class="home-card-title">Arquitetura de Processos</div>
+      <div class="home-card-desc">Gerencie macroprocessos, processos e subprocessos da cadeia de valor da CAGE-RS.</div>
+      <div class="home-card-footer" id="home-arq-count">—</div>
+    </div>
+    <div class="home-card" onclick="showBiModule()" style="border-top:4px solid #f59e0b;">
+      <div class="home-card-icon" style="background:#fffbeb;color:#f59e0b;">📊</div>
+      <div class="home-card-title">Painel BI</div>
+      <div class="home-card-desc">Acesse o painel de Business Intelligence com indicadores e a cadeia de valor.</div>
+      <div class="home-card-footer">Power BI integrado</div>
+    </div>
+    <div class="home-card" onclick="showQuadroModule()" style="border-top:4px solid #10b981;">
+      <div class="home-card-icon" style="background:#ecfdf5;color:#10b981;">🗒</div>
+      <div class="home-card-title">Quadro de Esboço</div>
+      <div class="home-card-desc">Canvas livre com post-its, atores e setas para modelagem visual de processos.</div>
+      <div class="home-card-footer">Canvas interativo</div>
+    </div>
+    <div class="home-card home-card-editor" onclick="showPatModule()" style="border-top:4px solid #3b82f6;">
+      <div class="home-card-icon" style="background:#eff6ff;color:#3b82f6;">📅</div>
+      <div class="home-card-title">Plano de Trabalho do EPP</div>
+      <div class="home-card-desc">Gerencie o planejamento e as atividades do Escritório de Processos e Projetos.</div>
+      <div class="home-card-footer home-card-editor-badge">🔒 Apenas editores</div>
+    </div>
+    <div class="home-card" onclick="document.getElementById('search-btn')?.click()" style="border-top:4px solid #64748b;">
+      <div class="home-card-icon" style="background:#f8fafc;color:#64748b;">🔍</div>
+      <div class="home-card-title">Busca Global</div>
+      <div class="home-card-desc">Pesquise em todos os POPs — FAQs, normas, responsáveis e procedimentos.</div>
+      <div class="home-card-footer">Busca em tempo real</div>
+    </div>
+  </div>
+  <div style="margin-bottom:32px;">
+    <div style="font-size:16px;font-weight:700;color:#0a2540;margin-bottom:16px;">📋 Procedimentos Disponíveis</div>
+    <div id="home-pops-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════════ -->
 <!-- MÓDULO: PLANO DE TRABALHO                  -->
@@ -1450,25 +1524,19 @@
                 <div class="npop-row">
                   <div>
                     <label>Macroprocesso</label>
-                    <select class="modal-input" id="nf-macro">
+                    <select class="modal-input" id="nf-macro" onchange="npopUpdateProcessoList()">
               <option value="">Selecione o macroprocesso...</option>
-              <option>Auditoria</option>
-              <option>Contabilidade</option>
-              <option>Controle</option>
-              <option>Gestão Estratégica</option>
-              <option>Comunicação e Relacionamento Institucional</option>
-              <option>Orientação</option>
-              <option>Transparência</option>
-              <option>Promoção da Integridade</option>
-              <option>Gestão de Dados</option>
-              <option>Gestão Administrativa</option>
-              <option>Gestão de TIC</option>
-              <option>Gestão de Pessoas</option>
             </select>
                   </div>
                   <div>
                     <label>Processo Pai</label>
-                    <input class="modal-input" id="nf-processo" type="text" placeholder="Ex: Tratar Denúncias">
+                    <input class="modal-input" id="nf-processo" type="text" placeholder="Digite para filtrar processos..." list="nf-processo-list" autocomplete="off">
+                    <datalist id="nf-processo-list"></datalist>
+                  </div>
+                  <div>
+                    <label>Subprocesso</label>
+                    <input class="modal-input" id="nf-subprocesso" type="text" placeholder="Digite para filtrar subprocessos..." list="nf-subprocesso-list" autocomplete="off">
+                    <datalist id="nf-subprocesso-list"></datalist>
                   </div>
                 </div>
                 <div class="npop-row">
@@ -2206,6 +2274,8 @@ function clearStorage() {
 document.addEventListener('DOMContentLoaded', () => {
   const loaded = loadFromStorage();
   if(loaded) showToast('✅ Dados recuperados do navegador', 'success');
+  // Start on home page
+  setTimeout(() => showHome(), 50);
 });
 
 function popPrefix(pop) {
@@ -3978,10 +4048,11 @@ async function saveToCloud(attempt=1) {
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
   setSyncStatus('syncing');
   harvestEditables();
-  const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat');
+  const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat' && k !== '_arqOverrides');
   const payload = {
     d: DATA.d, r: DATA.r,
     pat: DATA.pat || [],
+    arqOverrides: DATA._arqOverrides || null,
     newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
   };
   // localStorage desativado
@@ -4390,13 +4461,30 @@ async function loadFromCloud() {
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
         DATA[key] = pd;
-        mountNewPopTab(key, pd.meta?.name || 'POP');
+        // Only mount if DOM doesn't already exist (avoid duplicates on re-sync)
+        if(!document.getElementById('pop-' + key)) {
+          mountNewPopTab(key, pd.meta?.name || 'POP');
+        }
+        // Render content for this pop
+        const p = key;
+        try {
+          renderStep(p, pd.currentStep||0);
+          renderRoles(p); renderIndicators(p);
+          renderFaq(p); renderNormas(p); renderRevisions(p); renderFicha(p);
+        } catch(e) { console.warn('Render error for', p, e); }
       });
+    }
+    // Restore arq overrides
+    if(payload.arqOverrides) {
+      DATA._arqOverrides = payload.arqOverrides;
+      _arqData = payload.arqOverrides; // reset cache
     }
     renderStep('d', DATA.d.currentStep||0); renderRoles('d'); renderIndicators('d');
     renderFaq('d'); renderNormas('d'); renderRevisions('d'); renderFicha('d');
     renderStep('r', DATA.r.currentStep||0); renderRoles('r'); renderIndicators('r');
     renderFaq('r'); renderNormas('r'); renderRevisions('r'); renderFicha('r');
+    renderSidebar();
+    if(document.getElementById('home-page')?.style.display !== 'none') homeRefresh();
     setSyncStatus('synced');
     showToast('☁️ Dados sincronizados da nuvem!','success');
   } catch(e) {
@@ -6047,6 +6135,186 @@ function arqSaveToCloud() {
     showToast('⚠️ Faça login para salvar as alterações na nuvem.', 'warn');
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// HOME PAGE
+// ══════════════════════════════════════════════════════════════
+
+function showHome() {
+  const home = document.getElementById('home-page');
+  const pat  = document.getElementById('pat-module');
+  const bi   = document.getElementById('bi-module');
+  const qu   = document.getElementById('quadro-module');
+  const arq  = document.getElementById('arq-module');
+
+  // Hide all other modules/pops
+  document.querySelectorAll('.pop-content').forEach(el => el.classList.remove('active'));
+  if(pat) pat.style.display = 'none';
+  if(bi)  bi.style.display  = 'none';
+  if(qu)  qu.style.display  = 'none';
+  if(arq) arq.style.display = 'none';
+
+  home.style.display = 'block';
+  homeRefresh();
+}
+
+function hideHome() {
+  const home = document.getElementById('home-page');
+  if(home) home.style.display = 'none';
+}
+
+function showHomePops() {
+  hideHome();
+  // Switch to first available pop
+  const keys = Object.keys(DATA).filter(k => k !== '_arqOverrides' && k !== 'pat');
+  if(keys.length) switchPop(keys[0]);
+}
+
+function homeRefresh() {
+  const data = arqGetData();
+
+  // Stats
+  const macros = new Set(data.map(r => r.macroprocesso)).size;
+  const procs  = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
+  const popKeys = Object.keys(DATA).filter(k => k !== '_arqOverrides' && k !== 'pat');
+
+  document.getElementById('home-stats').innerHTML = [
+    { label: 'POPs cadastrados',   val: popKeys.length, color: '#00a86b' },
+    { label: 'Macroprocessos',     val: macros,         color: '#0a2540' },
+    { label: 'Processos mapeados', val: procs,          color: '#8b5cf6' },
+  ].map(s => `<div>
+    <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
+    <div style="font-size:12px;color:#64748b;margin-top:2px;">${s.label}</div>
+  </div>`).join('');
+
+  // Count labels
+  const pcEl = document.getElementById('home-pops-count');
+  if(pcEl) pcEl.textContent = popKeys.length + ' POP' + (popKeys.length !== 1 ? 's' : '') + ' disponível' + (popKeys.length !== 1 ? 'eis' : '');
+  const acEl = document.getElementById('home-arq-count');
+  if(acEl) acEl.textContent = macros + ' macroprocessos · ' + procs + ' processos';
+
+  // Hide editor card if not editor
+  document.querySelectorAll('.home-card-editor').forEach(el => {
+    el.style.display = isEditor ? '' : 'none';
+  });
+
+  // POPs grid
+  const grid = document.getElementById('home-pops-grid');
+  if(!grid) return;
+  const popDefs = [
+    { key: 'd', label: 'Tratar Denúncias',         color: '#00a86b', macro: 'Promoção da Integridade e Prevenção à Corrupção' },
+    { key: 'r', label: 'Tratar Representações',     color: '#60a5fa', macro: 'Promoção da Integridade e Prevenção à Corrupção' },
+    ...Object.keys(DATA)
+      .filter(k => k.startsWith('pop_'))
+      .map(k => ({ key: k, label: DATA[k]?.meta?.name || k, color: '#f59e0b', macro: DATA[k]?.meta?.macro || '' }))
+  ];
+
+  grid.innerHTML = popDefs.map(p => `
+    <div onclick="hideHome();switchPop('${p.key}')" style="background:white;border-radius:12px;padding:18px 20px;cursor:pointer;
+         box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid ${p.color};
+         transition:transform .15s,box-shadow .15s;"
+         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.12)'"
+         onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.06)'">
+      <div style="font-size:14px;font-weight:700;color:#0a2540;margin-bottom:4px;">📋 ${p.label}</div>
+      ${p.macro ? `<div style="font-size:11px;color:#94a3b8;">${p.macro}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// Override switchPop to hide home
+const _origSwitchPopHome = switchPop;
+switchPop = function(pop, tabEl) {
+  hideHome();
+  _origSwitchPopHome(pop, tabEl);
+};
+
+// Override showBiModule, showQuadroModule, showPatModule, showArqModule to hide home
+const _origShowBi = showBiModule;
+showBiModule = function(show=true) { if(show) hideHome(); _origShowBi(show); };
+const _origShowQu = showQuadroModule;
+showQuadroModule = function(show=true) { if(show) hideHome(); _origShowQu(show); };
+const _origShowPat = showPatModule;
+showPatModule = function(show=true) { if(show) hideHome(); _origShowPat(show); };
+const _origShowArq = showArqModule;
+showArqModule = function(show=true) { if(show) hideHome(); _origShowArq(show); };
+
+// ══════════════════════════════════════════════════════════════
+// NOVO POP — Smart autocomplete from CAGE_PROCESSOS
+// ══════════════════════════════════════════════════════════════
+
+function npopInitSelects() {
+  const data   = arqGetData ? arqGetData() : CAGE_PROCESSOS;
+  const macros = [...new Set(data.map(r => r.macroprocesso))].sort();
+  const macroSel = document.getElementById('nf-macro');
+  if(!macroSel) return;
+  macroSel.innerHTML = '<option value="">Selecione o macroprocesso...</option>'
+    + macros.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function npopUpdateProcessoList() {
+  const data  = arqGetData ? arqGetData() : CAGE_PROCESSOS;
+  const macro = document.getElementById('nf-macro')?.value || '';
+  const procInput = document.getElementById('nf-processo');
+  const procList  = document.getElementById('nf-processo-list');
+  if(!procList) return;
+
+  const procs = [...new Set(
+    data.filter(r => !macro || r.macroprocesso === macro).map(r => r.processo)
+  )].sort();
+  procList.innerHTML = procs.map(p => `<option value="${p}">`).join('');
+
+  // Also pre-fill from arq data when processo selected
+  if(procInput) {
+    procInput.value = '';
+    procInput.oninput = () => npopUpdateSubprocessoList();
+  }
+  npopUpdateSubprocessoList();
+}
+
+function npopUpdateSubprocessoList() {
+  const data    = arqGetData ? arqGetData() : CAGE_PROCESSOS;
+  const macro   = document.getElementById('nf-macro')?.value || '';
+  const proc    = document.getElementById('nf-processo')?.value || '';
+  const subList = document.getElementById('nf-subprocesso-list');
+  if(!subList) return;
+
+  const subs = [...new Set(
+    data
+      .filter(r => (!macro || r.macroprocesso === macro) && (!proc || r.processo === proc) && r.subprocesso)
+      .map(r => r.subprocesso)
+  )].sort();
+  subList.innerHTML = subs.map(s => `<option value="${s}">`).join('');
+
+  // Auto-fill objetivo/entradas/entregas/clientes/gerente/area when processo matches exactly
+  const match = data.find(r => r.processo === proc && (!macro || r.macroprocesso === macro));
+  if(match) {
+    const fields = {
+      'nf-desc':        match.objetivo,
+      'nf-input':       match.entradas,
+      'nf-output':      match.entregas,
+      'nf-fornecedores':match.fornecedores,
+      'nf-clientes':    match.clientes,
+    };
+    Object.entries(fields).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if(el && !el.value && val) el.value = val;
+    });
+    // Set nome if empty
+    const nomeEl = document.getElementById('nf-nome');
+    if(nomeEl && !nomeEl.value) nomeEl.value = proc;
+  }
+}
+
+// Init selects when npop modal opens — hook into existing openNpopModal
+const _origOpenNpopModal = typeof openNpopModal === 'function' ? openNpopModal : null;
+document.addEventListener('DOMContentLoaded', () => {
+  npopInitSelects();
+  // Also wire nf-processo oninput
+  const procInput = document.getElementById('nf-processo');
+  if(procInput) procInput.addEventListener('input', npopUpdateSubprocessoList);
+});
+
 
 </script>
 
