@@ -2735,6 +2735,38 @@ function actionObj(a) {
   return { type: a.type||'atividade', text: a.text||'', actor: a.actor||'' };
 }
 
+// ── Garante estrutura mínima de um POP antes de renderizar ──
+function sanitizePop(p) {
+  const d = DATA[p];
+  if(!d) return;
+  if(!Array.isArray(d.steps))      d.steps = [];
+  if(!Array.isArray(d.roles))      d.roles = [];
+  if(!Array.isArray(d.indicators)) d.indicators = [];
+  if(!Array.isArray(d.faq))        d.faq = [];
+  if(!Array.isArray(d.normas))     d.normas = [];
+  if(!Array.isArray(d.revisions))  d.revisions = [];
+  if(!d.ficha)                     d.ficha = {};
+  if(!d.meta)                      d.meta = {};
+  // Sanitizar steps
+  d.steps = d.steps.map(s => ({
+    title:       s?.title       || 'Etapa',
+    subtitle:    s?.subtitle    || '',
+    responsible: s?.responsible || '',
+    respClass:   s?.respClass   || 'resp-green',
+    actions:     Array.isArray(s?.actions) ? s.actions : [],
+    decision:    s?.decision    || null,
+    note:        s?.note        || ''
+  }));
+  // Sanitizar roles
+  d.roles = d.roles.map(r => ({
+    ...r,
+    duties: Array.isArray(r?.duties) ? r.duties : []
+  }));
+  // Corrigir currentStep fora do range
+  if(typeof d.currentStep !== 'number') d.currentStep = 0;
+  if(d.steps.length > 0 && d.currentStep >= d.steps.length) d.currentStep = 0;
+}
+
 function renderStep(p, i) {
   const s = DATA[p].steps[i];
   const em = editMode;
@@ -3736,16 +3768,11 @@ function mountNewPopTab(key, label, silent=false) {
   document.querySelector('main').insertBefore(div, document.getElementById('bpmn-module'));
 
   // 11. Render all dynamic sections
-  // Garantir steps sanitizados antes de renderizar
-  if(!Array.isArray(DATA[key]?.steps)) DATA[key].steps = [];
-  DATA[key].steps = DATA[key].steps.map(s => ({
-    ...s,
-    actions: Array.isArray(s?.actions) ? s.actions : []
-  }));
+  sanitizePop(key);
   if(DATA[key].steps.length === 0) {
     DATA[key].steps = [{ title:'Etapa 1', subtitle:'', responsible:'Responsável', respClass:'resp-green', actions:[{type:'atividade',text:'Nova ação',actor:''}] }];
   }
-  renderStep(key, 0);
+  renderStep(key, DATA[key].currentStep || 0);
   renderRoles(key);
   renderIndicators(key);
   renderFaq(key);
@@ -4684,21 +4711,8 @@ async function loadFromCloud() {
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
         if(!pd) return;
-        // Sanitizar steps antes de montar — garante que actions nunca é undefined
-        if(Array.isArray(pd.steps)) {
-          pd.steps = pd.steps.map(s => ({
-            ...s,
-            actions: Array.isArray(s?.actions) ? s.actions : [],
-            title: s?.title || 'Etapa',
-            subtitle: s?.subtitle || '',
-            responsible: s?.responsible || '',
-            respClass: s?.respClass || 'resp-green'
-          }));
-        } else {
-          pd.steps = [];
-        }
-        if(typeof pd.currentStep !== 'number' || pd.currentStep >= (pd.steps?.length||0)) pd.currentStep = 0;
         DATA[key] = pd;
+        sanitizePop(key); // garante estrutura completa antes de montar
         if(!document.getElementById('pop-' + key)) {
           mountNewPopTab(key, pd.meta?.name || 'POP', true);
         }
@@ -4707,11 +4721,10 @@ async function loadFromCloud() {
 
     ['d','r'].forEach(p => {
       try {
-        const steps = DATA[p]?.steps;
-        if(!steps?.length) return; // sem etapas, nada a renderizar
-        const idx = Math.min(DATA[p].currentStep || 0, steps.length - 1);
-        DATA[p].currentStep = idx;
-        renderStep(p, idx);
+        sanitizePop(p);
+        const steps = DATA[p].steps;
+        if(!steps.length) return;
+        renderStep(p, DATA[p].currentStep);
         renderRoles(p); renderIndicators(p);
         renderFaq(p); renderNormas(p); renderRevisions(p); renderFicha(p);
       } catch(e) { console.warn('Render error for', p, e); }
