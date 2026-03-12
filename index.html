@@ -4085,6 +4085,69 @@ if(!DATA.pat) DATA.pat = [];
 let _patFilter = 'todos';
 let _patEditIdx = null;
 
+function patCheckDeadlines() {
+  if(!DATA.pat?.items?.length) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in7   = new Date(today); in7.setDate(in7.getDate() + 7);
+
+  const overdue = [];
+  const soon    = [];
+
+  DATA.pat.items.forEach((item, i) => {
+    if(!item.prazo || item.status === 'concluido') return;
+    const d = new Date(item.prazo + 'T00:00:00');
+    if(isNaN(d)) return;
+    if(d < today)  overdue.push({ ...item, idx: i });
+    else if(d <= in7) soon.push({ ...item, idx: i, dias: Math.round((d - today) / 86400000) });
+  });
+
+  if(!overdue.length && !soon.length) return;
+
+  // Criar ou atualizar banner de alertas
+  let banner = document.getElementById('pat-deadline-banner');
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'pat-deadline-banner';
+    banner.style.cssText = 'position:fixed;top:70px;right:16px;z-index:1500;max-width:360px;display:flex;flex-direction:column;gap:8px;';
+    document.body.appendChild(banner);
+  }
+
+  banner.innerHTML = '';
+
+  overdue.forEach(item => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:#fee2e2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(220,38,38,.15);cursor:pointer;';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;">⏰ Prazo Estourado</div>
+        <div style="font-size:13px;font-weight:600;color:#991b1b;margin-top:2px;">${item.acao||'Ação sem título'}</div>
+        <div style="font-size:11px;color:#b91c1c;margin-top:2px;">Previsto: ${new Date(item.prazo+'T00:00:00').toLocaleDateString('pt-BR')} · ${item.responsavel||'sem responsável'}</div>
+      </div>
+      <button onclick="this.closest('#pat-deadline-banner').removeChild(this.closest('div[style]'))" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:0 0 0 8px;">✕</button>
+    </div>`;
+    el.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { hideHome(); showPatModule(true); } };
+    banner.appendChild(el);
+  });
+
+  soon.forEach(item => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:#fef9c3;border:1.5px solid #fde047;border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(234,179,8,.15);cursor:pointer;';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:#d97706;text-transform:uppercase;letter-spacing:.05em;">⚠️ Vence em ${item.dias === 0 ? 'hoje' : item.dias + ' dia' + (item.dias > 1 ? 's' : '')}</div>
+        <div style="font-size:13px;font-weight:600;color:#92400e;margin-top:2px;">${item.acao||'Ação sem título'}</div>
+        <div style="font-size:11px;color:#a16207;margin-top:2px;">Previsto: ${new Date(item.prazo+'T00:00:00').toLocaleDateString('pt-BR')} · ${item.responsavel||'sem responsável'}</div>
+      </div>
+      <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:#d97706;cursor:pointer;font-size:16px;padding:0 0 0 8px;">✕</button>
+    </div>`;
+    el.onclick = (e) => { if(e.target.tagName !== 'BUTTON') { hideHome(); showPatModule(true); } };
+    banner.appendChild(el);
+  });
+
+  // Auto-dismiss after 12s
+  setTimeout(() => { if(banner) banner.style.opacity = '0'; setTimeout(() => banner?.remove(), 600); }, 12000);
+}
+
 function showPatModule(show = true) {
   const pat = document.getElementById('pat-module');
   const allPops = document.querySelectorAll('.pop-content');
@@ -4771,12 +4834,22 @@ function initSupabase() {
 }
 
 async function signInGoogle() {
-  document.getElementById('auth-status').textContent = 'Redirecionando...';
-  const { error } = await supaClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href }
-  });
-  if(error) document.getElementById('auth-status').textContent = '⚠️ ' + error.message;
+  const statusEl = document.getElementById('auth-status');
+  statusEl.textContent = 'Redirecionando para o Google...';
+  if(!supaClient) { statusEl.textContent = '⚠️ Sistema ainda carregando. Tente novamente.'; return; }
+  try {
+    const { data, error } = await supaClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        queryParams: { prompt: 'select_account' }
+      }
+    });
+    if(error) statusEl.textContent = '⚠️ ' + error.message;
+  } catch(e) {
+    statusEl.textContent = '⚠️ Erro: ' + e.message;
+    console.error('Google OAuth error:', e);
+  }
 }
 
 async function signInEmail() {
@@ -4916,6 +4989,8 @@ async function loadFromCloud() {
     if(homePage && homePage.style.display !== 'none') {
       homeRefresh();
     }
+    // Verificar prazos do Plano de Ação
+    setTimeout(() => patCheckDeadlines(), 800);
     setSyncStatus('synced');
     showToast('☁️ Dados sincronizados da nuvem!','success');
   } catch(e) {
@@ -6443,12 +6518,17 @@ function showArqModule(show = true) {
 function arqInit() {
   const data = arqGetData();
 
-  // Populate macro filter + datalist
+  // Populate macro filter
   const macros = [...new Set(data.map(r => r.macroprocesso))].sort();
   const filterMacro = document.getElementById('arq-filter-macro');
   const macroList   = document.getElementById('arq-macro-list');
   filterMacro.innerHTML = '<option value="">Todos</option>' + macros.map(m => `<option value="${m}">${m}</option>`).join('');
-  macroList.innerHTML   = macros.map(m => `<option value="${m}">`).join('');
+  if(macroList) macroList.innerHTML = macros.map(m => `<option value="${m}">`).join('');
+
+  // Populate area filter
+  const areas = [...new Set(data.map(r => r.area).filter(Boolean))].sort();
+  const filterArea = document.getElementById('arq-filter-area');
+  if(filterArea) filterArea.innerHTML = '<option value="">Todas</option>' + areas.map(a => `<option value="${a}">${a}</option>`).join('');
 
   arqApplyFilter();
 }
@@ -6457,15 +6537,30 @@ function arqApplyFilter() {
   const data    = arqGetData();
   const macro   = document.getElementById('arq-filter-macro').value.toLowerCase();
   const nat     = document.getElementById('arq-filter-natureza').value.toLowerCase();
+  const area    = (document.getElementById('arq-filter-area')?.value || '').toLowerCase();
+  const mapeado = document.getElementById('arq-filter-mapeado')?.value || '';
   const search  = (document.getElementById('arq-filter-search').value || '').toLowerCase();
 
-  const filtered = data.filter(r => {
-    const matchMacro  = !macro  || r.macroprocesso.toLowerCase() === macro;
-    const matchNat    = !nat    || (r.natureza||'').toLowerCase() === nat;
-    const matchSearch = !search || [r.macroprocesso, r.processo, r.subprocesso, r.area, r.gerente]
+  let filtered = data.filter(r => {
+    const matchMacro   = !macro   || r.macroprocesso.toLowerCase() === macro;
+    const matchNat     = !nat     || (r.natureza||'').toLowerCase() === nat;
+    const matchArea    = !area    || (r.area||'').toLowerCase() === area;
+    const matchMapeado = !mapeado || (mapeado === 'sim' ? !!r.mapeado : !r.mapeado);
+    const matchSearch  = !search  || [r.macroprocesso, r.processo, r.subprocesso, r.area, r.gerente]
       .some(v => (v||'').toLowerCase().includes(search));
-    return matchMacro && matchNat && matchSearch;
+    return matchMacro && matchNat && matchArea && matchMapeado && matchSearch;
   });
+
+  // Apply sort
+  if(_arqSort.col) {
+    const col = _arqSort.col;
+    const dir = _arqSort.dir;
+    filtered = [...filtered].sort((a, b) => {
+      const va = (a[col] || '').toLowerCase();
+      const vb = (b[col] || '').toLowerCase();
+      return va < vb ? -dir : va > vb ? dir : 0;
+    });
+  }
 
   arqRenderTable(filtered, data);
   arqRenderStats(filtered, data);
@@ -6475,6 +6570,10 @@ function arqClearFilter() {
   document.getElementById('arq-filter-macro').value    = '';
   document.getElementById('arq-filter-natureza').value = '';
   document.getElementById('arq-filter-search').value   = '';
+  const a = document.getElementById('arq-filter-area');    if(a) a.value = '';
+  const m = document.getElementById('arq-filter-mapeado'); if(m) m.value = '';
+  _arqSort = { col: null, dir: 1 };
+  document.querySelectorAll('.arq-th-sort .sort-arrow').forEach(el => el.textContent = ' ↕');
   arqApplyFilter();
 }
 
@@ -6517,6 +6616,20 @@ const NAT_COLORS = {
   'APOIO':       { bg: '#dbeafe', color: '#1e40af' },
   'GESTÃO':      { bg: '#fef9c3', color: '#854d0e' },
 };
+
+// Arq sort state
+let _arqSort = { col: null, dir: 1 }; // dir: 1=asc, -1=desc
+
+function arqSortBy(col) {
+  if(_arqSort.col === col) _arqSort.dir *= -1;
+  else { _arqSort.col = col; _arqSort.dir = 1; }
+  // Update header arrows
+  document.querySelectorAll('.arq-th-sort').forEach(th => {
+    const c = th.dataset.col;
+    th.querySelector('.sort-arrow').textContent = c === col ? (_arqSort.dir === 1 ? ' ▲' : ' ▼') : ' ↕';
+  });
+  arqApplyFilter();
+}
 
 function arqRenderTable(filtered, all) {
   const tbody = document.getElementById('arq-tbody');
@@ -7619,13 +7732,13 @@ showHome = function() {
 
     <!-- Filtros -->
     <div style="background:white;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-      <div style="flex:1;min-width:180px;">
+      <div style="flex:1;min-width:160px;">
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Macroprocesso</label>
         <select id="arq-filter-macro" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
           <option value="">Todos</option>
         </select>
       </div>
-      <div style="flex:1;min-width:180px;">
+      <div style="flex:1;min-width:160px;">
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Natureza</label>
         <select id="arq-filter-natureza" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
           <option value="">Todas</option>
@@ -7634,7 +7747,21 @@ showHome = function() {
           <option>GESTÃO</option>
         </select>
       </div>
-      <div style="flex:2;min-width:200px;">
+      <div style="flex:1;min-width:160px;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Área</label>
+        <select id="arq-filter-area" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div style="flex:0 0 140px;">
+        <label style="font-size:12px;font-weight:600;color:#00a86b;display:block;margin-bottom:4px;">Mapeado?</label>
+        <select id="arq-filter-mapeado" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
+          <option value="">Todos</option>
+          <option value="sim">✅ Sim</option>
+          <option value="nao">○ Não</option>
+        </select>
+      </div>
+      <div style="flex:2;min-width:180px;">
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Buscar</label>
         <input id="arq-filter-search" oninput="arqApplyFilter()" placeholder="Digite para filtrar processos..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
@@ -7649,11 +7776,11 @@ showHome = function() {
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
           <tr style="background:#0a2540;color:white;">
-            <th style="padding:12px 16px;text-align:left;font-weight:600;">Macroprocesso</th>
-            <th style="padding:12px 16px;text-align:left;font-weight:600;">Processo</th>
-            <th style="padding:12px 16px;text-align:left;font-weight:600;">Subprocesso</th>
-            <th style="padding:12px 16px;text-align:left;font-weight:600;">Natureza</th>
-            <th style="padding:12px 16px;text-align:left;font-weight:600;">Área</th>
+            <th class="arq-th-sort" data-col="macroprocesso" onclick="arqSortBy('macroprocesso')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Macroprocesso<span class="sort-arrow"> ↕</span></th>
+            <th class="arq-th-sort" data-col="processo" onclick="arqSortBy('processo')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Processo<span class="sort-arrow"> ↕</span></th>
+            <th class="arq-th-sort" data-col="subprocesso" onclick="arqSortBy('subprocesso')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Subprocesso<span class="sort-arrow"> ↕</span></th>
+            <th class="arq-th-sort" data-col="natureza" onclick="arqSortBy('natureza')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Natureza<span class="sort-arrow"> ↕</span></th>
+            <th class="arq-th-sort" data-col="area" onclick="arqSortBy('area')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Área<span class="sort-arrow"> ↕</span></th>
             <th style="padding:12px 16px;text-align:center;font-weight:600;color:#6ee7b7;">Mapeado?</th>
             <th style="padding:12px 16px;text-align:center;font-weight:600;">Ações</th>
           </tr>
