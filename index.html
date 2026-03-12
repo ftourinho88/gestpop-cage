@@ -2895,44 +2895,63 @@ function showBpmnImage(dataUrl) {
 
 // ── Supabase Storage para imagens de fluxo ──────────────────
 async function uploadFluxoImgToStorage(popKey, file) {
-  if(!supaClient || !currentUser) return; // silent — will use base64 fallback
+  if(!supaClient || !currentUser) {
+    showToast('⚠️ Faça login para salvar a imagem na nuvem. Ela ficará disponível só nesta sessão.', 'warn');
+    return;
+  }
+  showToast('⏳ Enviando imagem para o storage...', 'success');
   try {
-    const ext  = file.name.split('.').pop() || 'png';
+    const ext  = file.name.split('.').pop().toLowerCase() || 'png';
     const path = `fluxo-${popKey}-${Date.now()}.${ext}`;
     const { error } = await supaClient.storage
       .from('gestpop-images')
       .upload(path, file, { upsert: true, contentType: file.type });
     if(error) {
-      console.warn('Storage upload failed, using base64 fallback:', error.message);
-      return; // base64 already in DATA[p].fluxoImg — will save to DB
+      // Bucket may not exist yet
+      if(error.message && error.message.includes('Bucket not found')) {
+        showToast('⚠️ Bucket "gestpop-images" não encontrado no Supabase Storage. Crie-o no Dashboard → Storage → New bucket (nome: gestpop-images, público).', 'warn');
+      } else {
+        showToast('⚠️ Erro no storage: ' + error.message + '. A imagem ficará só nesta sessão.', 'warn');
+      }
+      console.warn('Storage upload failed:', error.message);
+      return;
     }
     // Get public URL
     const { data } = supaClient.storage.from('gestpop-images').getPublicUrl(path);
     if(data?.publicUrl) {
       DATA[popKey].fluxoImgUrl  = data.publicUrl;
       DATA[popKey].fluxoImgPath = path;
-      // Remove base64 from DATA to keep JSON small
-      DATA[popKey].fluxoImg = null;
-      showToast('🖼 Imagem salva no storage (alta qualidade)', 'success');
+      DATA[popKey].fluxoImg     = null; // never store base64 in DB
+      showToast('✅ Imagem salva em alta qualidade no storage!', 'success');
+      markChanged();
     }
   } catch(e) {
-    console.warn('Storage error:', e.message);
+    showToast('⚠️ Erro inesperado no storage: ' + e.message, 'warn');
+    console.warn('Storage error:', e);
   }
 }
 
 async function loadFluxoImgFromStorage(popKey) {
-  const url = DATA[popKey]?.fluxoImgUrl;
-  if(url) {
-    // Use URL directly — full quality, no base64 overhead
-    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem salva';
-    showBpmnImage(url);
+  // Priority 1: in-memory object URL from this session (best quality)
+  const objUrl = DATA[popKey]?._fluxoObjectUrl;
+  if(objUrl) {
+    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem';
+    showBpmnImage(objUrl);
     return true;
   }
-  // Fallback: base64 in DATA
+  // Priority 2: Supabase Storage URL (full quality, persisted)
+  const storageUrl = DATA[popKey]?.fluxoImgUrl;
+  if(storageUrl) {
+    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem salva';
+    showBpmnImage(storageUrl);
+    return true;
+  }
+  // Priority 3: legacy base64 in DATA (old sessions before storage migration)
   const b64 = DATA[popKey]?.fluxoImg;
   if(b64) {
-    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem salva';
+    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem (legado)';
     showBpmnImage(b64);
+    showToast('💡 Imagem em formato antigo. Faça o upload novamente para melhorar a qualidade.', 'warn');
     return true;
   }
   return false;
@@ -2993,9 +3012,18 @@ function resetBpmn() {
   window._imgState = { zoom:1, tx:0, ty:0 };
   const btn = document.getElementById('bpmn-extract-btn');
   if(btn) btn.style.display = 'none';
-  // Also clear saved image for current pop
+  // Clear all image data for current pop
   const p = popPrefix(currentPop);
-  if(DATA[p]) DATA[p].fluxoImg = null;
+  if(DATA[p]) {
+    // Revoke object URL to free memory
+    if(DATA[p]._fluxoObjectUrl) URL.revokeObjectURL(DATA[p]._fluxoObjectUrl);
+    DATA[p]._fluxoObjectUrl = null;
+    DATA[p]._fluxoFile      = null;
+    DATA[p].fluxoImg        = null;
+    DATA[p].fluxoImgUrl     = null;
+    DATA[p].fluxoImgPath    = null;
+    DATA[p].fluxoImgName    = null;
+  }
   markChanged();
 }
 
@@ -3009,23 +3037,21 @@ function loadImageFile(file) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const dataUrl = ev.target.result;
-    const p = popPrefix(currentPop);
-    if(!DATA[p]) DATA[p] = {};
-    // Store full quality dataUrl in memory for display and Gemini
-    DATA[p].fluxoImg = dataUrl;
-    DATA[p].fluxoImgName = file.name;
-    document.getElementById('bpmn-file-name').textContent = file.name;
-    // Show immediately at full quality
-    showBpmnImage(dataUrl);
-    // Upload to Supabase Storage in background (no quality loss)
-    uploadFluxoImgToStorage(p, file);
-    markChanged();
-  };
-  reader.onerror = () => showToast('Erro ao ler o arquivo. Tente novamente.', 'warn');
-  reader.readAsDataURL(file);
+  // Keep file reference in memory for Gemini (never save base64 to DB)
+  const p = popPrefix(currentPop);
+  if(!DATA[p]) DATA[p] = {};
+  DATA[p]._fluxoFile = file; // in-memory only, not persisted
+  DATA[p].fluxoImgName = file.name;
+  document.getElementById('bpmn-file-name').textContent = file.name;
+
+  // Show immediately using object URL (full quality, zero overhead)
+  const objectUrl = URL.createObjectURL(file);
+  DATA[p]._fluxoObjectUrl = objectUrl; // in-memory only
+  showBpmnImage(objectUrl);
+
+  // Upload to Supabase Storage → save only the URL in DATA
+  uploadFluxoImgToStorage(p, file);
+  markChanged();
 }
 
 
@@ -4129,8 +4155,8 @@ const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 // ── Gemini API (gratuita) ──────────────────────────────────────
 // Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
 const GEMINI_KEY = 'AIzaSyC9ds8TYET51RRDOU0nqDX6bZWxy23Eafo';
-const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=';
-const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=';
+const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
+const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 
 function geminiErrMsg(status, body) {
   if(status === 429) return 'Limite de requisições atingido. Aguarde 1 minuto e tente novamente.';
@@ -5080,22 +5106,34 @@ async function extractFluxoFromImage() {
   showToast('🤖 Analisando imagem com IA...','success');
 
   try {
-    // Get image for Gemini — prefer in-memory base64, fallback to fetch URL
+    // Get image for Gemini Vision
     let base64, mediaType;
     const p2 = popPrefix(currentPop);
-    const storedB64 = DATA[p2]?.fluxoImg;
-    if(storedB64 && storedB64.startsWith('data:')) {
-      base64    = storedB64.split(',')[1];
-      mediaType = storedB64.split(';')[0].split(':')[1] || 'image/png';
+
+    // Best: use in-memory File object from this session
+    const memFile = DATA[p2]?._fluxoFile;
+    if(memFile) {
+      mediaType = memFile.type || 'image/png';
+      const ab = await memFile.arrayBuffer();
+      base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
     } else {
-      // Fetch from storage URL and convert to base64 for Gemini
-      const imgUrl = DATA[p2]?.fluxoImgUrl || imgEl.src;
-      showToast('🤖 Carregando imagem para análise...', 'success');
+      // Fallback: fetch from storage URL
+      const imgUrl = DATA[p2]?.fluxoImgUrl || DATA[p2]?.fluxoImg || imgEl.src;
+      if(!imgUrl) throw new Error('Nenhuma imagem disponível. Faça o upload novamente.');
+      showToast('🤖 Carregando imagem do storage para análise...', 'success');
       const fetchResp = await fetch(imgUrl);
+      if(!fetchResp.ok) throw new Error('Não foi possível carregar a imagem do storage.');
       const blob = await fetchResp.blob();
       mediaType = blob.type || 'image/png';
       const ab = await blob.arrayBuffer();
-      base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+      // Large images: chunk to avoid stack overflow
+      const bytes = new Uint8Array(ab);
+      let binary = '';
+      const chunk = 8192;
+      for(let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      base64 = btoa(binary);
     }
 
     const extractPrompt = `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
