@@ -301,7 +301,7 @@
   .bpmn-zoom-label{font-size:12px;color:rgba(255,255,255,.7);min-width:40px;text-align:center;font-family:'JetBrains Mono',monospace;}
   .bpmn-divider{width:1px;height:20px;background:rgba(255,255,255,.2);margin:0 4px;}
 
-  .bpmn-canvas-wrap{position:relative;background:#f8f9fc;height:72vh;min-height:480px;}
+  .bpmn-canvas-wrap{position:relative;background:#f8f9fc;height:80vh;min-height:560px;}
   #bpmn-canvas{width:100%;height:100%;}
   #bpmn-canvas .djs-container svg{width:100%!important;height:100%!important;}
 
@@ -313,7 +313,7 @@
   .bpmn-error-desc{font-size:13px;color:var(--text-muted);max-width:480px;line-height:1.5;}
 
   /* Image viewer */
-  #bpmn-img-inner { will-change: transform; }
+  #bpmn-img-inner { position:absolute; }
 
   /* bpmn-js overrides */
   .djs-palette{border-radius:8px!important;border-color:var(--cage-border)!important;}
@@ -2833,20 +2833,30 @@ function showBpmnImage(dataUrl) {
   // Build image viewer
   const wrap = document.createElement('div');
   wrap.id = 'bpmn-image-viewer';
-  wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#e8edf4;cursor:grab;';
+  wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;background:#e8edf4;cursor:grab;';
 
   const inner = document.createElement('div');
   inner.id = 'bpmn-img-inner';
-  inner.style.cssText = 'will-change:transform;transform:translate(0px,0px) scale(1);transform-origin:center center;';
+  inner.style.cssText = 'position:absolute;top:0;left:0;';
 
   const img = document.createElement('img');
   img.id = 'bpmn-img-el';
   img.draggable = false;
-  img.style.cssText = 'display:block;max-width:88vw;max-height:62vh;border-radius:8px;box-shadow:0 6px 32px rgba(0,0,0,.22);user-select:none;pointer-events:none;';
+  img.style.cssText = 'display:block;max-width:none;max-height:none;user-select:none;pointer-events:none;image-rendering:crisp-edges;image-rendering:-webkit-optimize-contrast;';
 
   img.onload = () => {
     document.getElementById('bpmn-loading').style.display = 'none';
-    window._imgState = { zoom:1, tx:0, ty:0 };
+    // Calculate fit-to-screen zoom based on natural image size
+    const canvasWrap = document.querySelector('.bpmn-canvas-wrap');
+    const cw = canvasWrap.clientWidth  || window.innerWidth;
+    const ch = canvasWrap.clientHeight || 560;
+    const iw = img.naturalWidth  || img.width  || 800;
+    const ih = img.naturalHeight || img.height || 600;
+    const fitZoom = Math.min((cw - 40) / iw, (ch - 40) / ih, 1);
+    // Center the image
+    const tx = (cw - iw * fitZoom) / 2;
+    const ty = (ch - ih * fitZoom) / 2;
+    window._imgState = { zoom: fitZoom, tx, ty };
     applyImgTransform();
     updateZoomLabel();
     const btn = document.getElementById('bpmn-extract-btn');
@@ -3057,9 +3067,15 @@ function loadImageFile(file) {
 
 function applyImgTransform() {
   const inner = document.getElementById('bpmn-img-inner');
-  if(!inner) return;
+  const img   = document.getElementById('bpmn-img-el');
+  if(!inner || !img) return;
   const s = window._imgState;
-  inner.style.transform = 'translate(' + s.tx + 'px,' + s.ty + 'px) scale(' + s.zoom + ')';
+  // Use translate only — resize image directly to avoid blur from CSS scale
+  inner.style.transform = 'translate(' + s.tx + 'px,' + s.ty + 'px)';
+  const nw = img.naturalWidth  || img.width  || 800;
+  const nh = img.naturalHeight || img.height || 600;
+  img.style.width  = Math.round(nw * s.zoom) + 'px';
+  img.style.height = Math.round(nh * s.zoom) + 'px';
 }
 
 function imgZoom(delta) {
@@ -3074,9 +3090,22 @@ function bpmnZoom(delta) {
 }
 
 function bpmnFit() {
-  window._imgState = { zoom: 1, tx: 0, ty: 0 };
+  const img = document.getElementById('bpmn-img-el');
+  const canvasWrap = document.querySelector('.bpmn-canvas-wrap');
+  if(img && canvasWrap) {
+    const cw = canvasWrap.clientWidth;
+    const ch = canvasWrap.clientHeight;
+    const iw = img.naturalWidth  || 800;
+    const ih = img.naturalHeight || 600;
+    const fitZoom = Math.min((cw - 40) / iw, (ch - 40) / ih, 1);
+    const tx = (cw - iw * fitZoom) / 2;
+    const ty = (ch - ih * fitZoom) / 2;
+    window._imgState = { zoom: fitZoom, tx, ty };
+  } else {
+    window._imgState = { zoom: 1, tx: 0, ty: 0 };
+  }
   applyImgTransform();
-  document.getElementById('bpmn-zoom-label').textContent = '100%';
+  updateZoomLabel();
 }
 
 function updateZoomLabel() {
@@ -4154,7 +4183,7 @@ const _origOnAuthChange = null;
 const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 // ── Gemini API (gratuita) ──────────────────────────────────────
 // Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
-const GEMINI_KEY = 'AIzaSyC9ds8TYET51RRDOU0nqDX6bZWxy23Eafo';
+const GEMINI_KEY = 'AIzaSyD2rqisHWcfyhUNCVy8p09PqV1i_Kfg0Xw';
 const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 
