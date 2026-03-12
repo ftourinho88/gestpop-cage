@@ -4294,10 +4294,21 @@ let isEditor = false;
 let isAdmin  = false;
 let workspaceId = null;
 
+const ADMIN_EMAIL = 'f.ctourinho@gmail.com';
+
 async function checkEditorPermission() {
   if(!currentUser) return;
   currentUserEmail = currentUser.email;
   currentUserName  = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+
+  // Admin sempre tem acesso total, independente da tabela
+  if(currentUserEmail === ADMIN_EMAIL) {
+    isEditor = true;
+    isAdmin  = true;
+    applyPermissions();
+    document.getElementById('perm-panel').style.display = 'flex';
+    return;
+  }
 
   const { data, error } = await supaClient
     .from('gestpop_editors')
@@ -4318,22 +4329,99 @@ async function checkEditorPermission() {
 }
 
 function applyPermissions() {
-  const banner = document.getElementById('readonly-banner');
+  const banner  = document.getElementById('readonly-banner');
   const editBtn = document.getElementById('edit-toggle');
+  const saveBtn = document.getElementById('save-btn');
+  const pptBtn  = document.getElementById('ppt-btn');
   const patBtn  = document.querySelector('.sidebar-pat-btn');
+
   if(isEditor) {
     banner.classList.remove('show');
     editBtn.style.display = '';
-    if(patBtn) patBtn.style.display = '';
+    if(saveBtn) saveBtn.style.display = '';
+    if(pptBtn)  pptBtn.style.display  = '';
+    if(patBtn)  patBtn.style.display  = '';
+    document.getElementById('access-request-overlay')?.remove();
   } else {
     banner.classList.add('show');
     editBtn.style.display = 'none';
-    if(patBtn) patBtn.style.display = 'none';
-    // If currently on PAT, go back to first pop
+    if(saveBtn) saveBtn.style.display = 'none';
+    if(patBtn)  patBtn.style.display  = 'none';
     if(document.getElementById('pat-module').classList.contains('active')) {
       showPatModule(false);
     }
     if(editMode) toggleEditMode();
+    // Mostrar overlay de solicitação de acesso se ainda não existe
+    if(!document.getElementById('access-request-overlay')) {
+      showAccessRequestOverlay();
+    }
+  }
+}
+
+async function showAccessRequestOverlay() {
+  // Verificar se já tem solicitação pendente
+  const { data: existing } = await supaClient
+    .from('gestpop_requests')
+    .select('status')
+    .eq('email', currentUserEmail)
+    .single();
+
+  let msg = '';
+  if(existing?.status === 'pendente') {
+    msg = `<div style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:14px 18px;font-size:13px;color:#854d0e;margin-bottom:16px;">
+      ⏳ <strong>Solicitação enviada!</strong> Aguarde a aprovação do administrador.
+    </div>`;
+  } else if(existing?.status === 'rejeitado') {
+    msg = `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:14px 18px;font-size:13px;color:#991b1b;margin-bottom:16px;">
+      ❌ <strong>Acesso negado.</strong> Entre em contato com o administrador.
+    </div>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'access-request-overlay';
+  overlay.style.cssText = `position:fixed;inset:0;z-index:2000;background:rgba(10,37,64,.85);
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);`;
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:20px;padding:40px;max-width:460px;width:94%;box-shadow:0 32px 80px rgba(0,0,0,.3);text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+      <div style="font-size:22px;font-weight:800;color:#0a2540;margin-bottom:8px;">Acesso Restrito</div>
+      <div style="font-size:14px;color:#64748b;margin-bottom:24px;">
+        Você está logado como <strong>${currentUserEmail}</strong>, mas não tem permissão para acessar este sistema.
+      </div>
+      ${msg}
+      ${!existing ? `
+      <div style="text-align:left;margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:6px;">MOTIVO DA SOLICITAÇÃO (opcional)</label>
+        <textarea id="req-motivo" rows="3" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;resize:none;box-sizing:border-box;"
+          placeholder="Ex: Sou servidor da CAGE e preciso acesso para..."></textarea>
+      </div>
+      <button onclick="submitAccessRequest()" style="width:100%;background:#00a86b;color:white;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;">
+        📨 Solicitar Acesso
+      </button>` : ''}
+      <button onclick="signOut()" style="width:100%;background:none;border:1px solid #e2e8f0;border-radius:10px;padding:10px;font-size:13px;color:#64748b;cursor:pointer;">
+        Sair da conta
+      </button>
+      <div id="req-status" style="margin-top:12px;font-size:13px;"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function submitAccessRequest() {
+  const motivo = document.getElementById('req-motivo')?.value.trim() || '';
+  document.getElementById('req-status').textContent = 'Enviando...';
+  const { error } = await supaClient.from('gestpop_requests').upsert({
+    email: currentUserEmail,
+    name:  currentUserName,
+    motivo,
+    status: 'pendente',
+    requested_at: new Date().toISOString()
+  }, { onConflict: 'email' });
+  if(error) {
+    document.getElementById('req-status').textContent = '⚠️ Erro: ' + error.message;
+  } else {
+    document.getElementById('req-status').innerHTML =
+      '<span style="color:#16a34a;font-weight:600;">✅ Solicitação enviada! O administrador será notificado.</span>';
+    setTimeout(() => showAccessRequestOverlay(), 1500);
   }
 }
 
@@ -4457,19 +4545,67 @@ async function logHistory(action) {
 function openPermModal() {
   switchPermTab('editors');
   loadEditorList();
+  if(isAdmin) loadRequestsList();
   openModal('perm-modal');
 }
 
 function switchPermTab(tab) {
-  document.getElementById('perm-editors-panel').style.display  = tab==='editors'  ? '' : 'none';
-  document.getElementById('perm-history-panel').style.display  = tab==='history'  ? '' : 'none';
-  document.getElementById('ptab-editors').style.borderBottom   = tab==='editors'  ? '3px solid var(--cage-blue)' : 'none';
-  document.getElementById('ptab-editors').style.color          = tab==='editors'  ? 'var(--cage-blue)' : 'var(--text-muted)';
-  document.getElementById('ptab-editors').style.fontWeight     = tab==='editors'  ? '700' : '600';
-  document.getElementById('ptab-history').style.borderBottom   = tab==='history'  ? '3px solid var(--cage-blue)' : 'none';
-  document.getElementById('ptab-history').style.color          = tab==='history'  ? 'var(--cage-blue)' : 'var(--text-muted)';
-  document.getElementById('ptab-history').style.fontWeight     = tab==='history'  ? '700' : '600';
-  if(tab==='history') loadHistoryList();
+  ['editors','requests','history'].forEach(t => {
+    const panel = document.getElementById('perm-'+t+'-panel');
+    const btn   = document.getElementById('ptab-'+t);
+    if(panel) panel.style.display = t === tab ? '' : 'none';
+    if(btn) {
+      btn.style.borderBottom = t === tab ? '3px solid var(--cage-blue)' : 'none';
+      btn.style.color        = t === tab ? 'var(--cage-blue)' : 'var(--text-muted)';
+      btn.style.fontWeight   = t === tab ? '700' : '600';
+    }
+  });
+  if(tab === 'history')  loadHistoryList();
+  if(tab === 'requests') loadRequestsList();
+}
+
+async function loadRequestsList() {
+  if(!isAdmin) return;
+  const el = document.getElementById('perm-requests-list');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Carregando...</div>';
+  const { data } = await supaClient.from('gestpop_requests').select('*').order('requested_at', { ascending: false });
+  const pending = (data||[]).filter(r => r.status === 'pendente');
+  const badge = document.getElementById('req-badge');
+  if(badge) { badge.style.display = pending.length ? '' : 'none'; badge.textContent = pending.length; }
+  if(!data?.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">Nenhuma solicitacao.</div>'; return; }
+  el.innerHTML = data.map(r => {
+    const isPending = r.status === 'pendente';
+    const statusColor = r.status === 'aprovado' ? '#16a34a' : r.status === 'rejeitado' ? '#dc2626' : '#d97706';
+    const statusLabel = r.status === 'aprovado' ? 'Aprovado' : r.status === 'rejeitado' ? 'Rejeitado' : 'Pendente';
+    return `<div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#0a2540;">${r.name||r.email}</div>
+          <div style="font-size:11px;color:#64748b;">${r.email}</div>
+          ${r.motivo ? '<div style="font-size:12px;color:#475569;margin-top:6px;font-style:italic;">' + r.motivo + '</div>' : ''}
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">${new Date(r.requested_at).toLocaleString('pt-BR')}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};white-space:nowrap;">${statusLabel}</span>
+      </div>
+      ${isPending ? '<div style="display:flex;gap:8px;margin-top:10px;"><button onclick="handleRequest('' + r.email + '','' + (r.name||'') + '','aprovado')" style="flex:1;background:#dcfce7;color:#16a34a;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Aprovar</button><button onclick="handleRequest('' + r.email + '','' + (r.name||'') + '','rejeitado')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;">Rejeitar</button></div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function handleRequest(email, name, action) {
+  await supaClient.from('gestpop_requests').update({ status: action }).eq('email', email);
+  if(action === 'aprovado') {
+    await supaClient.from('gestpop_editors').upsert(
+      { email, name: name || email, is_admin: false, added_at: new Date().toISOString() },
+      { onConflict: 'email' }
+    );
+    showToast('Acesso aprovado para ' + email, 'success');
+  } else {
+    showToast('Solicitacao de ' + email + ' rejeitada.', 'warn');
+  }
+  loadRequestsList();
+  loadEditorList();
 }
 
 async function loadEditorList() {
@@ -7304,6 +7440,10 @@ showHome = function() {
           style="flex:1;padding:8px;border:none;background:none;font-weight:700;font-size:13px;color:var(--cage-blue);border-bottom:3px solid var(--cage-blue);cursor:pointer;">
           👤 Editores
         </button>
+        <button id="ptab-requests" onclick="switchPermTab('requests')"
+          style="flex:1;padding:8px;border:none;background:none;font-weight:600;font-size:13px;color:var(--text-muted);cursor:pointer;">
+          📨 Solicitações <span id="req-badge" style="display:none;background:#e11d48;color:white;border-radius:20px;padding:1px 6px;font-size:10px;margin-left:2px;">0</span>
+        </button>
         <button id="ptab-history" onclick="switchPermTab('history')"
           style="flex:1;padding:8px;border:none;background:none;font-weight:600;font-size:13px;color:var(--text-muted);cursor:pointer;">
           🕐 Histórico
@@ -7338,6 +7478,10 @@ showHome = function() {
       </div>
 
       <!-- Histórico -->
+      <div id="perm-requests-panel" style="display:none;">
+        <div id="perm-requests-list" style="margin-bottom:12px;"></div>
+      </div>
+
       <div id="perm-history-panel" style="display:none;">
         <div class="history-list" id="perm-history-list"></div>
       </div>
