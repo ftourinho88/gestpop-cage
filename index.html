@@ -816,7 +816,7 @@
           onfocus="openSearchModal()" oninput="runSearch(this.value)" autocomplete="off">
         <button class="search-clear" id="search-clear-btn" onclick="clearSearch()">✕</button>
       </div>
-      <button class="edit-toggle" id="new-pop-btn" onclick="openNovoPop()" style="background:rgba(245,158,11,.2);color:#fcd34d;display:none;" title="Criar novo mapeamento de processo">＋ Novo Processo</button>
+      <button class="edit-toggle" id="new-pop-btn" onclick="openNovoPop()" style="background:rgba(245,158,11,.2);color:#fcd34d;display:none;" title="Criar novo mapeamento de processo">＋ Novo Mapeamento</button>
       <button class="edit-toggle" onclick="openBackupModal()" title="Exportar/Importar backup dos dados" style="background:rgba(96,165,250,.15);color:#93c5fd;">💾 Backup</button>
       <button class="edit-toggle" onclick="exportPptx()" id="ppt-btn" style="background:rgba(232,160,32,.22);color:#fcd34d;" title="Exportar apresentação PowerPoint">📊 Exportar PPT</button>
       <button class="edit-toggle" onclick="saveToCloud()" id="save-btn" style="background:rgba(0,168,107,.25);color:#4ade80;" title="Salvar na nuvem (Ctrl+S)">☁️ Salvar</button>
@@ -843,7 +843,6 @@
 <div class="sidebar" id="sidebar">
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
-    <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo Mapeamento</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showRepoModule();" style="margin-bottom:4px;background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.3);">📚 Metodologia e Manuais</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showDropsModule();" style="margin-bottom:8px;background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(14,165,233,.3);">💧 Drops de Conhecimento</button>
@@ -1266,7 +1265,7 @@
       </div>
       <div>
         <div class="card fade-up delay-1" style="margin-bottom:16px;">
-          <div class="card-header"><span class="card-title">Controle de Revisões</span></div>
+          <div class="card-header"><span class="card-title">Controle de Revisões</span><button class="edit-add-btn" onclick="openRevModal('d')">+ Revisão</button></div>
           <div class="card-body" style="padding:0;">
             <table class="rev-table"><thead><tr><th>Rev.</th><th>Data</th><th>Descrição</th><th>Autor</th></tr></thead>
             <tbody id="d-rev-body"></tbody></table>
@@ -1465,7 +1464,7 @@
       </div>
       <div>
         <div class="card fade-up delay-1" style="margin-bottom:16px;">
-          <div class="card-header"><span class="card-title">Controle de Revisões</span></div>
+          <div class="card-header"><span class="card-title">Controle de Revisões</span><button class="edit-add-btn" onclick="openRevModal('r')">+ Revisão</button></div>
           <div class="card-body" style="padding:0;">
             <table class="rev-table"><thead><tr><th>Rev.</th><th>Data</th><th>Descrição</th><th>Autor</th></tr></thead>
             <tbody id="r-rev-body"></tbody></table>
@@ -1729,10 +1728,6 @@
                   <div>
                     <label>Data Prevista de Entrega</label>
                     <input class="modal-input" id="nf-data-prevista" type="date">
-                  </div>
-                  <div>
-                    <label>Data Efetiva de Entrega</label>
-                    <input class="modal-input" id="nf-data-efetiva" type="date">
                   </div>
                 </div>
               </div>
@@ -2746,17 +2741,10 @@ function enableEditables(on) {
 let _autoSaveTimer = null;
 function markChanged() {
   document.getElementById('unsaved-dot').style.display = 'inline-block';
-  // Auto-save 3s after last change
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer = setTimeout(() => {
-    if(currentUser) saveToCloud();
-    else {
-      try {
-        harvestEditables();
-        const np = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat');
-        // localStorage desativado — sem persistência local
-      } catch(e) {}
-    }
+    // Só auto-salvar após app totalmente inicializado (evita salvar durante load)
+    if(currentUser && window._appInitialized) saveToCloud();
   }, 3000);
 }
 
@@ -3708,7 +3696,6 @@ function confirmNovoPop() {
       statusMap:    document.getElementById('nf-status-map').value,
       dataInicio:   document.getElementById('nf-data-inicio').value,
       dataPrevista: document.getElementById('nf-data-prevista').value,
-      dataEfetiva:  document.getElementById('nf-data-efetiva').value,
       solicitante:  document.getElementById('nf-solicitante').value.trim(),
       patrocinador: document.getElementById('nf-patrocinador').value.trim(),
       elaborado:    document.getElementById('nf-elaborado').value.trim(),
@@ -3742,7 +3729,7 @@ function createBlankPop(info) {
       statusMap:    info.statusMap    || 'planejado',
       dataInicio:   info.dataInicio   || '',
       dataPrevista: info.dataPrevista || '',
-      dataEfetiva:  info.dataEfetiva  || '',
+      dataEfetiva:  '',
       solicitante:  info.solicitante  || '',
       patrocinador: info.patrocinador || '',
       elaborado:    info.elaborado    || '',
@@ -4281,14 +4268,7 @@ function showPatModule(show = true) {
 
   if(show) {
     hideHome();
-    // Esconder todos os outros módulos
-    ['repo-module','drops-module','arq-module','bi-module','quadro-module','bpmn-module'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
-    allPops.forEach(p => { p.classList.remove('active'); });
-    if(navTabs) navTabs.style.display = 'none';
-    if(popSwitcher) popSwitcher.style.display = 'none';
+    hideAllModules();
     // Mostrar PAT — usar style.display para sobrepor qualquer CSS inline anterior
     pat.style.display = 'block';
     pat.classList.add('active');
@@ -4700,16 +4680,21 @@ function sanitizePopData(pd) {
 
 // ── saveToCloud ──────────────────────────────────────────────
 let _saveInProgress = false;
+let _saveQueue      = 0;   // conta chamadas enfileiradas
 // Garantir que o lock é limpo se a página foi recarregada
-window.addEventListener('pageshow', () => { _saveInProgress = false; });
+window.addEventListener('pageshow', () => { _saveInProgress = false; _saveQueue = 0; });
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
+
+  // Se já está salvando, enfileirar apenas 1 chamada extra
   if(_saveInProgress && attempt === 1) {
-    // Já salvando — aguardar e tentar novamente
-    await new Promise(r => setTimeout(r, 2000));
+    _saveQueue++;
+    if(_saveQueue > 1) { _saveQueue--; return; } // já tem 1 na fila, ignorar
+    await new Promise(r => setTimeout(r, 2500));
+    _saveQueue = 0;
+    if(_saveInProgress) return; // ainda ocupado após espera
   }
-  if(_saveInProgress && attempt === 1) return; // ainda ocupado, ignorar
   _saveInProgress = true;
   setSyncStatus('syncing');
 
@@ -4730,13 +4715,15 @@ async function saveToCloud(attempt=1) {
   try {
     // Se não temos workspaceId, buscar o registro existente
     if(!workspaceId) {
-      const { data: existing } = await supaClient
+      const { data: existing, error: fetchErr } = await supaClient
         .from('gestpop_workspace')
         .select('id')
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      if(fetchErr) console.warn('saveToCloud: fetch workspaceId error', fetchErr);
       if(existing?.id) workspaceId = existing.id;
+      else console.log('saveToCloud: nenhum workspace existente — será criado');
     }
 
     let error, saved;
@@ -4770,6 +4757,7 @@ async function saveToCloud(attempt=1) {
     if(error) {
       console.error('saveToCloud error:', error);
       if(attempt < 3) {
+        _saveInProgress = false;
         await new Promise(r => setTimeout(r, attempt * 1500));
         return saveToCloud(attempt + 1);
       }
@@ -4790,6 +4778,7 @@ async function saveToCloud(attempt=1) {
     _saveInProgress = false;
     console.error('saveToCloud exception:', e);
     if(attempt < 3) {
+      _saveInProgress = false;
       await new Promise(r => setTimeout(r, attempt * 1500));
       return saveToCloud(attempt + 1);
     }
@@ -5155,13 +5144,14 @@ async function initSupabase() {
       detectSessionInUrl: true,
     }
   });
-  let _appInitialized = false;   // garante que loadFromCloud roda só 1x
+  // Escopo global para que markChanged() possa verificar antes de auto-salvar
+  window._appInitialized = false;
   let _loadingCloud   = false;   // evita carregamento duplo
 
   async function _handleSession(user) {
     if(!user) {
       currentUser = null; isEditor = false; isAdmin = false;
-      _appInitialized = false;
+      window._appInitialized = false;
       document.getElementById('auth-overlay').style.display = 'flex';
       document.getElementById('user-chip').style.display = 'none';
       document.getElementById('sync-indicator').style.display = 'none';
@@ -5173,7 +5163,7 @@ async function initSupabase() {
     document.getElementById('auth-overlay').style.display = 'none';
 
     if(_loadingCloud) return;   // já está carregando
-    if(_appInitialized) {
+    if(window._appInitialized) {
       // Apenas renovar permissões sem recarregar dados (ex: TOKEN_REFRESHED)
       await checkEditorPermission();
       return;
@@ -5182,15 +5172,16 @@ async function initSupabase() {
     try {
       await checkEditorPermission();
       await loadFromCloud();
-      _appInitialized = true;
+      window._appInitialized = true;
     } finally {
       _loadingCloud = false;
     }
   }
 
   supaClient.auth.onAuthStateChange(async (event, session) => {
-    // Ignorar TOKEN_REFRESHED se o app já está inicializado (evita reload de dados)
-    if(event === 'TOKEN_REFRESHED' && _appInitialized) return;
+    // Ignorar eventos que não devem reinicializar o app quando já está rodando
+    if(window._appInitialized && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) return;
+    // SIGNED_OUT sempre processa (logout real)
     await _handleSession(session?.user || null);
   });
 
@@ -6525,19 +6516,7 @@ function renderFicha(p) {
   }
 
   const card = document.getElementById(p + '-ficha-card');
-  if(card) {
-    card.style.display = '';
-    // Garantir botão de edição no header
-    const hdr = card.querySelector('.card-header');
-    if(hdr && !hdr.querySelector('.ficha-edit-btn')) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-outline ficha-edit-btn';
-      btn.style.cssText = 'font-size:11px;padding:4px 10px;margin-left:auto;';
-      btn.textContent = '✏️ Editar Status';
-      btn.onclick = () => openStatusModal(p);
-      hdr.appendChild(btn);
-    }
-  }
+  if(card) card.style.display = '';
 
   const cols = [fields.slice(0, Math.ceil(fields.length/2)), fields.slice(Math.ceil(fields.length/2))];
   el.innerHTML = statusBadge + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -6995,7 +6974,7 @@ function arqShowForm(idx = null) {
     document.getElementById('arq-f-entregas').value = r.entregas      || '';
     document.getElementById('arq-f-clientes').value = r.clientes      || '';
   } else {
-    title.textContent = 'Novo Processo';
+    title.textContent = 'Novo Mapeamento';
     ['macro','processo','sub','area','gerente','objetivo','entradas','entregas','clientes'].forEach(f =>
       document.getElementById('arq-f-' + f).value = '');
     document.getElementById('arq-f-natureza').value = 'FINALÍSTICO';
@@ -7144,7 +7123,7 @@ function showHomePops() {
   // Mostrar galeria de POPs (pop-switcher-bar) e o primeiro POP ativo
   // Garantir que nav-tabs e pop-switcher estejam visíveis
   const switcher = document.getElementById('pop-switcher-bar');
-  const navTabs  = document.getElementById('nav-tabs-bar');
+  const navTabs  = document.querySelector('.nav-tabs');
   if(switcher) switcher.style.display = '';
   if(navTabs)  navTabs.style.display  = '';
 
@@ -7911,6 +7890,35 @@ function checkAllAutoStatus() {
   return changed;
 }
 
+// ══ Controle de Revisões ════════════════════
+let _revPop = 'd';
+
+function openRevModal(p) {
+  if(!isEditor) { showToast('🔒 Apenas editores podem registrar revisões.','warn'); return; }
+  _revPop = p;
+  const revs = DATA[p]?.revisions || [];
+  const lastNum = revs.length ? (Number(revs[revs.length-1]?.num) || 0) + 1 : 1;
+  document.getElementById('rm-num').value    = lastNum;
+  document.getElementById('rm-date').value   = new Date().toLocaleDateString('pt-BR');
+  document.getElementById('rm-desc').value   = '';
+  document.getElementById('rm-author').value = '';
+  document.getElementById('rev-modal').classList.add('open');
+}
+
+function saveRevision() {
+  const num    = document.getElementById('rm-num').value.trim();
+  const date   = document.getElementById('rm-date').value.trim();
+  const desc   = document.getElementById('rm-desc').value.trim();
+  const author = document.getElementById('rm-author').value.trim();
+  if(!desc) { showToast('Informe a descrição da revisão.','warn'); return; }
+  if(!DATA[_revPop].revisions) DATA[_revPop].revisions = [];
+  DATA[_revPop].revisions.push({ num, date, desc, author });
+  document.getElementById('rev-modal').classList.remove('open');
+  renderRevisions(_revPop);
+  markChanged();
+  showToast('✅ Revisão registrada!','success');
+}
+
 // ══ Status Modal ════════════════════════════
 function openStatusModal(p) {
   if(!isEditor) { showToast('🔒 Apenas editores podem editar.','warn'); return; }
@@ -8141,7 +8149,7 @@ function saveStatusModal() {
         <div style="font-size:13px;color:#64748b;margin-top:2px;">Gerencie macroprocessos, processos e subprocessos</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="arqShowForm()">＋ Novo Processo</button>
+        <button class="btn btn-primary" onclick="arqShowForm()">＋ Novo Mapeamento</button>
         <button class="btn btn-outline" onclick="showArqModule(false)">✕ Fechar</button>
       </div>
     </div>
