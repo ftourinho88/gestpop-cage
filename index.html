@@ -4183,7 +4183,7 @@ const _origOnAuthChange = null;
 const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 // ── Gemini API (gratuita) ──────────────────────────────────────
 // Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
-const GEMINI_KEY = 'AIzaSyBTuKgPsPcnBQR1SY48OcpD-323cCykW3g';
+const GEMINI_KEY = 'AIzaSyD2rqisHWcfyhUNCVy8p09PqV1i_Kfg0Xw';
 const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 
@@ -5139,12 +5139,19 @@ async function extractFluxoFromImage() {
     let base64, mediaType;
     const p2 = popPrefix(currentPop);
 
+    // Helper: safe blob→base64 using FileReader (no stack overflow for any size)
+    const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Erro ao converter imagem'));
+      reader.readAsDataURL(blob);
+    });
+
     // Best: use in-memory File object from this session
     const memFile = DATA[p2]?._fluxoFile;
     if(memFile) {
       mediaType = memFile.type || 'image/png';
-      const ab = await memFile.arrayBuffer();
-      base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+      base64 = await blobToBase64(memFile);
     } else {
       // Fallback: fetch from storage URL
       const imgUrl = DATA[p2]?.fluxoImgUrl || DATA[p2]?.fluxoImg || imgEl.src;
@@ -5154,15 +5161,7 @@ async function extractFluxoFromImage() {
       if(!fetchResp.ok) throw new Error('Não foi possível carregar a imagem do storage.');
       const blob = await fetchResp.blob();
       mediaType = blob.type || 'image/png';
-      const ab = await blob.arrayBuffer();
-      // Large images: chunk to avoid stack overflow
-      const bytes = new Uint8Array(ab);
-      let binary = '';
-      const chunk = 8192;
-      for(let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      base64 = btoa(binary);
+      base64 = await blobToBase64(blob);
     }
 
     const extractPrompt = `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
