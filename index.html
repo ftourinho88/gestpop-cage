@@ -4650,16 +4650,33 @@ async function loadFromCloud() {
     const payload = data.data;
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
-    if(payload.d) Object.assign(DATA.d, payload.d);
-    if(payload.r) Object.assign(DATA.r, payload.r);
-    if(payload.pat) DATA.pat = payload.pat;
+    // Merge seguro: só sobrescreve campos que existem no payload
+    function safeMerge(target, source) {
+      if(!source || typeof source !== 'object') return;
+      Object.keys(source).forEach(k => {
+        if(source[k] !== undefined && source[k] !== null) target[k] = source[k];
+      });
+      // Garantir estrutura mínima
+      if(!Array.isArray(target.steps) || target.steps.length === 0) target.steps = target.steps || [];
+      if(typeof target.currentStep !== 'number') target.currentStep = 0;
+      // Corrigir currentStep fora do range
+      if(target.steps.length > 0 && target.currentStep >= target.steps.length) {
+        target.currentStep = 0;
+      }
+    }
+
+    if(payload.d) safeMerge(DATA.d, payload.d);
+    if(payload.r) safeMerge(DATA.r, payload.r);
+    if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : (payload.pat?.items ? payload.pat : []);
     if(payload.arqOverrides) {
       DATA._arqOverrides = payload.arqOverrides;
-      _arqData = null; // resetar cache
+      _arqData = null;
     }
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
+        if(!pd) return;
         DATA[key] = pd;
+        if(!Array.isArray(DATA[key].steps)) DATA[key].steps = [];
         if(!document.getElementById('pop-' + key)) {
           mountNewPopTab(key, pd.meta?.name || 'POP', true);
         }
@@ -4668,7 +4685,11 @@ async function loadFromCloud() {
 
     ['d','r'].forEach(p => {
       try {
-        renderStep(p, DATA[p].currentStep||0);
+        const steps = DATA[p]?.steps;
+        if(!steps?.length) return; // sem etapas, nada a renderizar
+        const idx = Math.min(DATA[p].currentStep || 0, steps.length - 1);
+        DATA[p].currentStep = idx;
+        renderStep(p, idx);
         renderRoles(p); renderIndicators(p);
         renderFaq(p); renderNormas(p); renderRevisions(p); renderFicha(p);
       } catch(e) { console.warn('Render error for', p, e); }
@@ -4688,7 +4709,19 @@ async function loadFromCloud() {
   } catch(e) {
     setSyncStatus('error');
     console.error('loadFromCloud exception:', e);
-    showToast('Erro inesperado ao carregar: ' + e.message, 'warn');
+    console.error('Stack:', e.stack);
+    // Tentar identificar qual dado causou o erro
+    try {
+      const { data: dbg } = await supaClient.from('gestpop_workspace').select('data').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+      if(dbg?.data) {
+        const pl = dbg.data;
+        console.log('DEBUG payload keys:', Object.keys(pl));
+        console.log('DEBUG d.steps length:', pl.d?.steps?.length, 'currentStep:', pl.d?.currentStep);
+        console.log('DEBUG r.steps length:', pl.r?.steps?.length, 'currentStep:', pl.r?.currentStep);
+        console.log('DEBUG newPops:', pl.newPops?.length);
+      }
+    } catch(dbgErr) { console.warn('debug query failed:', dbgErr); }
+    showToast('Erro ao carregar: ' + e.message + ' — veja Console (F12) para detalhes', 'warn');
   }
 }
 
