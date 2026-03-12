@@ -4129,12 +4129,19 @@ const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 // ── Gemini API (gratuita) ──────────────────────────────────────
 // Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
 const GEMINI_KEY = 'AIzaSyC9ds8TYET51RRDOU0nqDX6bZWxy23Eafo';
-const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
-const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=';
+const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=';
+const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=';
+
+function geminiErrMsg(status, body) {
+  if(status === 429) return 'Limite de requisições atingido. Aguarde 1 minuto e tente novamente.';
+  if(status === 403) return 'Chave do Gemini bloqueada ou sem permissão. Gere uma nova chave em aistudio.google.com';
+  if(status === 404) return 'Modelo do Gemini não encontrado. Contate o administrador.';
+  return 'Gemini error ' + status + ': ' + body.slice(0,150);
+}
 
 async function callGemini(prompt) {
   if(GEMINI_KEY === 'SUA_CHAVE_GEMINI_AQUI') {
-    throw new Error('Configure a chave do Gemini: abra o HTML, localize GEMINI_KEY e substitua pelo valor obtido em aistudio.google.com');
+    throw new Error('Configure a chave do Gemini: localize GEMINI_KEY no HTML e substitua pelo valor de aistudio.google.com');
   }
   const resp = await fetch(GEMINI_TEXT_URL + GEMINI_KEY, {
     method: 'POST',
@@ -4144,14 +4151,14 @@ async function callGemini(prompt) {
       generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
     })
   });
-  if(!resp.ok) { const e = await resp.text(); throw new Error('Gemini error ' + resp.status + ': ' + e.slice(0,200)); }
+  if(!resp.ok) { const e = await resp.text(); throw new Error(geminiErrMsg(resp.status, e)); }
   const data = await resp.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 async function callGeminiVision(prompt, base64, mimeType) {
   if(GEMINI_KEY === 'SUA_CHAVE_GEMINI_AQUI') {
-    throw new Error('Configure a chave do Gemini: abra o HTML, localize GEMINI_KEY e substitua pelo valor obtido em aistudio.google.com');
+    throw new Error('Configure a chave do Gemini: localize GEMINI_KEY no HTML e substitua pelo valor de aistudio.google.com');
   }
   const resp = await fetch(GEMINI_VIS_URL + GEMINI_KEY, {
     method: 'POST',
@@ -4164,7 +4171,7 @@ async function callGeminiVision(prompt, base64, mimeType) {
       generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
     })
   });
-  if(!resp.ok) { const e = await resp.text(); throw new Error('Gemini Vision error ' + resp.status + ': ' + e.slice(0,200)); }
+  if(!resp.ok) { const e = await resp.text(); throw new Error(geminiErrMsg(resp.status, e)); }
   const data = await resp.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
