@@ -463,6 +463,33 @@
   .backup-import-preview.visible { display:block; }
   .backup-import-preview strong { color:var(--cage-blue); }
 
+
+  /* ── QUADRO BRANCO ───────────────────────────────────────── */
+  #quadro-module { display:none; }
+  .quadro-toolbar { background:var(--cage-blue); padding:10px 20px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-bottom:2px solid var(--cage-accent); }
+  .quadro-tool-group { display:flex; align-items:center; gap:4px; padding:0 8px; border-right:1px solid rgba(255,255,255,.15); }
+  .quadro-tool-group:last-child { border-right:none; }
+  .q-btn { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); transition:all .15s; white-space:nowrap; }
+  .q-btn:hover { background:rgba(255,255,255,.18); color:white; }
+  .q-btn.active { background:var(--cage-accent); border-color:var(--cage-accent); color:white; }
+  .q-btn.danger { border-color:rgba(239,68,68,.5); color:#fca5a5; }
+  .q-btn.danger:hover { background:rgba(239,68,68,.25); }
+  .q-color-dot { width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:border-color .15s; flex-shrink:0; }
+  .q-color-dot.selected { border-color:white; }
+  .quadro-canvas-wrap { position:relative; overflow:hidden; background:#f0f4f8; }
+  .quadro-canvas-inner { position:absolute; top:0; left:0; transform-origin:0 0; }
+  .q-postit { position:absolute; border-radius:4px; padding:10px 12px; min-width:120px; min-height:80px; cursor:grab; box-shadow:3px 4px 12px rgba(0,0,0,.18); font-size:13px; font-weight:500; line-height:1.4; word-break:break-word; resize:none; border:none; font-family:inherit; overflow:hidden; user-select:none; }
+  .q-postit:focus { outline:2px solid var(--cage-accent); cursor:text; box-shadow:3px 4px 20px rgba(0,0,0,.28); }
+  .q-postit.selected { outline:2px solid #3b82f6; }
+  .q-postit-del { position:absolute; top:3px; right:4px; background:none; border:none; font-size:10px; cursor:pointer; color:rgba(0,0,0,.35); opacity:0; transition:opacity .15s; }
+  .q-postit:hover .q-postit-del { opacity:1; }
+  .q-actor { position:absolute; border:2px solid; border-radius:8px; background:rgba(255,255,255,.7); padding:8px 14px; font-size:12px; font-weight:700; cursor:grab; text-align:center; min-width:100px; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .q-lane { position:absolute; border:2px dashed; border-radius:8px; opacity:.35; pointer-events:none; }
+  .q-label { position:absolute; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); pointer-events:none; }
+  svg.q-arrows { position:absolute; top:0; left:0; pointer-events:none; overflow:visible; }
+  .q-arrow-line { stroke:#64748b; stroke-width:2; fill:none; marker-end:url(#arrowhead); }
+  .q-arrow-line.selected { stroke:#3b82f6; stroke-width:3; }
+
   /* ── BUSCA GLOBAL ────────────────────────────────────────── */
   .search-input-wrap { position:relative; display:flex; align-items:center; }
   .search-input { background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.15);
@@ -676,8 +703,9 @@
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
     <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo POP</button>
-    <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
   </div>
   <div class="sidebar-list" id="sidebar-list"></div>
 </div>
@@ -715,8 +743,8 @@
 <div id="pat-module" class="pat-module">
   <div class="pat-header-row">
     <div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--cage-blue);margin:0 0 4px;">📅 Plano Anual de Trabalho</h2>
-      <div style="font-size:13px;color:var(--text-muted);">CAGE-RS — Gestão de Processos e Atividades</div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--cage-blue);margin:0 0 4px;">📅 Plano de Trabalho do Escritório de Processos</h2>
+      <div style="font-size:13px;color:var(--text-muted);">Escritório de Processos — Visível apenas para editores</div>
     </div>
     <button class="btn btn-primary" onclick="openPatModal()" style="font-size:13px;">＋ Nova Atividade</button>
   </div>
@@ -760,6 +788,57 @@
       </iframe>
     </div>
     <div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center;">O painel requer autenticação com sua conta Microsoft. Caso não carregue, <a href="https://app.powerbi.com/reportEmbed?reportId=c4cf960c-1c0c-49d4-92ff-3cc87f43656b&autoAuth=true&ctid=83bd090b-756e-4a02-a512-e5ea02c03041" target="_blank" style="color:var(--cage-accent);">abra em nova aba</a>.</div>
+  </div>
+</div>
+
+<!-- QUADRO BRANCO -->
+<div id="quadro-module">
+  <div class="quadro-toolbar">
+    <div class="quadro-tool-group">
+      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;">Ferramentas</span>
+    </div>
+    <div class="quadro-tool-group">
+      <button class="q-btn active" id="qtool-postit" onclick="setQuadroTool('postit')">🟨 Post-it</button>
+      <button class="q-btn" id="qtool-actor" onclick="setQuadroTool('actor')">👤 Ator</button>
+      <button class="q-btn" id="qtool-arrow" onclick="setQuadroTool('arrow')">→ Seta</button>
+      <button class="q-btn" id="qtool-select" onclick="setQuadroTool('select')">↖ Selecionar</button>
+    </div>
+    <div class="quadro-tool-group">
+      <span style="font-size:11px;color:rgba(255,255,255,.4);">Cor:</span>
+      <div class="q-color-dot selected" data-color="#fef08a" style="background:#fef08a;" onclick="setQuadroColor('#fef08a',this)" title="Amarelo"></div>
+      <div class="q-color-dot" data-color="#bbf7d0" style="background:#bbf7d0;" onclick="setQuadroColor('#bbf7d0',this)" title="Verde"></div>
+      <div class="q-color-dot" data-color="#bfdbfe" style="background:#bfdbfe;" onclick="setQuadroColor('#bfdbfe',this)" title="Azul"></div>
+      <div class="q-color-dot" data-color="#fecaca" style="background:#fecaca;" onclick="setQuadroColor('#fecaca',this)" title="Vermelho"></div>
+      <div class="q-color-dot" data-color="#e9d5ff" style="background:#e9d5ff;" onclick="setQuadroColor('#e9d5ff',this)" title="Roxo"></div>
+      <div class="q-color-dot" data-color="#fed7aa" style="background:#fed7aa;" onclick="setQuadroColor('#fed7aa',this)" title="Laranja"></div>
+    </div>
+    <div class="quadro-tool-group">
+      <button class="q-btn" onclick="quadroUndo()" title="Desfazer (Ctrl+Z)">↩ Desfazer</button>
+      <button class="q-btn" onclick="quadroClear()" title="Limpar tudo">🗑 Limpar</button>
+    </div>
+    <div class="quadro-tool-group">
+      <button class="q-btn" onclick="quadroExportImg()">⬇ Exportar PNG</button>
+    </div>
+    <div style="flex:1;"></div>
+    <button class="q-btn" onclick="showQuadroModule(false)">✕ Fechar</button>
+  </div>
+  <div id="quadro-hint" style="background:#fffbeb;border-bottom:1px solid #fde68a;padding:6px 20px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;">
+    <span id="quadro-hint-text">Clique no quadro para adicionar um Post-it. Arraste para mover. Dê duplo clique para editar o texto.</span>
+    <button onclick="document.getElementById('quadro-hint').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#92400e;font-size:14px;">✕</button>
+  </div>
+  <div id="quadro-canvas-wrap" class="quadro-canvas-wrap" style="height:calc(100vh - 130px);">
+    <div id="quadro-canvas-inner" class="quadro-canvas-inner" style="width:3000px;height:2000px;">
+      <svg id="q-arrows-svg" class="q-arrows" width="3000" height="2000">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+          </marker>
+          <marker id="arrowhead-sel" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -1293,6 +1372,7 @@
         </div>
       </div>
       <div class="bpmn-canvas-wrap">
+        <div id="bpmn-canvas" style="display:none;"></div>
         <div class="bpmn-loading" id="bpmn-loading" style="display:none;">
           <div class="bpmn-spinner"></div>
           <span>Carregando imagem...</span>
@@ -2050,25 +2130,16 @@ let currentSection = 'visao-geral';
 const STORAGE_KEY = 'gestpop_cage_v1';
 
 function saveToStorage() {
-  try {
-    // Harvest current editable text back into DATA before saving
-    harvestEditables();
-    // Collect new pop keys (those not 'd' or 'r')
-    const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r');
-    const payload = {
-      d: DATA.d,
-      r: DATA.r,
-      newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    document.getElementById('unsaved-dot').style.display = 'none';
-    showToast('💾 Salvo no navegador!', 'success');
-  } catch(e) {
-    showToast('Erro ao salvar: ' + e.message, 'warn');
+  harvestEditables();
+  if(currentUser) {
+    saveToCloud();
+  } else {
+    showToast('Faça login para salvar na nuvem.', 'warn');
   }
 }
 
 function loadFromStorage() {
+  return false; // localStorage desativado — dados vêm exclusivamente do Supabase
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return false;
@@ -2254,7 +2325,7 @@ function markChanged() {
       try {
         harvestEditables();
         const np = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat');
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ d:DATA.d, r:DATA.r, newPops:np.map(k=>({key:k,data:DATA[k]})) }));
+        // localStorage desativado — sem persistência local
       } catch(e) {}
     }
   }, 3000);
@@ -2614,21 +2685,24 @@ async function generateFaqIA(p) {
     const desc  = D.meta?.desc || D.objetivo || '';
     const context = `Processo: ${D.meta?.name||'POP'}\nObjetivo: ${desc}\nEtapas:\n${steps}\nAtores:\n${roles}`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(SUPA_URL + '/functions/v1/claude-proxy', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': 'Bearer ' + SUPA_ANON
+      },
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-4-5-20251001',
         max_tokens:1000,
         messages:[{ role:'user', content:
-          `Com base neste processo, gere 5 perguntas frequentes (FAQ) realistas que cidadãos, servidores ou gestores fariam, com respostas claras e objetivas.
-
-${context}
-
-Responda APENAS em JSON puro (sem markdown): [{"q":"pergunta","a":"resposta"},...]`
+          'Com base neste processo, gere 5 perguntas frequentes (FAQ) realistas que cidadãos, servidores ou gestores fariam, com respostas claras e objetivas.\n\n' + context + '\n\nResponda APENAS em JSON puro (sem markdown): [{"q":"pergunta","a":"resposta"},...]'
         }]
       })
     });
+    if(!resp.ok) {
+      const err = await resp.text();
+      throw new Error('Proxy error ' + resp.status + ': ' + err.slice(0,200));
+    }
     const data = await resp.json();
     const text = data.content?.[0]?.text || '';
     const clean = text.replace(/```json|```/g,'').trim();
@@ -2772,8 +2846,6 @@ function showBpmnImage(dataUrl) {
   document.getElementById('bpmn-viewer-wrap').style.flexDirection = 'column';
   document.getElementById('bpmn-loading').style.display = 'flex';
   document.getElementById('bpmn-error').style.display = 'none';
-  document.getElementById('bpmn-canvas').style.display = 'none';
-
   // Remove old viewer
   const old = document.getElementById('bpmn-image-viewer');
   if(old) old.remove();
@@ -2893,6 +2965,12 @@ function resetBpmn() {
   const imgWrap = document.getElementById('bpmn-image-viewer');
   if(imgWrap) imgWrap.remove();
   window._imgState = { zoom:1, tx:0, ty:0 };
+  const btn = document.getElementById('bpmn-extract-btn');
+  if(btn) btn.style.display = 'none';
+  // Also clear saved image for current pop
+  const p = popPrefix(currentPop);
+  if(DATA[p]) DATA[p].fluxoImg = null;
+  markChanged();
 }
 
 function loadImageFile(file) {
@@ -3792,13 +3870,19 @@ async function checkEditorPermission() {
 function applyPermissions() {
   const banner = document.getElementById('readonly-banner');
   const editBtn = document.getElementById('edit-toggle');
+  const patBtn  = document.querySelector('.sidebar-pat-btn');
   if(isEditor) {
     banner.classList.remove('show');
     editBtn.style.display = '';
+    if(patBtn) patBtn.style.display = '';
   } else {
     banner.classList.add('show');
     editBtn.style.display = 'none';
-    // Force view mode
+    if(patBtn) patBtn.style.display = 'none';
+    // If currently on PAT, go back to first pop
+    if(document.getElementById('pat-module').classList.contains('active')) {
+      showPatModule(false);
+    }
     if(editMode) toggleEditMode();
   }
 }
@@ -3815,7 +3899,7 @@ async function saveToCloud(attempt=1) {
     pat: DATA.pat || [],
     newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
   };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch(e) {}
+  // localStorage desativado
 
   try {
     let error;
@@ -3867,7 +3951,7 @@ async function loadFromCloud() {
 
   if(error || !data || !data.data || Object.keys(data.data).length === 0) {
     setSyncStatus('synced');
-    loadFromStorage();
+    // localStorage desativado
     return;
   }
   try {
@@ -4118,7 +4202,7 @@ async function saveToCloud(attempt=1) {
     newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
   };
   // Always save locally first as backup
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch(e) {}
+  // localStorage desativado
   const userId = currentUser.id;
   try {
     const { error } = await supaClient.from('gestpop_data').upsert(
@@ -4158,9 +4242,7 @@ async function loadFromCloud() {
     .select('data').eq('user_id', currentUser.id).single();
   if(error || !data) {
     setSyncStatus('synced');
-    // Try localStorage as fallback
-    const loaded = loadFromStorage();
-    if(loaded) showToast('✅ Dados restaurados do cache local','success');
+    // Sem fallback local — dados vêm apenas do Supabase
     return;
   }
   try {
@@ -4187,11 +4269,7 @@ async function loadFromCloud() {
 }
 
 // Override saveToStorage to also save to cloud
-const _origSaveToStorage = saveToStorage;
-saveToStorage = function() {
-  _origSaveToStorage();
-  if(currentUser) saveToCloud();
-};
+// saveToStorage já chama saveToCloud internamente
 
 // Init on load
 document.addEventListener('DOMContentLoaded', initSupabase);
@@ -4201,6 +4279,322 @@ document.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==
 
 
 
+
+
+// ═══ QUADRO BRANCO ══════════════════════════════════════════
+let _quadroTool = 'postit';
+let _quadroColor = '#fef08a';
+let _quadroItems = []; // {id, type, x, y, w, h, text, color, borderColor}
+let _quadroArrows = []; // {id, fromId, toId, x1,y1,x2,y2}
+let _quadroHistory = [];
+let _qDragging = null;
+let _qArrowFrom = null;
+let _qPan = { active:false, startX:0, startY:0, ox:0, oy:0 };
+let _qScale = 1, _qOffX = 0, _qOffY = 0;
+let _qItemId = 0;
+
+const ACTOR_COLORS = ['#0a2540','#15803d','#1d4ed8','#9333ea','#c2410c'];
+
+function showQuadroModule(show=true) {
+  const el = document.getElementById('quadro-module');
+  const allPops = document.querySelectorAll('.pop-content');
+  const navTabs = document.querySelector('.nav-tabs');
+  const popSwitcher = document.getElementById('pop-switcher-bar');
+  const pat = document.getElementById('pat-module');
+  const bi  = document.getElementById('bi-module');
+  if(show) {
+    allPops.forEach(p=>p.classList.remove('active'));
+    pat.classList.remove('active');
+    if(bi) bi.style.display='none';
+    if(navTabs) navTabs.style.display='none';
+    if(popSwitcher) popSwitcher.style.display='none';
+    el.style.display='block';
+    initQuadro();
+  } else {
+    el.style.display='none';
+    if(navTabs) navTabs.style.display='';
+    if(popSwitcher) popSwitcher.style.display='';
+    const activePopEl = document.getElementById('pop-'+popDomId(currentPop));
+    if(activePopEl) activePopEl.classList.add('active');
+  }
+}
+
+function initQuadro() {
+  const wrap = document.getElementById('quadro-canvas-wrap');
+  if(wrap._qInited) return;
+  wrap._qInited = true;
+
+  // Click to add item
+  wrap.addEventListener('click', e => {
+    if(_qDragging || _qPan.moved) return;
+    if(e.target !== wrap && e.target !== document.getElementById('quadro-canvas-inner') && !e.target.classList.contains('q-arrows')) return;
+    const rect = wrap.getBoundingClientRect();
+    const x = (e.clientX - rect.left - _qOffX) / _qScale;
+    const y = (e.clientY - rect.top  - _qOffY) / _qScale;
+    if(_quadroTool === 'postit') addPostit(x, y);
+    if(_quadroTool === 'actor')  addActor(x, y);
+  });
+
+  // Pan with middle mouse or space+drag
+  wrap.addEventListener('mousedown', e => {
+    if(e.button === 1 || (e.button === 0 && e.altKey)) {
+      _qPan = {active:true, startX:e.clientX, startY:e.clientY, ox:_qOffX, oy:_qOffY, moved:false};
+      wrap.style.cursor = 'grabbing';
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('mousemove', e => {
+    if(!_qPan.active) return;
+    const dx = e.clientX - _qPan.startX;
+    const dy = e.clientY - _qPan.startY;
+    if(Math.abs(dx)+Math.abs(dy)>3) _qPan.moved = true;
+    _qOffX = _qPan.ox + dx;
+    _qOffY = _qPan.oy + dy;
+    applyQuadroTransform();
+  });
+  window.addEventListener('mouseup', e => {
+    if(_qPan.active) { _qPan.active=false; wrap.style.cursor='default'; }
+  });
+
+  // Scroll zoom
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.91;
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    _qOffX = mx - (mx - _qOffX) * factor;
+    _qOffY = my - (my - _qOffY) * factor;
+    _qScale = Math.max(0.2, Math.min(3, _qScale * factor));
+    applyQuadroTransform();
+  }, {passive:false});
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if(document.getElementById('quadro-module').style.display === 'none') return;
+    if((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); quadroUndo(); }
+    if(e.key==='Delete'||e.key==='Backspace') {
+      if(document.activeElement && document.activeElement.classList.contains('q-postit')) return;
+      deleteSelected();
+    }
+  });
+}
+
+function applyQuadroTransform() {
+  const inner = document.getElementById('quadro-canvas-inner');
+  inner.style.transform = `translate(${_qOffX}px,${_qOffY}px) scale(${_qScale})`;
+}
+
+function setQuadroTool(tool) {
+  _quadroTool = tool;
+  document.querySelectorAll('[id^="qtool-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('qtool-'+tool);
+  if(btn) btn.classList.add('active');
+  const hints = {
+    postit: 'Clique no quadro para adicionar um Post-it. Arraste para mover. Duplo clique para editar.',
+    actor:  'Clique para adicionar um Ator/Setor. Represente cada participante do processo.',
+    arrow:  'Clique em um elemento de origem, depois no destino para criar uma seta.',
+    select: 'Clique para selecionar. Delete para remover. Arraste para mover.'
+  };
+  document.getElementById('quadro-hint-text').textContent = hints[tool] || '';
+  document.getElementById('quadro-hint').style.display = 'flex';
+  _qArrowFrom = null;
+}
+
+function setQuadroColor(color, dot) {
+  _quadroColor = color;
+  document.querySelectorAll('.q-color-dot').forEach(d => d.classList.remove('selected'));
+  dot.classList.add('selected');
+}
+
+function saveQuadroHistory() {
+  _quadroHistory.push(JSON.stringify({items:_quadroItems, arrows:_quadroArrows}));
+  if(_quadroHistory.length > 30) _quadroHistory.shift();
+}
+
+function quadroUndo() {
+  if(!_quadroHistory.length) return;
+  const state = JSON.parse(_quadroHistory.pop());
+  _quadroItems  = state.items;
+  _quadroArrows = state.arrows;
+  reRenderQuadro();
+}
+
+function quadroClear() {
+  if(!confirm('Limpar todo o quadro?')) return;
+  saveQuadroHistory();
+  _quadroItems = []; _quadroArrows = [];
+  reRenderQuadro();
+}
+
+function addPostit(x, y) {
+  saveQuadroHistory();
+  const id = 'qi_' + (++_qItemId);
+  _quadroItems.push({id, type:'postit', x, y, w:140, h:90, text:'Ação / Etapa', color:_quadroColor});
+  renderPostitEl(_quadroItems[_quadroItems.length-1]);
+}
+
+function addActor(x, y) {
+  saveQuadroHistory();
+  const id = 'qi_' + (++_qItemId);
+  const col = ACTOR_COLORS[_quadroItems.filter(i=>i.type==='actor').length % ACTOR_COLORS.length];
+  _quadroItems.push({id, type:'actor', x, y, w:130, h:44, text:'Ator / Setor', color:col});
+  renderActorEl(_quadroItems[_quadroItems.length-1]);
+}
+
+function renderPostitEl(item) {
+  const el = document.createElement('textarea');
+  el.id = item.id;
+  el.className = 'q-postit';
+  el.value = item.text;
+  el.style.left   = item.x + 'px';
+  el.style.top    = item.y + 'px';
+  el.style.width  = item.w + 'px';
+  el.style.height = item.h + 'px';
+  el.style.background = item.color;
+  el.style.zIndex = 10;
+
+  el.addEventListener('input', e => { item.text = e.target.value; });
+  el.addEventListener('mousedown', e => { if(e.button!==0) return; startDragItem(e, el, item); });
+
+  // Delete button
+  const del = document.createElement('button');
+  del.className = 'q-postit-del';
+  del.textContent = '✕';
+  del.onclick = e => { e.stopPropagation(); saveQuadroHistory(); removeItem(item.id); };
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:absolute;left:${item.x}px;top:${item.y}px;width:${item.w}px;height:${item.h}px;`;
+  wrap.dataset.itemWrap = item.id;
+  wrap.appendChild(el);
+  wrap.appendChild(del);
+  document.getElementById('quadro-canvas-inner').appendChild(wrap);
+}
+
+function renderActorEl(item) {
+  const el = document.createElement('div');
+  el.id = item.id;
+  el.className = 'q-actor';
+  el.contentEditable = 'true';
+  el.textContent = item.text;
+  el.style.left   = item.x + 'px';
+  el.style.top    = item.y + 'px';
+  el.style.width  = item.w + 'px';
+  el.style.color  = item.color;
+  el.style.borderColor = item.color;
+  el.style.background = item.color + '18';
+  el.style.zIndex = 5;
+  el.addEventListener('input', e => { item.text = e.target.innerText; });
+  el.addEventListener('mousedown', e => { if(e.button!==0||e.target===el&&el.isContentEditable) return; startDragItem(e, el, item); });
+  el.addEventListener('mousedown', e => { if(_quadroTool==='arrow') { e.preventDefault(); handleArrowClick(item.id, item.x + item.w/2, item.y + item.h/2); } });
+  document.getElementById('quadro-canvas-inner').appendChild(el);
+}
+
+function startDragItem(e, el, item) {
+  if(_quadroTool === 'arrow') { handleArrowClick(item.id, item.x + (item.w||140)/2, item.y + (item.h||90)/2); return; }
+  if(document.activeElement === el) return;
+  e.preventDefault();
+  _qDragging = {el, item, startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y};
+  saveQuadroHistory();
+
+  const onMove = ev => {
+    const dx = (ev.clientX - _qDragging.startX) / _qScale;
+    const dy = (ev.clientY - _qDragging.startY) / _qScale;
+    item.x = _qDragging.ox + dx;
+    item.y = _qDragging.oy + dy;
+    const wrap = document.querySelector(`[data-item-wrap="${item.id}"]`) || el;
+    wrap.style.left = item.x + 'px';
+    wrap.style.top  = item.y + 'px';
+    if(el !== wrap) { el.style.left = item.x+'px'; el.style.top = item.y+'px'; }
+    updateArrows();
+  };
+  const onUp = () => { _qDragging = null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); updateArrows(); };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function handleArrowClick(itemId, cx, cy) {
+  if(!_qArrowFrom) {
+    _qArrowFrom = {id:itemId, x:cx, y:cy};
+    showToast('Clique no elemento destino para completar a seta.','success');
+  } else {
+    if(_qArrowFrom.id === itemId) { _qArrowFrom = null; return; }
+    saveQuadroHistory();
+    const toItem = _quadroItems.find(i=>i.id===itemId);
+    const tx = toItem ? toItem.x + (toItem.w||130)/2 : cx;
+    const ty = toItem ? toItem.y + (toItem.h||44)/2  : cy;
+    const arrow = {id:'qa_'+(++_qItemId), fromId:_qArrowFrom.id, toId:itemId,
+      x1:_qArrowFrom.x, y1:_qArrowFrom.y, x2:tx, y2:ty};
+    _quadroArrows.push(arrow);
+    renderArrow(arrow);
+    _qArrowFrom = null;
+  }
+}
+
+function renderArrow(arrow) {
+  const svg = document.getElementById('q-arrows-svg');
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.id = arrow.id;
+  line.setAttribute('x1', arrow.x1); line.setAttribute('y1', arrow.y1);
+  line.setAttribute('x2', arrow.x2); line.setAttribute('y2', arrow.y2);
+  line.setAttribute('class','q-arrow-line');
+  line.addEventListener('click', () => { saveQuadroHistory(); removeArrow(arrow.id); });
+  svg.appendChild(line);
+}
+
+function updateArrows() {
+  _quadroArrows.forEach(a => {
+    const from = _quadroItems.find(i=>i.id===a.fromId);
+    const to   = _quadroItems.find(i=>i.id===a.toId);
+    if(from) { a.x1 = from.x+(from.w||140)/2; a.y1 = from.y+(from.h||90)/2; }
+    if(to)   { a.x2 = to.x+(to.w||140)/2;     a.y2 = to.y+(to.h||90)/2; }
+    const el = document.getElementById(a.id);
+    if(el) { el.setAttribute('x1',a.x1); el.setAttribute('y1',a.y1); el.setAttribute('x2',a.x2); el.setAttribute('y2',a.y2); }
+  });
+}
+
+function removeItem(id) {
+  _quadroItems = _quadroItems.filter(i=>i.id!==id);
+  _quadroArrows = _quadroArrows.filter(a=>a.fromId!==id&&a.toId!==id);
+  const wrap = document.querySelector(`[data-item-wrap="${id}"]`);
+  if(wrap) wrap.remove();
+  const el = document.getElementById(id);
+  if(el) el.remove();
+  // Remove arrows connected to this item
+  document.querySelectorAll('.q-arrow-line').forEach(l => {
+    const a = _quadroArrows.find(x=>x.id===l.id);
+    if(!a) l.remove();
+  });
+}
+
+function removeArrow(id) {
+  _quadroArrows = _quadroArrows.filter(a=>a.id!==id);
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
+
+function deleteSelected() {
+  // nothing selected by default — handled via del button on postits
+}
+
+function reRenderQuadro() {
+  const inner = document.getElementById('quadro-canvas-inner');
+  // Remove all items and arrows (keep SVG defs)
+  const svg = document.getElementById('q-arrows-svg');
+  while(svg.lastChild && svg.lastChild.tagName !== 'defs') svg.removeChild(svg.lastChild);
+  inner.querySelectorAll('[data-item-wrap], .q-actor').forEach(e=>e.remove());
+  _qItemId = 0;
+  _quadroItems.forEach(item => {
+    _qItemId = Math.max(_qItemId, parseInt(item.id.split('_')[1]||0));
+    if(item.type==='postit') renderPostitEl(item);
+    if(item.type==='actor')  renderActorEl(item);
+  });
+  _quadroArrows.forEach(a => renderArrow(a));
+}
+
+function quadroExportImg() {
+  showToast('Para exportar: use Ctrl+Shift+P (screenshot) ou a ferramenta de captura do seu navegador na área do quadro.','success');
+}
 
 // ═══ BACKUP EXPORT / IMPORT ════════════════════════════════
 let _backupFileData = null;
@@ -4264,7 +4658,7 @@ function previewBackupFile(input) {
         📋 Tratar Denúncias: ${(payload.d?.steps||[]).length} etapas · ${dFaqs} FAQs<br>
         📄 Tratar Representações: ${(payload.r?.steps||[]).length} etapas · ${rFaqs} FAQs<br>
         ${npCount ? `📝 Outros POPs: ${npCount}<br>` : ''}
-        ${patCount ? `📅 Plano de Trabalho: ${patCount} atividades<br>` : ''}
+        ${patCount ? `📅 Plano de Trabalho do EPP: ${patCount} atividades<br>` : ''}
       `;
       preview.classList.add('visible');
       document.getElementById('backup-import-btn').style.display = 'block';
@@ -4524,11 +4918,14 @@ async function extractFluxoFromImage() {
     const base64 = dataUrl.split(',')[1];
     const mediaType = dataUrl.split(';')[0].split(':')[1] || 'image/png';
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(SUPA_URL + '/functions/v1/claude-proxy', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPA_ANON
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20251001',
         max_tokens: 4000,
         messages: [{
           role: 'user',
