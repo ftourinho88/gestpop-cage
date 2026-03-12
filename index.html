@@ -4529,97 +4529,148 @@ async function submitAccessRequest() {
   }
 }
 
-// ── Override saveToCloud to use workspace ──────────────────
+// ── saveToCloud — upsert por workspace_key fixo ─────────────
+const WORKSPACE_KEY = 'main';
+
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
   setSyncStatus('syncing');
-  harvestEditables();
+
+  try { harvestEditables(); } catch(e) { console.warn('harvestEditables:', e); }
+
   const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat' && k !== '_arqOverrides');
   const payload = {
-    d: DATA.d, r: DATA.r,
-    pat: DATA.pat || [],
+    d:            DATA.d,
+    r:            DATA.r,
+    pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
-    newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
+    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] }))
   };
-  // localStorage desativado
+
+  console.log('💾 saveToCloud attempt', attempt, '— size:', (JSON.stringify(payload).length/1024).toFixed(1)+'KB');
 
   try {
-    let error;
-    if(workspaceId) {
-      ({ error } = await supaClient.from('gestpop_workspace').update({
-        data: payload,
-        updated_at: new Date().toISOString(),
-        updated_by: currentUserEmail,
+    const { data: saved, error } = await supaClient
+      .from('gestpop_workspace')
+      .upsert({
+        workspace_key:   WORKSPACE_KEY,
+        data:            payload,
+        updated_at:      new Date().toISOString(),
+        updated_by:      currentUserEmail,
         updated_by_name: currentUserName
-      }).eq('id', workspaceId));
-    } else {
-      const res = await supaClient.from('gestpop_workspace').insert({
-        data: payload,
-        updated_by: currentUserEmail,
-        updated_by_name: currentUserName
-      }).select().single();
-      error = res.error;
-      if(res.data) workspaceId = res.data.id;
-    }
+      }, { onConflict: 'workspace_key' })
+      .select('id, updated_at, updated_by_name')
+      .single();
 
     if(error) {
-      if(attempt === 1) { await new Promise(r => setTimeout(r, 1000)); return saveToCloud(2); }
+      console.error('saveToCloud error:', error);
+      if(attempt < 3) {
+        await new Promise(r => setTimeout(r, attempt * 1500));
+        return saveToCloud(attempt + 1);
+      }
       setSyncStatus('error');
-      showToast('Erro ao salvar: ' + error.message, 'warn');
-    } else {
-      setSyncStatus('synced');
-      document.getElementById('unsaved-dot').style.display = 'none';
-      showToast('☁️ Dados salvos!', 'success');
-      // Log history
-      await logHistory('Salvou alterações nos POPs');
-      updateLastSaveChip();
+      showToast('❌ Erro ao salvar: ' + error.message, 'warn');
+      return;
     }
+
+    if(saved?.id) workspaceId = saved.id;
+    setSyncStatus('synced');
+    document.getElementById('unsaved-dot').style.display = 'none';
+    showToast('☁️ Dados salvos!', 'success');
+    updateLastSaveChip(saved);
+    logHistory('Salvou alterações').catch(e => console.warn('logHistory:', e));
+
   } catch(e) {
-    if(attempt === 1) { await new Promise(r => setTimeout(r, 1000)); return saveToCloud(2); }
+    console.error('saveToCloud exception:', e);
+    if(attempt < 3) {
+      await new Promise(r => setTimeout(r, attempt * 1500));
+      return saveToCloud(attempt + 1);
+    }
     setSyncStatus('error');
-    showToast('Erro inesperado. Dados preservados localmente.', 'warn');
+    showToast('❌ Erro inesperado: ' + e.message, 'warn');
   }
 }
 
 async function loadFromCloud() {
   if(!currentUser) return;
   setSyncStatus('syncing');
-  const { data, error } = await supaClient
-    .from('gestpop_workspace')
-    .select('*')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .single();
+  console.log('📥 loadFromCloud iniciando...');
 
-  if(error || !data || !data.data || Object.keys(data.data).length === 0) {
-    setSyncStatus('synced');
-    // localStorage desativado
-    return;
-  }
   try {
+    // Buscar por workspace_key='main' primeiro; fallback: mais recente
+    let { data, error } = await supaClient
+      .from('gestpop_workspace')
+      .select('*')
+      .eq('workspace_key', WORKSPACE_KEY)
+      .maybeSingle();
+
+    // fallback: pegar o mais recente se não tiver workspace_key
+    if(!data && !error) {
+      ({ data, error } = await supaClient
+        .from('gestpop_workspace')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle());
+    }
+
+    if(error) {
+      console.error('loadFromCloud query error:', error);
+      setSyncStatus('error');
+      showToast('Erro ao carregar dados: ' + error.message, 'warn');
+      return;
+    }
+
+    if(!data || !data.data || Object.keys(data.data).length === 0) {
+      console.log('loadFromCloud: workspace vazio ou inexistente — usando dados padrão');
+      setSyncStatus('synced');
+      return;
+    }
+
     workspaceId = data.id;
     const payload = data.data;
+    console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
+
     if(payload.d) Object.assign(DATA.d, payload.d);
     if(payload.r) Object.assign(DATA.r, payload.r);
     if(payload.pat) DATA.pat = payload.pat;
+    if(payload.arqOverrides) {
+      DATA._arqOverrides = payload.arqOverrides;
+      _arqData = null; // resetar cache
+    }
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
         DATA[key] = pd;
-        mountNewPopTab(key, pd.meta?.name || 'POP', true); // silent restore
+        if(!document.getElementById('pop-' + key)) {
+          mountNewPopTab(key, pd.meta?.name || 'POP', true);
+        }
       });
     }
+
     ['d','r'].forEach(p => {
-      renderStep(p, DATA[p].currentStep||0);
-      renderRoles(p); renderIndicators(p);
-      renderFaq(p); renderNormas(p); renderRevisions(p);
+      try {
+        renderStep(p, DATA[p].currentStep||0);
+        renderRoles(p); renderIndicators(p);
+        renderFaq(p); renderNormas(p); renderRevisions(p); renderFicha(p);
+      } catch(e) { console.warn('Render error for', p, e); }
     });
+
+    renderSidebar();
+    if(typeof arqSyncFromPops === 'function') arqSyncFromPops();
+    const homePage = document.getElementById('home-page');
+    if(homePage && homePage.style.display !== 'none') homeRefresh();
+    setTimeout(() => patCheckDeadlines(), 800);
+
     setSyncStatus('synced');
     updateLastSaveChip(data);
-    showToast('☁️ Conteúdo carregado do workspace!', 'success');
+    showToast('☁️ Conteúdo carregado!', 'success');
+    console.log('loadFromCloud: OK');
+
   } catch(e) {
     setSyncStatus('error');
-    console.error('Erro ao restaurar workspace:', e);
+    console.error('loadFromCloud exception:', e);
+    showToast('Erro inesperado ao carregar: ' + e.message, 'warn');
   }
 }
 
