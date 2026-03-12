@@ -2678,43 +2678,27 @@ async function generateFaqIA(p) {
   const btn = document.getElementById(p+'-faq-ia-btn');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Gerando...'; }
   try {
-    // Build context from the POP data
     const D = DATA[p];
     const steps = (D.steps||[]).map((s,i)=>`Etapa ${i+1}: ${s.title}. Ações: ${(s.actions||[]).map(a=>(typeof a==='string'?a:a.text)).join('; ')}`).join('\n');
     const roles = (D.roles||[]).map(r=>`${r.name}: ${(r.duties||[]).join(', ')}`).join('\n');
     const desc  = D.meta?.desc || D.objetivo || '';
     const context = `Processo: ${D.meta?.name||'POP'}\nObjetivo: ${desc}\nEtapas:\n${steps}\nAtores:\n${roles}`;
+    const prompt = `Com base neste processo, gere 5 perguntas frequentes (FAQ) realistas que cidadãos, servidores ou gestores fariam, com respostas claras e objetivas.\n\n${context}\n\nResponda APENAS em JSON puro (sem markdown, sem \`\`\`): [{"q":"pergunta","a":"resposta"},...]`;
 
-    const resp = await fetch(SUPA_URL + '/functions/v1/claude-proxy', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': 'Bearer ' + SUPA_ANON
-      },
-      body: JSON.stringify({
-        model:'claude-sonnet-4-5-20251001',
-        max_tokens:1000,
-        messages:[{ role:'user', content:
-          'Com base neste processo, gere 5 perguntas frequentes (FAQ) realistas que cidadãos, servidores ou gestores fariam, com respostas claras e objetivas.\n\n' + context + '\n\nResponda APENAS em JSON puro (sem markdown): [{"q":"pergunta","a":"resposta"},...]'
-        }]
-      })
-    });
-    if(!resp.ok) {
-      const err = await resp.text();
-      throw new Error('Proxy error ' + resp.status + ': ' + err.slice(0,200));
-    }
-    const data = await resp.json();
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g,'').trim();
+    const text = await callGemini(prompt);
+    let clean = text.trim();
+    const jsonMatchF = clean.match(/\[[\s\S]*\]/);
+    if(jsonMatchF) clean = jsonMatchF[0];
+    else clean = clean.replace(/```json|```/g,'').trim();
     const faqs = JSON.parse(clean);
     if(!Array.isArray(faqs)) throw new Error('Formato inválido');
     faqs.forEach(f => { if(f.q && f.a) DATA[p].faqs.push({q:f.q, a:f.a, pending:false}); });
     renderFaq(p);
     markChanged();
-    showToast(`✅ ${faqs.length} perguntas geradas pela IA!`,'success');
+    showToast(`✅ ${faqs.length} perguntas geradas pelo Gemini!`,'success');
   } catch(e) {
     console.error(e);
-    showToast('Erro ao gerar FAQ com IA: '+e.message,'warn');
+    showToast('Erro ao gerar FAQ: '+e.message,'warn');
   }
   if(btn) { btn.disabled=false; btn.textContent='🤖 Gerar com IA'; }
 }
@@ -4097,6 +4081,48 @@ const _origOnAuthChange = null;
 
 // ═══ SUPABASE / AUTH ══════════════════════════
 const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
+// ── Gemini API (gratuita) ──────────────────────────────────────
+// Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
+const GEMINI_KEY = 'SUA_CHAVE_GEMINI_AQUI';
+const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=';
+const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=';
+
+async function callGemini(prompt) {
+  if(GEMINI_KEY === 'SUA_CHAVE_GEMINI_AQUI') {
+    throw new Error('Configure a chave do Gemini: abra o HTML, localize GEMINI_KEY e substitua pelo valor obtido em aistudio.google.com');
+  }
+  const resp = await fetch(GEMINI_TEXT_URL + GEMINI_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
+    })
+  });
+  if(!resp.ok) { const e = await resp.text(); throw new Error('Gemini error ' + resp.status + ': ' + e.slice(0,200)); }
+  const data = await resp.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function callGeminiVision(prompt, base64, mimeType) {
+  if(GEMINI_KEY === 'SUA_CHAVE_GEMINI_AQUI') {
+    throw new Error('Configure a chave do Gemini: abra o HTML, localize GEMINI_KEY e substitua pelo valor obtido em aistudio.google.com');
+  }
+  const resp = await fetch(GEMINI_VIS_URL + GEMINI_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [
+        { inline_data: { mime_type: mimeType, data: base64 } },
+        { text: prompt }
+      ]}],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
+    })
+  });
+  if(!resp.ok) { const e = await resp.text(); throw new Error('Gemini Vision error ' + resp.status + ': ' + e.slice(0,200)); }
+  const data = await resp.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkcGtremRscGR3b3FxbWJ6cGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTU4NjYsImV4cCI6MjA4ODgzMTg2Nn0.PyZoWa1-LyNxzUhEkHBALpnVGXHGI7B9-tKal8J7cjA';
 let supaClient = null;
 let currentUser = null;
@@ -4282,318 +4308,407 @@ document.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==
 
 
 // ═══ QUADRO BRANCO ══════════════════════════════════════════
-let _quadroTool = 'postit';
-let _quadroColor = '#fef08a';
-let _quadroItems = []; // {id, type, x, y, w, h, text, color, borderColor}
-let _quadroArrows = []; // {id, fromId, toId, x1,y1,x2,y2}
-let _quadroHistory = [];
-let _qDragging = null;
-let _qArrowFrom = null;
-let _qPan = { active:false, startX:0, startY:0, ox:0, oy:0 };
+// Estado global
+let _qTool    = 'postit';   // postit | actor | arrow | select
+let _qColor   = '#fef08a';
+let _qItems   = [];         // {id,type,x,y,w,h,text,color}
+let _qArrows  = [];         // {id,x1,y1,x2,y2,fromId,toId}
+let _qHistory = [];
+let _qItemId  = 0;
+let _qSelected = null;      // selected item id or arrow id
+let _qArrowSrc = null;      // {id, cx, cy} — first click for arrow mode
 let _qScale = 1, _qOffX = 0, _qOffY = 0;
-let _qItemId = 0;
-
+let _qPanActive = false, _qPanStart = {x:0,y:0,ox:0,oy:0};
 const ACTOR_COLORS = ['#0a2540','#15803d','#1d4ed8','#9333ea','#c2410c'];
 
+// ── Module show/hide ─────────────────────────────────────────
 function showQuadroModule(show=true) {
   const el = document.getElementById('quadro-module');
-  const allPops = document.querySelectorAll('.pop-content');
-  const navTabs = document.querySelector('.nav-tabs');
-  const popSwitcher = document.getElementById('pop-switcher-bar');
-  const pat = document.getElementById('pat-module');
-  const bi  = document.getElementById('bi-module');
   if(show) {
-    allPops.forEach(p=>p.classList.remove('active'));
-    pat.classList.remove('active');
+    document.querySelectorAll('.pop-content').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pat-module').classList.remove('active');
+    const bi = document.getElementById('bi-module');
     if(bi) bi.style.display='none';
+    const navTabs = document.querySelector('.nav-tabs');
+    const popSw   = document.getElementById('pop-switcher-bar');
     if(navTabs) navTabs.style.display='none';
-    if(popSwitcher) popSwitcher.style.display='none';
+    if(popSw)   popSw.style.display='none';
     el.style.display='block';
     initQuadro();
   } else {
     el.style.display='none';
+    const navTabs = document.querySelector('.nav-tabs');
+    const popSw   = document.getElementById('pop-switcher-bar');
     if(navTabs) navTabs.style.display='';
-    if(popSwitcher) popSwitcher.style.display='';
+    if(popSw)   popSw.style.display='';
     const activePopEl = document.getElementById('pop-'+popDomId(currentPop));
     if(activePopEl) activePopEl.classList.add('active');
   }
 }
 
+// ── Init (once) ──────────────────────────────────────────────
 function initQuadro() {
   const wrap = document.getElementById('quadro-canvas-wrap');
   if(wrap._qInited) return;
   wrap._qInited = true;
 
-  // Click to add item
-  wrap.addEventListener('click', e => {
-    if(_qDragging || _qPan.moved) return;
-    if(e.target !== wrap && e.target !== document.getElementById('quadro-canvas-inner') && !e.target.classList.contains('q-arrows')) return;
-    const rect = wrap.getBoundingClientRect();
-    const x = (e.clientX - rect.left - _qOffX) / _qScale;
-    const y = (e.clientY - rect.top  - _qOffY) / _qScale;
-    if(_quadroTool === 'postit') addPostit(x, y);
-    if(_quadroTool === 'actor')  addActor(x, y);
-  });
-
-  // Pan with middle mouse or space+drag
-  wrap.addEventListener('mousedown', e => {
-    if(e.button === 1 || (e.button === 0 && e.altKey)) {
-      _qPan = {active:true, startX:e.clientX, startY:e.clientY, ox:_qOffX, oy:_qOffY, moved:false};
-      wrap.style.cursor = 'grabbing';
-      e.preventDefault();
+  // Click on canvas → add item, or complete arrow
+  wrap.addEventListener('click', ev => {
+    if(ev.target.closest('[data-qid]') || ev.target.closest('[data-qaid]')) return;
+    const {cx,cy} = screenToCanvas(ev.clientX, ev.clientY);
+    if(_qTool==='postit') { qSaveHistory(); addPostit(cx,cy); }
+    if(_qTool==='actor')  { qSaveHistory(); addActor(cx,cy); }
+    if(_qTool==='arrow' && _qArrowSrc) {
+      // clicking on empty canvas cancels arrow
+      _qArrowSrc=null;
+      document.getElementById('quadro-hint-text').textContent='Clique em um elemento para iniciar a seta.';
+      renderArrowLayer();
     }
   });
-  window.addEventListener('mousemove', e => {
-    if(!_qPan.active) return;
-    const dx = e.clientX - _qPan.startX;
-    const dy = e.clientY - _qPan.startY;
-    if(Math.abs(dx)+Math.abs(dy)>3) _qPan.moved = true;
-    _qOffX = _qPan.ox + dx;
-    _qOffY = _qPan.oy + dy;
-    applyQuadroTransform();
+
+  // Pan: Alt+drag OR middle button
+  wrap.addEventListener('mousedown', ev => {
+    if(ev.button===1 || (ev.button===0 && ev.altKey)) {
+      _qPanActive=true;
+      _qPanStart={x:ev.clientX,y:ev.clientY,ox:_qOffX,oy:_qOffY};
+      wrap.style.cursor='grabbing'; ev.preventDefault();
+    }
   });
-  window.addEventListener('mouseup', e => {
-    if(_qPan.active) { _qPan.active=false; wrap.style.cursor='default'; }
+  window.addEventListener('mousemove', ev => {
+    if(!_qPanActive) return;
+    _qOffX = _qPanStart.ox + (ev.clientX-_qPanStart.x);
+    _qOffY = _qPanStart.oy + (ev.clientY-_qPanStart.y);
+    applyQTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    if(_qPanActive){ _qPanActive=false; document.getElementById('quadro-canvas-wrap').style.cursor='default'; }
   });
 
   // Scroll zoom
-  wrap.addEventListener('wheel', e => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.1 : 0.91;
-    const rect = wrap.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    _qOffX = mx - (mx - _qOffX) * factor;
-    _qOffY = my - (my - _qOffY) * factor;
-    _qScale = Math.max(0.2, Math.min(3, _qScale * factor));
-    applyQuadroTransform();
-  }, {passive:false});
+  wrap.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const f = ev.deltaY<0?1.1:0.91;
+    const rect=wrap.getBoundingClientRect();
+    const mx=ev.clientX-rect.left, my=ev.clientY-rect.top;
+    _qOffX = mx-(mx-_qOffX)*f;
+    _qOffY = my-(my-_qOffY)*f;
+    _qScale = Math.max(0.15,Math.min(4,_qScale*f));
+    applyQTransform();
+  },{passive:false});
 
-  // Keyboard shortcuts
-  document.addEventListener('keydown', e => {
-    if(document.getElementById('quadro-module').style.display === 'none') return;
-    if((e.ctrlKey||e.metaKey) && e.key==='z') { e.preventDefault(); quadroUndo(); }
-    if(e.key==='Delete'||e.key==='Backspace') {
-      if(document.activeElement && document.activeElement.classList.contains('q-postit')) return;
-      deleteSelected();
+  // Keyboard
+  document.addEventListener('keydown', ev => {
+    if(document.getElementById('quadro-module').style.display==='none') return;
+    if((ev.ctrlKey||ev.metaKey) && ev.key==='z'){ ev.preventDefault(); quadroUndo(); }
+    if((ev.key==='Delete'||ev.key==='Backspace') && _qSelected && document.activeElement.tagName!=='TEXTAREA' && !document.activeElement.isContentEditable){
+      ev.preventDefault(); qDeleteSelected();
     }
+    if(ev.key==='Escape'){ _qArrowSrc=null; qDeselect(); renderArrowLayer(); }
   });
 }
 
-function applyQuadroTransform() {
-  const inner = document.getElementById('quadro-canvas-inner');
-  inner.style.transform = `translate(${_qOffX}px,${_qOffY}px) scale(${_qScale})`;
+function screenToCanvas(sx,sy){
+  const rect=document.getElementById('quadro-canvas-wrap').getBoundingClientRect();
+  return {cx:(sx-rect.left-_qOffX)/_qScale, cy:(sy-rect.top-_qOffY)/_qScale};
+}
+function applyQTransform(){
+  document.getElementById('quadro-canvas-inner').style.transform=`translate(${_qOffX}px,${_qOffY}px) scale(${_qScale})`;
 }
 
-function setQuadroTool(tool) {
-  _quadroTool = tool;
-  document.querySelectorAll('[id^="qtool-"]').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('qtool-'+tool);
+// ── Tools ────────────────────────────────────────────────────
+function setQuadroTool(tool){
+  _qTool=tool; _qArrowSrc=null;
+  document.querySelectorAll('[id^="qtool-"]').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('qtool-'+tool);
   if(btn) btn.classList.add('active');
-  const hints = {
-    postit: 'Clique no quadro para adicionar um Post-it. Arraste para mover. Duplo clique para editar.',
-    actor:  'Clique para adicionar um Ator/Setor. Represente cada participante do processo.',
-    arrow:  'Clique em um elemento de origem, depois no destino para criar uma seta.',
-    select: 'Clique para selecionar. Delete para remover. Arraste para mover.'
+  const hints={
+    postit:'Clique no quadro para adicionar um Post-it. Duplo clique para editar. Del para apagar.',
+    actor: 'Clique para adicionar um Ator/Setor. Duplo clique para renomear.',
+    arrow: 'Clique em um elemento (origem) → depois clique em outro (destino). Clique numa seta para selecioná-la.',
+    select:'Clique para selecionar. Arraste para mover. Del para apagar.'
   };
-  document.getElementById('quadro-hint-text').textContent = hints[tool] || '';
-  document.getElementById('quadro-hint').style.display = 'flex';
-  _qArrowFrom = null;
+  document.getElementById('quadro-hint-text').textContent=hints[tool]||'';
+  document.getElementById('quadro-hint').style.display='flex';
 }
-
-function setQuadroColor(color, dot) {
-  _quadroColor = color;
-  document.querySelectorAll('.q-color-dot').forEach(d => d.classList.remove('selected'));
+function setQuadroColor(color,dot){
+  _qColor=color;
+  document.querySelectorAll('.q-color-dot').forEach(d=>d.classList.remove('selected'));
   dot.classList.add('selected');
 }
 
-function saveQuadroHistory() {
-  _quadroHistory.push(JSON.stringify({items:_quadroItems, arrows:_quadroArrows}));
-  if(_quadroHistory.length > 30) _quadroHistory.shift();
+// ── History ──────────────────────────────────────────────────
+function qSaveHistory(){
+  _qHistory.push(JSON.stringify({items:_qItems,arrows:_qArrows}));
+  if(_qHistory.length>40) _qHistory.shift();
 }
-
-function quadroUndo() {
-  if(!_quadroHistory.length) return;
-  const state = JSON.parse(_quadroHistory.pop());
-  _quadroItems  = state.items;
-  _quadroArrows = state.arrows;
+function quadroUndo(){
+  if(!_qHistory.length) return;
+  const s=JSON.parse(_qHistory.pop());
+  _qItems=s.items; _qArrows=s.arrows; _qSelected=null; _qArrowSrc=null;
   reRenderQuadro();
 }
-
-function quadroClear() {
+function quadroClear(){
   if(!confirm('Limpar todo o quadro?')) return;
-  saveQuadroHistory();
-  _quadroItems = []; _quadroArrows = [];
+  qSaveHistory(); _qItems=[]; _qArrows=[]; _qSelected=null; _qArrowSrc=null;
   reRenderQuadro();
 }
 
-function addPostit(x, y) {
-  saveQuadroHistory();
-  const id = 'qi_' + (++_qItemId);
-  _quadroItems.push({id, type:'postit', x, y, w:140, h:90, text:'Ação / Etapa', color:_quadroColor});
-  renderPostitEl(_quadroItems[_quadroItems.length-1]);
+// ── Add items ────────────────────────────────────────────────
+function addPostit(x,y){
+  const id='qi_'+(++_qItemId);
+  _qItems.push({id,type:'postit',x,y,w:150,h:100,text:'Ação / Etapa',color:_qColor});
+  renderItem(_qItems[_qItems.length-1]);
+}
+function addActor(x,y){
+  const id='qi_'+(++_qItemId);
+  const col=ACTOR_COLORS[_qItems.filter(i=>i.type==='actor').length%ACTOR_COLORS.length];
+  _qItems.push({id,type:'actor',x,y,w:140,h:50,text:'Ator / Setor',color:col});
+  renderItem(_qItems[_qItems.length-1]);
 }
 
-function addActor(x, y) {
-  saveQuadroHistory();
-  const id = 'qi_' + (++_qItemId);
-  const col = ACTOR_COLORS[_quadroItems.filter(i=>i.type==='actor').length % ACTOR_COLORS.length];
-  _quadroItems.push({id, type:'actor', x, y, w:130, h:44, text:'Ator / Setor', color:col});
-  renderActorEl(_quadroItems[_quadroItems.length-1]);
-}
+// ── Render a single item DOM node ───────────────────────────
+function renderItem(item){
+  // Remove old if exists
+  const old=document.querySelector(`[data-qid="${item.id}"]`);
+  if(old) old.remove();
 
-function renderPostitEl(item) {
-  const el = document.createElement('textarea');
-  el.id = item.id;
-  el.className = 'q-postit';
-  el.value = item.text;
-  el.style.left   = item.x + 'px';
-  el.style.top    = item.y + 'px';
-  el.style.width  = item.w + 'px';
-  el.style.height = item.h + 'px';
-  el.style.background = item.color;
-  el.style.zIndex = 10;
+  const el=document.createElement('div');
+  el.dataset.qid=item.id;
+  el.style.position='absolute';
+  el.style.left=item.x+'px';
+  el.style.top=item.y+'px';
+  el.style.width=item.w+'px';
+  el.style.minHeight=item.h+'px';
+  el.style.boxSizing='border-box';
+  el.style.zIndex=item.type==='postit'?10:5;
+  el.style.userSelect='none';
 
-  el.addEventListener('input', e => { item.text = e.target.value; });
-  el.addEventListener('mousedown', e => { if(e.button!==0) return; startDragItem(e, el, item); });
+  if(item.type==='postit'){
+    el.style.cssText+=`;background:${item.color};border-radius:4px;padding:10px 28px 10px 10px;font-size:13px;font-weight:500;line-height:1.45;word-break:break-word;box-shadow:3px 4px 12px rgba(0,0,0,.2);cursor:grab;`;
+    el.textContent=item.text;
 
-  // Delete button
-  const del = document.createElement('button');
-  del.className = 'q-postit-del';
-  del.textContent = '✕';
-  del.onclick = e => { e.stopPropagation(); saveQuadroHistory(); removeItem(item.id); };
+    // Delete button always visible on hover
+    const del=document.createElement('button');
+    del.textContent='✕';
+    del.title='Apagar (ou Del)';
+    del.style.cssText='position:absolute;top:4px;right:5px;background:rgba(0,0,0,.15);border:none;border-radius:3px;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;line-height:1;padding:0;';
+    el.appendChild(del);
+    el.addEventListener('mouseenter',()=>{ del.style.display='block'; });
+    el.addEventListener('mouseleave',()=>{ del.style.display='none'; });
+    del.addEventListener('click',ev=>{ ev.stopPropagation(); qSaveHistory(); qRemoveItem(item.id); });
 
-  const wrap = document.createElement('div');
-  wrap.style.cssText = `position:absolute;left:${item.x}px;top:${item.y}px;width:${item.w}px;height:${item.h}px;`;
-  wrap.dataset.itemWrap = item.id;
-  wrap.appendChild(el);
-  wrap.appendChild(del);
-  document.getElementById('quadro-canvas-inner').appendChild(wrap);
-}
+    // Double click to edit
+    el.addEventListener('dblclick',ev=>{
+      if(ev.target===del) return;
+      const ta=document.createElement('textarea');
+      ta.value=item.text;
+      ta.style.cssText=`width:100%;height:100%;min-height:80px;border:none;background:transparent;resize:none;font:inherit;font-size:13px;outline:none;padding:0;box-sizing:border-box;cursor:text;`;
+      el.textContent='';
+      el.appendChild(ta);
+      ta.focus(); ta.select();
+      const finish=()=>{
+        item.text=ta.value;
+        el.textContent=item.text;
+        el.appendChild(del);
+      };
+      ta.addEventListener('blur',finish);
+      ta.addEventListener('keydown',ev2=>{ if(ev2.key==='Escape'||((ev2.ctrlKey||ev2.metaKey)&&ev2.key==='Enter')) ta.blur(); });
+    });
+  } else {
+    // Actor
+    el.style.cssText+=`;border:2px solid ${item.color};border-radius:8px;background:${item.color}20;color:${item.color};padding:8px 24px 8px 10px;font-size:12px;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:grab;`;
+    el.textContent=item.text;
 
-function renderActorEl(item) {
-  const el = document.createElement('div');
-  el.id = item.id;
-  el.className = 'q-actor';
-  el.contentEditable = 'true';
-  el.textContent = item.text;
-  el.style.left   = item.x + 'px';
-  el.style.top    = item.y + 'px';
-  el.style.width  = item.w + 'px';
-  el.style.color  = item.color;
-  el.style.borderColor = item.color;
-  el.style.background = item.color + '18';
-  el.style.zIndex = 5;
-  el.addEventListener('input', e => { item.text = e.target.innerText; });
-  el.addEventListener('mousedown', e => { if(e.button!==0||e.target===el&&el.isContentEditable) return; startDragItem(e, el, item); });
-  el.addEventListener('mousedown', e => { if(_quadroTool==='arrow') { e.preventDefault(); handleArrowClick(item.id, item.x + item.w/2, item.y + item.h/2); } });
+    const del=document.createElement('button');
+    del.textContent='✕';
+    del.title='Apagar';
+    del.style.cssText='position:absolute;top:4px;right:5px;background:rgba(0,0,0,.1);border:none;border-radius:3px;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;padding:0;';
+    el.appendChild(del);
+    el.addEventListener('mouseenter',()=>del.style.display='block');
+    el.addEventListener('mouseleave',()=>del.style.display='none');
+    del.addEventListener('click',ev=>{ ev.stopPropagation(); qSaveHistory(); qRemoveItem(item.id); });
+
+    el.addEventListener('dblclick',()=>{
+      const newName=prompt('Nome do ator/setor:',item.text);
+      if(newName && newName.trim()){ item.text=newName.trim(); el.textContent=item.text; el.appendChild(del); }
+    });
+  }
+
+  // Click = select (or start arrow)
+  el.addEventListener('mousedown',ev=>{
+    if(ev.target.tagName==='BUTTON') return;
+    ev.stopPropagation();
+    if(_qTool==='arrow'){
+      const cx=item.x+item.w/2, cy=item.y+(item.h||50)/2;
+      if(!_qArrowSrc){
+        _qArrowSrc={id:item.id,cx,cy};
+        qSelectItem(item.id);
+        document.getElementById('quadro-hint-text').textContent='Agora clique no elemento DESTINO da seta.';
+      } else {
+        if(_qArrowSrc.id===item.id){ _qArrowSrc=null; qDeselect(); return; }
+        qSaveHistory();
+        const ax1=_qArrowSrc.cx, ay1=_qArrowSrc.cy;
+        const arrow={id:'qa_'+(++_qItemId),fromId:_qArrowSrc.id,toId:item.id,x1:ax1,y1:ay1,x2:cx,y2:cy};
+        _qArrows.push(arrow);
+        _qArrowSrc=null;
+        qDeselect();
+        renderArrowLayer();
+        document.getElementById('quadro-hint-text').textContent='Seta criada! Clique em outro elemento para continuar ou mude de ferramenta.';
+      }
+      return;
+    }
+    // Select mode or any other: start drag
+    qSelectItem(item.id);
+    startQDrag(ev,item,el);
+  });
+
   document.getElementById('quadro-canvas-inner').appendChild(el);
 }
 
-function startDragItem(e, el, item) {
-  if(_quadroTool === 'arrow') { handleArrowClick(item.id, item.x + (item.w||140)/2, item.y + (item.h||90)/2); return; }
-  if(document.activeElement === el) return;
-  e.preventDefault();
-  _qDragging = {el, item, startX:e.clientX, startY:e.clientY, ox:item.x, oy:item.y};
-  saveQuadroHistory();
-
-  const onMove = ev => {
-    const dx = (ev.clientX - _qDragging.startX) / _qScale;
-    const dy = (ev.clientY - _qDragging.startY) / _qScale;
-    item.x = _qDragging.ox + dx;
-    item.y = _qDragging.oy + dy;
-    const wrap = document.querySelector(`[data-item-wrap="${item.id}"]`) || el;
-    wrap.style.left = item.x + 'px';
-    wrap.style.top  = item.y + 'px';
-    if(el !== wrap) { el.style.left = item.x+'px'; el.style.top = item.y+'px'; }
-    updateArrows();
+// ── Drag items ───────────────────────────────────────────────
+function startQDrag(ev,item,el){
+  if(document.activeElement.tagName==='TEXTAREA') return;
+  ev.preventDefault();
+  const startX=ev.clientX, startY=ev.clientY, ox=item.x, oy=item.y;
+  let moved=false;
+  const onMove=e=>{
+    const dx=(e.clientX-startX)/_qScale;
+    const dy=(e.clientY-startY)/_qScale;
+    if(Math.abs(dx)+Math.abs(dy)>2) moved=true;
+    item.x=ox+dx; item.y=oy+dy;
+    el.style.left=item.x+'px'; el.style.top=item.y+'px';
+    updateConnectedArrows(item.id);
   };
-  const onUp = () => { _qDragging = null; window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); updateArrows(); };
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
+  const onUp=()=>{
+    window.removeEventListener('mousemove',onMove);
+    window.removeEventListener('mouseup',onUp);
+    if(moved) qSaveHistory();
+    el.style.cursor='grab';
+  };
+  el.style.cursor='grabbing';
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onUp);
 }
 
-function handleArrowClick(itemId, cx, cy) {
-  if(!_qArrowFrom) {
-    _qArrowFrom = {id:itemId, x:cx, y:cy};
-    showToast('Clique no elemento destino para completar a seta.','success');
-  } else {
-    if(_qArrowFrom.id === itemId) { _qArrowFrom = null; return; }
-    saveQuadroHistory();
-    const toItem = _quadroItems.find(i=>i.id===itemId);
-    const tx = toItem ? toItem.x + (toItem.w||130)/2 : cx;
-    const ty = toItem ? toItem.y + (toItem.h||44)/2  : cy;
-    const arrow = {id:'qa_'+(++_qItemId), fromId:_qArrowFrom.id, toId:itemId,
-      x1:_qArrowFrom.x, y1:_qArrowFrom.y, x2:tx, y2:ty};
-    _quadroArrows.push(arrow);
-    renderArrow(arrow);
-    _qArrowFrom = null;
-  }
-}
+// ── Arrow layer (SVG) ────────────────────────────────────────
+function renderArrowLayer(){
+  const svg=document.getElementById('q-arrows-svg');
+  // Keep defs
+  const defs=svg.querySelector('defs');
+  svg.innerHTML='';
+  if(defs) svg.appendChild(defs);
 
-function renderArrow(arrow) {
-  const svg = document.getElementById('q-arrows-svg');
-  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-  line.id = arrow.id;
-  line.setAttribute('x1', arrow.x1); line.setAttribute('y1', arrow.y1);
-  line.setAttribute('x2', arrow.x2); line.setAttribute('y2', arrow.y2);
-  line.setAttribute('class','q-arrow-line');
-  line.addEventListener('click', () => { saveQuadroHistory(); removeArrow(arrow.id); });
-  svg.appendChild(line);
-}
+  // In-progress ghost arrow if _qArrowSrc
+  _qArrows.forEach(a=>{
+    const sel=(_qSelected===a.id);
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
 
-function updateArrows() {
-  _quadroArrows.forEach(a => {
-    const from = _quadroItems.find(i=>i.id===a.fromId);
-    const to   = _quadroItems.find(i=>i.id===a.toId);
-    if(from) { a.x1 = from.x+(from.w||140)/2; a.y1 = from.y+(from.h||90)/2; }
-    if(to)   { a.x2 = to.x+(to.w||140)/2;     a.y2 = to.y+(to.h||90)/2; }
-    const el = document.getElementById(a.id);
-    if(el) { el.setAttribute('x1',a.x1); el.setAttribute('y1',a.y1); el.setAttribute('x2',a.x2); el.setAttribute('y2',a.y2); }
+    // Wide invisible hit area
+    const hit=document.createElementNS('http://www.w3.org/2000/svg','line');
+    hit.setAttribute('x1',a.x1); hit.setAttribute('y1',a.y1);
+    hit.setAttribute('x2',a.x2); hit.setAttribute('y2',a.y2);
+    hit.setAttribute('stroke','transparent'); hit.setAttribute('stroke-width','18');
+    hit.style.cursor='pointer';
+    hit.addEventListener('click',ev=>{ ev.stopPropagation(); qSelectArrow(a.id); });
+
+    // Visual line
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',a.x1); line.setAttribute('y1',a.y1);
+    line.setAttribute('x2',a.x2); line.setAttribute('y2',a.y2);
+    line.setAttribute('stroke',sel?'#3b82f6':'#64748b');
+    line.setAttribute('stroke-width',sel?'3':'2');
+    line.setAttribute('marker-end',sel?'url(#arrowhead-sel)':'url(#arrowhead)');
+    line.setAttribute('fill','none');
+    line.style.pointerEvents='none';
+
+    // Delete button (midpoint) shown when selected
+    if(sel){
+      const mx=(a.x1+a.x2)/2, my=(a.y1+a.y2)/2;
+      const delBtn=document.createElementNS('http://www.w3.org/2000/svg','g');
+      delBtn.style.cursor='pointer';
+      const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx',mx); circle.setAttribute('cy',my);
+      circle.setAttribute('r','12'); circle.setAttribute('fill','#ef4444'); circle.setAttribute('stroke','white'); circle.setAttribute('stroke-width','2');
+      const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',mx); txt.setAttribute('y',my+4);
+      txt.setAttribute('text-anchor','middle'); txt.setAttribute('fill','white');
+      txt.setAttribute('font-size','14'); txt.setAttribute('font-weight','bold');
+      txt.textContent='✕';
+      txt.style.pointerEvents='none';
+      delBtn.appendChild(circle); delBtn.appendChild(txt);
+      delBtn.addEventListener('click',ev=>{ ev.stopPropagation(); qSaveHistory(); _qArrows=_qArrows.filter(x=>x.id!==a.id); _qSelected=null; renderArrowLayer(); });
+      g.appendChild(delBtn);
+    }
+
+    g.appendChild(hit);
+    g.appendChild(line);
+    svg.appendChild(g);
   });
 }
 
-function removeItem(id) {
-  _quadroItems = _quadroItems.filter(i=>i.id!==id);
-  _quadroArrows = _quadroArrows.filter(a=>a.fromId!==id&&a.toId!==id);
-  const wrap = document.querySelector(`[data-item-wrap="${id}"]`);
-  if(wrap) wrap.remove();
-  const el = document.getElementById(id);
+function updateConnectedArrows(itemId){
+  const item=_qItems.find(i=>i.id===itemId);
+  if(!item) return;
+  _qArrows.forEach(a=>{
+    if(a.fromId===itemId){ a.x1=item.x+item.w/2; a.y1=item.y+(item.h||50)/2; }
+    if(a.toId===itemId)  { a.x2=item.x+item.w/2; a.y2=item.y+(item.h||50)/2; }
+  });
+  renderArrowLayer();
+}
+
+// ── Selection ────────────────────────────────────────────────
+function qSelectItem(id){
+  _qSelected=id;
+  document.querySelectorAll('[data-qid]').forEach(el=>{
+    el.style.outline = el.dataset.qid===id ? '2.5px solid #3b82f6' : '';
+    el.style.outlineOffset = '2px';
+  });
+}
+function qSelectArrow(id){
+  _qSelected=id;
+  document.querySelectorAll('[data-qid]').forEach(el=>{ el.style.outline=''; });
+  renderArrowLayer();
+  // Show delete hint
+  document.getElementById('quadro-hint-text').textContent='Seta selecionada — clique em ✕ para apagar, ou pressione Del.';
+  document.getElementById('quadro-hint').style.display='flex';
+}
+function qDeselect(){
+  _qSelected=null;
+  document.querySelectorAll('[data-qid]').forEach(el=>{ el.style.outline=''; });
+  renderArrowLayer();
+}
+function qDeleteSelected(){
+  if(!_qSelected) return;
+  qSaveHistory();
+  const isArrow=_qSelected.startsWith('qa_');
+  if(isArrow){ _qArrows=_qArrows.filter(a=>a.id!==_qSelected); renderArrowLayer(); }
+  else { qRemoveItem(_qSelected); }
+  _qSelected=null;
+}
+function qRemoveItem(id){
+  _qItems=_qItems.filter(i=>i.id!==id);
+  _qArrows=_qArrows.filter(a=>a.fromId!==id&&a.toId!==id);
+  const el=document.querySelector(`[data-qid="${id}"]`);
   if(el) el.remove();
-  // Remove arrows connected to this item
-  document.querySelectorAll('.q-arrow-line').forEach(l => {
-    const a = _quadroArrows.find(x=>x.id===l.id);
-    if(!a) l.remove();
+  renderArrowLayer();
+}
+
+// ── Full re-render ───────────────────────────────────────────
+function reRenderQuadro(){
+  document.querySelectorAll('[data-qid]').forEach(e=>e.remove());
+  _qItemId=0;
+  _qItems.forEach(item=>{
+    _qItemId=Math.max(_qItemId,parseInt(item.id.split('_')[1]||0));
+    renderItem(item);
   });
-}
-
-function removeArrow(id) {
-  _quadroArrows = _quadroArrows.filter(a=>a.id!==id);
-  const el = document.getElementById(id);
-  if(el) el.remove();
-}
-
-function deleteSelected() {
-  // nothing selected by default — handled via del button on postits
-}
-
-function reRenderQuadro() {
-  const inner = document.getElementById('quadro-canvas-inner');
-  // Remove all items and arrows (keep SVG defs)
-  const svg = document.getElementById('q-arrows-svg');
-  while(svg.lastChild && svg.lastChild.tagName !== 'defs') svg.removeChild(svg.lastChild);
-  inner.querySelectorAll('[data-item-wrap], .q-actor').forEach(e=>e.remove());
-  _qItemId = 0;
-  _quadroItems.forEach(item => {
-    _qItemId = Math.max(_qItemId, parseInt(item.id.split('_')[1]||0));
-    if(item.type==='postit') renderPostitEl(item);
-    if(item.type==='actor')  renderActorEl(item);
+  _qArrows.forEach(a=>{
+    _qItemId=Math.max(_qItemId,parseInt(a.id.split('_')[1]||0));
   });
-  _quadroArrows.forEach(a => renderArrow(a));
+  renderArrowLayer();
 }
 
-function quadroExportImg() {
-  showToast('Para exportar: use Ctrl+Shift+P (screenshot) ou a ferramenta de captura do seu navegador na área do quadro.','success');
+function quadroExportImg(){
+  showToast('Para exportar: pressione F11 para tela cheia, depois use a captura de tela do seu sistema (Print Screen ou Ferramenta de Recorte).','success');
 }
 
 // ═══ BACKUP EXPORT / IMPORT ════════════════════════════════
@@ -4918,57 +5033,22 @@ async function extractFluxoFromImage() {
     const base64 = dataUrl.split(',')[1];
     const mediaType = dataUrl.split(';')[0].split(':')[1] || 'image/png';
 
-    const resp = await fetch(SUPA_URL + '/functions/v1/claude-proxy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPA_ANON
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20251001',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 }
-            },
-            {
-              type: 'text',
-              text: `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
+    const extractPrompt = `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
 Para cada etapa identifique: título, subtítulo (se houver), responsável (ator/setor), e ações/atividades.
 Para o tipo de cada ação use: "atividade" (tarefas normais), "decisao" (losangos/bifurcações), "evento" (início/fim), "observacao" (notas).
+Retorne APENAS JSON puro sem markdown e sem \`\`\`:
+[{"title":"Nome da etapa","subtitle":"","responsible":"Setor","respClass":"resp-green","actions":[{"type":"atividade","text":"Descrição","actor":""}],"note":null}]
+Se não identificar claramente algum campo, use string vazia. respClass deve ser sempre "resp-green".`;
 
-Retorne APENAS JSON puro sem markdown:
-[
-  {
-    "title": "Nome da etapa",
-    "subtitle": "Descrição opcional",
-    "responsible": "Nome do responsável/setor",
-    "respClass": "resp-green",
-    "actions": [
-      {"type": "atividade", "text": "Descrição da ação", "actor": ""}
-    ],
-    "note": null
-  }
-]
-
-Se não conseguir identificar claramente algum campo, use string vazia. respClass deve ser sempre "resp-green".`
-            }
-          ]
-        }]
-      })
-    });
-
-    const data = await resp.json();
-    if(data.error) throw new Error(data.error.message);
-
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g,'').trim();
+    const text = await callGeminiVision(extractPrompt, base64, mediaType);
+    // Robust JSON extraction — Gemini sometimes wraps with ```json
+    let clean = text.trim();
+    const jsonMatch = clean.match(/\[[\s\S]*\]/);
+    if(jsonMatch) clean = jsonMatch[0];
+    else clean = clean.replace(/```json|```/g,'').trim();
     const steps = JSON.parse(clean);
 
-    if(!Array.isArray(steps) || steps.length === 0) throw new Error('Nenhuma etapa identificada na imagem.');
+    if(!Array.isArray(steps) || steps.length === 0) throw new Error('Nenhuma etapa identificada na imagem. Resposta: ' + text.slice(0,120));
 
     // Replace steps in DATA
     DATA[p].steps = steps.map((s, i) => ({
