@@ -723,7 +723,7 @@
 <div class="sidebar" id="sidebar">
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
-    <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo POP</button>
+    <button class="sidebar-new-btn" onclick="closeSidebar();openNovoPop();">＋ Novo Mapeamento</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
         <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
@@ -1489,7 +1489,7 @@
   <div class="npop-box">
 
     <div class="npop-header">
-      <h2>➕ Novo POP</h2>
+      <h2>➕ Novo Mapeamento</h2>
       <p>Crie um novo Procedimento Operacional Padrão do zero ou importe a partir de um documento existente.</p>
     </div>
 
@@ -1535,7 +1535,7 @@
                   </div>
                   <div>
                     <label>Subprocesso</label>
-                    <input class="modal-input" id="nf-subprocesso" type="text" placeholder="Digite para filtrar subprocessos..." list="nf-subprocesso-list" autocomplete="off">
+                    <input class="modal-input" id="nf-subprocesso" type="text" placeholder="Digite para filtrar subprocessos..." list="nf-subprocesso-list" autocomplete="off" oninput="npopAutoFill()">
                     <datalist id="nf-subprocesso-list"></datalist>
                   </div>
                 </div>
@@ -2272,10 +2272,9 @@ function clearStorage() {
 
 // Auto-load on startup
 document.addEventListener('DOMContentLoaded', () => {
-  const loaded = loadFromStorage();
-  if(loaded) showToast('✅ Dados recuperados do navegador', 'success');
-  // Start on home page
-  setTimeout(() => showHome(), 50);
+  loadFromStorage();
+  // Show home immediately — cloud load will update content without navigating away
+  showHome();
 });
 
 function popPrefix(pop) {
@@ -3318,7 +3317,7 @@ function createBlankPop(info) {
   DATA[key] = {
     currentStep: 0,
     meta: {
-      name:         info.nome         || 'Novo POP',
+      name:         info.nome         || 'Novo Mapeamento',
       macro:        info.macro        || '',
       processo:     info.processo     || '',
       unidade:      info.unidade      || '',
@@ -3358,7 +3357,7 @@ function createBlankPop(info) {
 }
 
 // ── Mount tab + DOM for a new pop ────────────
-function mountNewPopTab(key, label) {
+function mountNewPopTab(key, label, silent=false) {
   // 1. Tab button
   const tab = document.createElement('div');
   tab.className = 'pop-tab pop-novo';
@@ -3442,9 +3441,11 @@ function mountNewPopTab(key, label) {
   renderNormas(key);
   renderRevisions(key);
 
-  // 12. Switch and enable edit mode
-  switchPop(key, tab);
-  if(!editMode) toggleEditMode();
+  // 12. Switch and enable edit mode (skip when restoring from cloud)
+  if(!silent) {
+    switchPop(key, tab);
+    if(!editMode) toggleEditMode();
+  }
 }
 
 // ── Helper: add step ──────────────────────────
@@ -3493,7 +3494,7 @@ function applyIaResult(parsed) {
   DATA[key] = {
     currentStep: 0,
     meta: {
-      name:      parsed.nome      || 'Novo POP',
+      name:      parsed.nome      || 'Novo Mapeamento',
       macro:     parsed.macro     || '',
       processo:  parsed.processo  || '',
       elaborado: parsed.elaborado || '',
@@ -3702,7 +3703,7 @@ function renderSidebar() {
     { key:'r', label: DATA.r?.meta?.name || 'Tratar Representações', macro: DATA.r?.meta?.macro || 'Promoção da Integridade' },
     ...Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat').map(k => ({
       key: k,
-      label: DATA[k]?.meta?.name || 'Novo POP',
+      label: DATA[k]?.meta?.name || 'Novo Mapeamento',
       macro: DATA[k]?.meta?.macro || ''
     }))
   ];
@@ -4119,7 +4120,7 @@ async function loadFromCloud() {
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
         DATA[key] = pd;
-        mountNewPopTab(key, pd.meta?.name || 'POP');
+        mountNewPopTab(key, pd.meta?.name || 'POP', true); // silent restore
       });
     }
     ['d','r'].forEach(p => {
@@ -4463,7 +4464,7 @@ async function loadFromCloud() {
         DATA[key] = pd;
         // Only mount if DOM doesn't already exist (avoid duplicates on re-sync)
         if(!document.getElementById('pop-' + key)) {
-          mountNewPopTab(key, pd.meta?.name || 'POP');
+          mountNewPopTab(key, pd.meta?.name || 'POP', true); // silent restore
         }
         // Render content for this pop
         const p = key;
@@ -4484,7 +4485,11 @@ async function loadFromCloud() {
     renderStep('r', DATA.r.currentStep||0); renderRoles('r'); renderIndicators('r');
     renderFaq('r'); renderNormas('r'); renderRevisions('r'); renderFicha('r');
     renderSidebar();
-    if(document.getElementById('home-page')?.style.display !== 'none') homeRefresh();
+    // Stay on home page after cloud load — just refresh stats
+    const homePage = document.getElementById('home-page');
+    if(homePage && homePage.style.display !== 'none') {
+      homeRefresh();
+    }
     setSyncStatus('synced');
     showToast('☁️ Dados sincronizados da nuvem!','success');
   } catch(e) {
@@ -5256,64 +5261,119 @@ async function extractFluxoFromImage() {
       base64 = await blobToBase64(blob);
     }
 
-    const extractPrompt = `Voce e um especialista em modelagem de processos BPMN. Analise este fluxograma BPMN da CAGE-RS com maxima atencao.
+    const extractPrompt = `Voce e um especialista em leitura de fluxogramas BPMN. Siga RIGOROSAMENTE as instrucoes abaixo em DUAS ETAPAS.
 
-PASSO 1 - ENCONTRE O EVENTO DE INICIO:
-Antes de qualquer coisa, localize o EVENTO DE INICIO do processo.
-O evento de inicio e SEMPRE um circulo pequeno verde (ou circulo simples sem borda grossa) que possui apenas UMA seta saindo dele e NENHUMA seta entrando.
-O processo comeca nesse circulo, independente de qual raia (swimlane) ele esteja.
-NAO comece pela raia do topo. NAO comece pelo elemento mais a esquerda. Comece pelo circulo de inicio.
+=== ETAPA 1: MAPEIE TODOS OS ELEMENTOS ===
+Antes de montar o fluxo, identifique CADA elemento visivel na imagem.
+Para cada elemento, anote:
+- Tipo: INICIO / FIM / ATIVIDADE / DECISAO / ANOTACAO
+- Texto exato dentro do elemento
+- Posicao horizontal aproximada: ESQUERDA / CENTRO-ESQUERDA / CENTRO / CENTRO-DIREITA / DIREITA
+- Raia (swimlane) em que se encontra: nome da faixa horizontal
 
-PASSO 2 - SIGA AS SETAS:
-A partir do evento de inicio, siga cada seta solida na direcao que ela aponta.
-A ordem do processo e definida pelas setas, nao pela posicao vertical das raias.
-Um processo pode comecar em qualquer raia (topo, meio ou base) e ir para qualquer direcao.
+=== ETAPA 2: MONTE O FLUXO SEGUINDO AS SETAS ===
+REGRA ABSOLUTA: O fluxo e determinado EXCLUSIVAMENTE pelas setas desenhadas.
+NAO use a posicao vertical dos elementos para determinar a ordem.
+NAO leia de cima para baixo.
+LEIA seguindo as setas da ESQUERDA para a DIREITA.
 
-PASSO 3 - IDENTIFIQUE OS ELEMENTOS:
-- CIRCULO VERDE ou circulo simples com apenas 1 seta saindo = Evento de INICIO. Type: "evento", text: "Inicio do processo"
-- CIRCULO VERMELHO ou circulo com borda grossa/dupla com apenas setas entrando = Evento de FIM. Type: "evento", text: "Fim do processo"
-- RETANGULO arredondado azul ou colorido = ATIVIDADE. Type: "atividade"
-- LOSANGO (qualquer variacao) = DECISAO/GATEWAY. Type: "decisao". Inclua as alternativas: "Sim: [destino] / Nao: [destino]"
-- RETANGULO CINZA tracejado = ANOTACAO. Type: "observacao"
-- SETA SOLIDA = sequencia do fluxo (siga essa)
-- SETA TRACEJADA = associacao ou mensagem (informacao adicional)
-- RAIA HORIZONTAL = ator ou setor responsavel pelas atividades naquela faixa
+COMO IDENTIFICAR O INICIO:
+- O evento de INICIO e o circulo simples (verde ou pequeno) que tem APENAS setas SAINDO e NENHUMA seta CHEGANDO.
+- Pode estar em QUALQUER raia — nao necessariamente na primeira raia do topo.
+- Comece SEMPRE por este elemento, independente de sua posicao vertical.
 
-PASSO 4 - AGRUPE POR FASES:
-Se o fluxograma tiver colunas verticais com nomes (fases), agrupe as atividades por fase.
-Se nao tiver fases explicitas, crie agrupamentos logicos seguindo o fluxo das setas.
+COMO SEGUIR O FLUXO:
+- A partir do evento de inicio, siga cada seta na direcao que ela aponta.
+- Setas horizontais (→): avancam o processo para a proxima etapa.
+- Setas verticais (↓ ou ↑): conectam elementos em raias diferentes, mas o fluxo continua na direcao horizontal geral.
+- Losangos (gateways): indicam decisao. Liste TODOS os caminhos possiveis (Sim e Nao).
+- O processo termina no circulo com borda dupla ou preenchimento escuro (evento de FIM).
 
-EXEMPLO DE ERRO A EVITAR:
-ERRADO: Comecar pela raia do topo ou pelo elemento mais a esquerda visualmente.
-CERTO: Localizar o circulo verde de inicio e comecar por ele, mesmo que esteja em uma raia do meio ou inferior.
+ELEMENTOS:
+- Circulo simples/verde sem setas entrando = INICIO → type "evento", text "Inicio do processo"
+- Circulo com borda dupla/escura sem setas saindo = FIM → type "evento", text "Fim do processo"  
+- Retangulo arredondado colorido = ATIVIDADE → type "atividade"
+- Losango = DECISAO → type "decisao", inclua: "Sim: [proxima atividade] / Nao: [proxima atividade]"
+- Retangulo cinza/tracejado = ANOTACAO → type "observacao"
+- Nome na margem esquerda de cada faixa horizontal = nome da RAIA (ator/setor)
 
-FORMATO DE SAIDA - retorne APENAS JSON puro, sem markdown, sem explicacoes:
+FORMATO DE SAIDA — retorne APENAS o JSON abaixo, sem markdown, sem texto antes ou depois:
 [
   {
-    "title": "Nome da Fase ou Etapa",
-    "subtitle": "Descricao complementar se houver, senao string vazia",
-    "responsible": "Nome da Fase ou Setor principal",
+    "title": "Nome da Fase ou agrupamento logico",
+    "subtitle": "",
+    "responsible": "Nome da Fase",
     "respClass": "resp-green",
     "actions": [
-      {"type": "evento",     "text": "Inicio do processo",                            "actor": "Nome da Raia onde esta o circulo verde"},
-      {"type": "atividade",  "text": "Texto exato da atividade conforme fluxograma",  "actor": "Nome da Raia"},
-      {"type": "decisao",    "text": "Decisao: [texto]? Sim: [destino] / Nao: [destino]", "actor": "Nome da Raia"},
-      {"type": "observacao", "text": "Texto da anotacao cinza",                       "actor": ""},
-      {"type": "evento",     "text": "Fim do processo",                               "actor": "Nome da Raia onde esta o circulo vermelho"}
+      {"type": "evento",     "text": "Inicio do processo",                                "actor": "Raia onde esta o circulo de inicio"},
+      {"type": "atividade",  "text": "Texto exato da atividade",                          "actor": "Raia"},
+      {"type": "decisao",    "text": "Texto da decisao? Sim: [acao] / Nao: [acao]",       "actor": "Raia"},
+      {"type": "observacao", "text": "Texto da anotacao",                                 "actor": ""},
+      {"type": "evento",     "text": "Fim do processo",                                   "actor": "Raia onde esta o circulo de fim"}
     ],
-    "note": "Observacao geral da etapa se houver, senao null"
+    "note": null
   }
 ]
 
-CHECKLIST ANTES DE RESPONDER:
-1. O primeiro elemento da lista e o evento de inicio (circulo verde)?
-2. O ultimo elemento da lista e o evento de fim (circulo vermelho)?
+VERIFICACAO FINAL obrigatoria antes de responder:
+1. O primeiro elemento de actions e um evento de inicio (circulo sem setas entrando)?
+2. O ultimo elemento de actions e um evento de fim?
 3. A ordem segue as setas, nao a posicao vertical das raias?
-4. Todos os textos foram copiados exatamente como estao no fluxograma?
-Se alguma resposta for nao, corrija antes de responder.`;
+4. Cada atividade tem o nome exato como aparece no fluxograma?
+Se qualquer resposta for NAO, refaca antes de responder.`;
 
-    const text = await callGeminiVision(extractPrompt, base64, mediaType);
-    // Robust JSON extraction — Gemini sometimes wraps with ```json
+    // Step 1: Ask Gemini to inventory all elements with positions
+    showToast('🔍 Etapa 1/2: identificando elementos do fluxograma...', 'success');
+    const inventoryPrompt = `Voce e um especialista em leitura de fluxogramas BPMN.
+Analise esta imagem e liste TODOS os elementos visiveis em formato JSON.
+Para cada elemento retorne:
+- id: numero sequencial
+- tipo: INICIO | FIM | ATIVIDADE | DECISAO | ANOTACAO
+- texto: texto exato dentro do elemento
+- raia: nome da faixa horizontal (swimlane) onde esta o elemento
+- posicao_x: posicao horizontal estimada em % da largura total da imagem (0=esquerda, 100=direita)
+- setas_para: lista de ids dos elementos para onde as setas deste elemento apontam
+
+Retorne APENAS JSON puro sem markdown:
+[{"id":1,"tipo":"INICIO","texto":"...","raia":"...","posicao_x":5,"setas_para":[2]}, ...]`;
+
+    const inventoryText = await callGeminiVision(inventoryPrompt, base64, mediaType);
+    let inventoryClean = inventoryText.trim();
+    const invMatch = inventoryClean.match(/\[[\s\S]*\]/);
+    if(invMatch) inventoryClean = invMatch[0];
+    else inventoryClean = inventoryClean.replace(/```json|```/g,'').trim();
+
+    // Step 2: Use inventory to build ordered flow
+    showToast('🔗 Etapa 2/2: montando fluxo seguindo as setas...', 'success');
+    const flowPrompt = `Voce e um especialista em modelagem de processos BPMN.
+Abaixo esta o inventario de elementos de um fluxograma BPMN com suas posicoes e conexoes:
+
+${inventoryClean}
+
+Com base EXCLUSIVAMENTE nas conexoes (campo setas_para) acima, monte o fluxo completo do processo.
+REGRAS:
+1. Comece pelo elemento com tipo INICIO (sem setas chegando nele).
+2. Siga as conexoes (setas_para) para determinar a ordem — NAO use posicao_x nem raia para ordenar.
+3. Agrupe elementos em fases logicas (ex: Receber, Analisar, Comunicar).
+4. Para DECISAO inclua: "Texto da decisao? Sim: [elemento destino Sim] / Nao: [elemento destino Nao]"
+5. Termine no elemento com tipo FIM.
+
+Retorne APENAS este JSON puro sem markdown:
+[
+  {
+    "title": "Nome da Fase",
+    "subtitle": "",
+    "responsible": "Nome da Fase",
+    "respClass": "resp-green",
+    "actions": [
+      {"type": "evento|atividade|decisao|observacao", "text": "texto exato", "actor": "nome da raia"}
+    ],
+    "note": null
+  }
+]`;
+
+    const text = await callGeminiVision(flowPrompt, base64, mediaType);
+    // Robust JSON extraction
     let clean = text.trim();
     const jsonMatch = clean.match(/\[[\s\S]*\]/);
     if(jsonMatch) clean = jsonMatch[0];
@@ -6148,20 +6208,31 @@ function showHome() {
   const qu   = document.getElementById('quadro-module');
   const arq  = document.getElementById('arq-module');
 
-  // Hide all other modules/pops
+  // Hide all modules and pops
   document.querySelectorAll('.pop-content').forEach(el => el.classList.remove('active'));
   if(pat) pat.style.display = 'none';
   if(bi)  bi.style.display  = 'none';
   if(qu)  qu.style.display  = 'none';
   if(arq) arq.style.display = 'none';
 
+  // Turn off edit mode if active
+  if(editMode) toggleEditMode();
+
   home.style.display = 'block';
+  // Hide tab bars — irrelevant on home page
+  document.querySelector('.nav-tabs').style.display = 'none';
+  const switcherBar = document.getElementById('pop-switcher-bar');
+  if(switcherBar) switcherBar.style.display = 'none';
   homeRefresh();
 }
 
 function hideHome() {
   const home = document.getElementById('home-page');
   if(home) home.style.display = 'none';
+  // Restore tab bars
+  document.querySelector('.nav-tabs').style.display = '';
+  const switcherBar = document.getElementById('pop-switcher-bar');
+  if(switcherBar) switcherBar.style.display = '';
 }
 
 function showHomePops() {
@@ -6182,10 +6253,9 @@ function homeRefresh() {
   document.getElementById('home-stats').innerHTML = [
     { label: 'POPs cadastrados',   val: popKeys.length, color: '#00a86b' },
     { label: 'Macroprocessos',     val: macros,         color: '#0a2540' },
-    { label: 'Processos mapeados', val: procs,          color: '#8b5cf6' },
+    { label: 'Processos',          val: procs,          color: '#8b5cf6' },
   ].map(s => `<div>
-    <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
-    <div style="font-size:12px;color:#64748b;margin-top:2px;">${s.label}</div>
+    <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val} <span style="font-size:13px;font-weight:500;">${s.label}</span></div>
   </div>`).join('');
 
   // Count labels
@@ -6286,31 +6356,62 @@ function npopUpdateSubprocessoList() {
   )].sort();
   subList.innerHTML = subs.map(s => `<option value="${s}">`).join('');
 
-  // Auto-fill objetivo/entradas/entregas/clientes/gerente/area when processo matches exactly
-  const match = data.find(r => r.processo === proc && (!macro || r.macroprocesso === macro));
-  if(match) {
-    const fields = {
-      'nf-desc':        match.objetivo,
-      'nf-input':       match.entradas,
-      'nf-output':      match.entregas,
-      'nf-fornecedores':match.fornecedores,
-      'nf-clientes':    match.clientes,
-    };
-    Object.entries(fields).forEach(([id, val]) => {
-      const el = document.getElementById(id);
-      if(el && !el.value && val) el.value = val;
-    });
-    // Set nome if empty
-    const nomeEl = document.getElementById('nf-nome');
-    if(nomeEl && !nomeEl.value) nomeEl.value = proc;
-  }
+  // After updating subprocesso list, run autofill
+  npopAutoFill();
 }
 
-// Init selects when npop modal opens — hook into existing openNpopModal
-const _origOpenNpopModal = typeof openNpopModal === 'function' ? openNpopModal : null;
+// Central autofill: called whenever macro, processo or subprocesso changes.
+// Priority: subprocesso match > processo match (sem subprocesso).
+// Always overwrites fields (user can correct after).
+function npopAutoFill() {
+  const data  = arqGetData ? arqGetData() : CAGE_PROCESSOS;
+  const macro = document.getElementById('nf-macro')?.value || '';
+  const proc  = document.getElementById('nf-processo')?.value || '';
+  const sub   = document.getElementById('nf-subprocesso')?.value || '';
+
+  // 1. Try exact subprocesso match
+  let match = sub
+    ? data.find(r =>
+        r.subprocesso === sub &&
+        (!proc  || r.processo     === proc) &&
+        (!macro || r.macroprocesso === macro))
+    : null;
+
+  // 2. Fallback: exact processo match (row with no subprocesso, or first row)
+  if(!match && proc) {
+    match = data.find(r =>
+      r.processo === proc &&
+      (!macro || r.macroprocesso === macro) &&
+      !r.subprocesso
+    ) || data.find(r =>
+      r.processo === proc &&
+      (!macro || r.macroprocesso === macro)
+    );
+  }
+
+  if(!match) return;
+
+  // Fill all fields — always overwrite so switching subprocesso updates them
+  const fields = {
+    'nf-desc':        match.objetivo    || '',
+    'nf-input':       match.entradas    || '',
+    'nf-output':      match.entregas    || '',
+    'nf-fornecedores':match.fornecedores|| '',
+    'nf-clientes':    match.clientes    || '',
+  };
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if(el) el.value = val;
+  });
+
+  // Set nome only if empty (user may have typed a custom name)
+  const nomeEl = document.getElementById('nf-nome');
+  if(nomeEl && !nomeEl.value) nomeEl.value = sub || proc;
+}
+
+// Init selects when npop modal opens
 document.addEventListener('DOMContentLoaded', () => {
   npopInitSelects();
-  // Also wire nf-processo oninput
   const procInput = document.getElementById('nf-processo');
   if(procInput) procInput.addEventListener('input', npopUpdateSubprocessoList);
 });
