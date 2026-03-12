@@ -1349,7 +1349,7 @@
           📂 Selecionar arquivo
           <input type="file" id="bpmn-file-input" accept=".jpg,.jpeg,.png" style="display:none;">
         </label>
-        <div class="bpmn-upload-hint">Suporta JPG e PNG · Tamanho máximo: <strong>2MB</strong><br>Dica: exporte o fluxograma em resolução média para manter o arquivo pequeno</div>
+        <div class="bpmn-upload-hint">Suporta JPG e PNG · Tamanho máximo: <strong>10MB</strong> · Imagem salva em alta qualidade no storage</div>
       </div>
     </div>
 
@@ -2810,16 +2810,12 @@ function showBpmn(tab) {
   initImageModule();
   // Restore saved image for current pop
   const p = popPrefix(currentPop);
-  const saved = DATA[p] && DATA[p].fluxoImg;
-  if(saved) {
-    restoreFluxoImg(saved);
+  const hasImg = (DATA[p] && (DATA[p].fluxoImgUrl || DATA[p].fluxoImg));
+  if(hasImg) {
+    loadFluxoImgFromStorage(p);
   } else {
-    // Ensure upload area is visible if no image saved
-    const imgWrap = document.getElementById('bpmn-image-viewer');
-    if(!imgWrap) {
-      document.getElementById('bpmn-upload-area').style.display = 'block';
-      document.getElementById('bpmn-viewer-wrap').style.display = 'none';
-    }
+    document.getElementById('bpmn-upload-area').style.display = 'block';
+    document.getElementById('bpmn-viewer-wrap').style.display = 'none';
   }
 }
 
@@ -2896,6 +2892,52 @@ function showBpmnImage(dataUrl) {
   wrap.addEventListener('wheel', e => { e.preventDefault(); imgZoom(e.deltaY<0?0.12:-0.12); },{passive:false});
 }
 
+
+// ── Supabase Storage para imagens de fluxo ──────────────────
+async function uploadFluxoImgToStorage(popKey, file) {
+  if(!supaClient || !currentUser) return; // silent — will use base64 fallback
+  try {
+    const ext  = file.name.split('.').pop() || 'png';
+    const path = `fluxo-${popKey}-${Date.now()}.${ext}`;
+    const { error } = await supaClient.storage
+      .from('gestpop-images')
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if(error) {
+      console.warn('Storage upload failed, using base64 fallback:', error.message);
+      return; // base64 already in DATA[p].fluxoImg — will save to DB
+    }
+    // Get public URL
+    const { data } = supaClient.storage.from('gestpop-images').getPublicUrl(path);
+    if(data?.publicUrl) {
+      DATA[popKey].fluxoImgUrl  = data.publicUrl;
+      DATA[popKey].fluxoImgPath = path;
+      // Remove base64 from DATA to keep JSON small
+      DATA[popKey].fluxoImg = null;
+      showToast('🖼 Imagem salva no storage (alta qualidade)', 'success');
+    }
+  } catch(e) {
+    console.warn('Storage error:', e.message);
+  }
+}
+
+async function loadFluxoImgFromStorage(popKey) {
+  const url = DATA[popKey]?.fluxoImgUrl;
+  if(url) {
+    // Use URL directly — full quality, no base64 overhead
+    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem salva';
+    showBpmnImage(url);
+    return true;
+  }
+  // Fallback: base64 in DATA
+  const b64 = DATA[popKey]?.fluxoImg;
+  if(b64) {
+    document.getElementById('bpmn-file-name').textContent = DATA[popKey].fluxoImgName || 'Imagem salva';
+    showBpmnImage(b64);
+    return true;
+  }
+  return false;
+}
+
 function restoreFluxoImg(dataUrl) {
   showBpmnImage(dataUrl);
   document.getElementById('bpmn-file-name').textContent = 'Imagem salva';
@@ -2961,23 +3003,26 @@ function loadImageFile(file) {
   if(!file) return;
 
   // Size check
-  const MAX = 2 * 1024 * 1024;
+  const MAX = 10 * 1024 * 1024;
   if(file.size > MAX) {
-    showToast('Imagem muito grande (' + (file.size/1024/1024).toFixed(1) + 'MB). Máximo: 2MB.', 'warn');
+    showToast('Imagem muito grande (' + (file.size/1024/1024).toFixed(1) + 'MB). Máximo: 10MB.', 'warn');
     return;
   }
-  if(file.size > 1024*1024) showToast('Imagem grande — pode demorar um pouco.', 'warn');
 
   const reader = new FileReader();
   reader.onload = ev => {
     const dataUrl = ev.target.result;
-    // Save to DATA immediately
     const p = popPrefix(currentPop);
     if(!DATA[p]) DATA[p] = {};
+    // Store full quality dataUrl in memory for display and Gemini
     DATA[p].fluxoImg = dataUrl;
+    DATA[p].fluxoImgName = file.name;
     document.getElementById('bpmn-file-name').textContent = file.name;
-    markChanged();
+    // Show immediately at full quality
     showBpmnImage(dataUrl);
+    // Upload to Supabase Storage in background (no quality loss)
+    uploadFluxoImgToStorage(p, file);
+    markChanged();
   };
   reader.onerror = () => showToast('Erro ao ler o arquivo. Tente novamente.', 'warn');
   reader.readAsDataURL(file);
@@ -4083,7 +4128,7 @@ const _origOnAuthChange = null;
 const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 // ── Gemini API (gratuita) ──────────────────────────────────────
 // Obtenha sua chave gratuita em: https://aistudio.google.com/app/apikey
-const GEMINI_KEY = 'SUA_CHAVE_GEMINI_AQUI';
+const GEMINI_KEY = 'AIzaSyBO9OcZEYEUg3YD24SV-iRwSPPR1TvaJhM';
 const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=';
 const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=';
 
@@ -5028,10 +5073,23 @@ async function extractFluxoFromImage() {
   showToast('🤖 Analisando imagem com IA...','success');
 
   try {
-    // Get base64 from img src (already stored as data URL)
-    const dataUrl = imgEl.src;
-    const base64 = dataUrl.split(',')[1];
-    const mediaType = dataUrl.split(';')[0].split(':')[1] || 'image/png';
+    // Get image for Gemini — prefer in-memory base64, fallback to fetch URL
+    let base64, mediaType;
+    const p2 = popPrefix(currentPop);
+    const storedB64 = DATA[p2]?.fluxoImg;
+    if(storedB64 && storedB64.startsWith('data:')) {
+      base64    = storedB64.split(',')[1];
+      mediaType = storedB64.split(';')[0].split(':')[1] || 'image/png';
+    } else {
+      // Fetch from storage URL and convert to base64 for Gemini
+      const imgUrl = DATA[p2]?.fluxoImgUrl || imgEl.src;
+      showToast('🤖 Carregando imagem para análise...', 'success');
+      const fetchResp = await fetch(imgUrl);
+      const blob = await fetchResp.blob();
+      mediaType = blob.type || 'image/png';
+      const ab = await blob.arrayBuffer();
+      base64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+    }
 
     const extractPrompt = `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
 Para cada etapa identifique: título, subtítulo (se houver), responsável (ator/setor), e ações/atividades.
