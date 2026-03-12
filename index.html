@@ -804,7 +804,7 @@
     <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showRepoModule();" style="margin-bottom:4px;background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.3);">📚 Metodologia e Manuais</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showDropsModule();" style="margin-bottom:8px;background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(14,165,233,.3);">💧 Drops de Conhecimento</button>
-        <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
+        <button class="sidebar-pat-btn" onclick="closeSidebar();openPatIfAllowed();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showArqModule();" style="margin-top:4px;background:rgba(139,92,246,.12);color:#c4b5fd;border-color:rgba(139,92,246,.25);">🏛 Arquitetura de Processos</button>
@@ -871,7 +871,7 @@
       <div class="home-card-desc">Canvas livre com post-its, atores e setas para modelagem visual de processos.</div>
       <div class="home-card-footer">Canvas interativo</div>
     </div>
-    <div class="home-card home-card-editor" onclick="isEditor ? showPatModule() : showToast('Acesso restrito a editores.','warn')" style="border-top:4px solid #3b82f6;">
+    <div class="home-card home-card-editor" onclick="openPatIfAllowed()" style="border-top:4px solid #3b82f6;">
       <div class="home-card-icon" style="background:#eff6ff;color:#3b82f6;">📅</div>
       <div class="home-card-title">Plano de Trabalho do EPP</div>
       <div class="home-card-desc">Gerencie o planejamento e as atividades do Escritório de Processos e Projetos.</div>
@@ -4160,6 +4160,11 @@ function patCheckDeadlines() {
   setTimeout(() => { if(banner) banner.style.opacity = '0'; setTimeout(() => banner?.remove(), 600); }, 12000);
 }
 
+function openPatIfAllowed() {
+  if(isEditor) { showPatModule(true); }
+  else { showToast('🔒 Acesso restrito a editores.', 'warn'); }
+}
+
 function showPatModule(show = true) {
   const pat = document.getElementById('pat-module');
   const allPops = document.querySelectorAll('.pop-content');
@@ -4529,9 +4534,7 @@ async function submitAccessRequest() {
   }
 }
 
-// ── saveToCloud — upsert por workspace_key fixo ─────────────
-const WORKSPACE_KEY = 'main';
-
+// ── saveToCloud ──────────────────────────────────────────────
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
@@ -4548,20 +4551,45 @@ async function saveToCloud(attempt=1) {
     newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] }))
   };
 
-  console.log('💾 saveToCloud attempt', attempt, '— size:', (JSON.stringify(payload).length/1024).toFixed(1)+'KB');
-
   try {
-    const { data: saved, error } = await supaClient
-      .from('gestpop_workspace')
-      .upsert({
-        workspace_key:   WORKSPACE_KEY,
-        data:            payload,
-        updated_at:      new Date().toISOString(),
-        updated_by:      currentUserEmail,
-        updated_by_name: currentUserName
-      }, { onConflict: 'workspace_key' })
-      .select('id, updated_at, updated_by_name')
-      .single();
+    // Se não temos workspaceId, buscar o registro existente
+    if(!workspaceId) {
+      const { data: existing } = await supaClient
+        .from('gestpop_workspace')
+        .select('id')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if(existing?.id) workspaceId = existing.id;
+    }
+
+    let error, saved;
+    if(workspaceId) {
+      // UPDATE no registro existente
+      ({ error, data: saved } = await supaClient
+        .from('gestpop_workspace')
+        .update({
+          data:            payload,
+          updated_at:      new Date().toISOString(),
+          updated_by:      currentUserEmail,
+          updated_by_name: currentUserName
+        })
+        .eq('id', workspaceId)
+        .select('id, updated_at, updated_by_name')
+        .single());
+    } else {
+      // Primeiro uso: INSERT
+      ({ error, data: saved } = await supaClient
+        .from('gestpop_workspace')
+        .insert({
+          data:            payload,
+          updated_by:      currentUserEmail,
+          updated_by_name: currentUserName
+        })
+        .select('id, updated_at, updated_by_name')
+        .single());
+      if(saved?.id) workspaceId = saved.id;
+    }
 
     if(error) {
       console.error('saveToCloud error:', error);
@@ -4574,7 +4602,6 @@ async function saveToCloud(attempt=1) {
       return;
     }
 
-    if(saved?.id) workspaceId = saved.id;
     setSyncStatus('synced');
     document.getElementById('unsaved-dot').style.display = 'none';
     showToast('☁️ Dados salvos!', 'success');
@@ -4598,22 +4625,13 @@ async function loadFromCloud() {
   console.log('📥 loadFromCloud iniciando...');
 
   try {
-    // Buscar por workspace_key='main' primeiro; fallback: mais recente
+    // Buscar o registro mais recente
     let { data, error } = await supaClient
       .from('gestpop_workspace')
       .select('*')
-      .eq('workspace_key', WORKSPACE_KEY)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
-
-    // fallback: pegar o mais recente se não tiver workspace_key
-    if(!data && !error) {
-      ({ data, error } = await supaClient
-        .from('gestpop_workspace')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle());
-    }
 
     if(error) {
       console.error('loadFromCloud query error:', error);
@@ -7273,22 +7291,34 @@ async function repoSaveDoc() {
     msg.textContent='Enviando arquivo...';
     bar.style.width='20%';
     try {
-      const path = 'repo/' + Date.now() + '_' + repoPendingFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
       if(!supaClient) throw new Error('Supabase não disponível');
-      bar.style.width='50%';
-      const { data, error } = await supaClient.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true });
-      if(error) throw error;
-      bar.style.width='80%';
+      const maxMB = 50;
+      if(repoPendingFile.size > maxMB * 1024 * 1024) throw new Error(`Arquivo maior que ${maxMB}MB`);
+
+      const path = 'repo/' + Date.now() + '_' + repoPendingFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      msg.textContent = 'Enviando ' + repoPendingFile.name + '...';
+      bar.style.width = '30%';
+
+      // Upload com timeout de 60s
+      const uploadPromise = supaClient.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true, cacheControl: '3600' });
+      const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout — arquivo pode ser grande demais ou conexão lenta')), 60000));
+      const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
+
+      if(error) throw new Error(error.message + (error.statusCode ? ' ('+error.statusCode+')' : ''));
+      bar.style.width = '80%';
       const { data: pub } = supaClient.storage.from('gestpop-images').getPublicUrl(path);
       fileUrl  = pub.publicUrl;
       filePath = path;
       fileName = repoPendingFile.name;
-      fileSize = (repoPendingFile.size/1024/1024).toFixed(2) + ' MB';
+      fileSize = (repoPendingFile.size / 1024 / 1024).toFixed(2) + ' MB';
       fileType = repoDetectType(repoPendingFile.name);
-      bar.style.width='100%';
+      bar.style.width = '100%';
+      msg.textContent = 'Upload concluído!';
     } catch(err) {
-      prog.style.display='none';
-      showToast('Erro no upload: ' + err.message, 'error');
+      prog.style.display = 'none';
+      bar.style.width = '0%';
+      console.error('Upload error:', err);
+      showToast('❌ Erro no upload: ' + err.message, 'warn');
       return;
     }
   }
