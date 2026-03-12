@@ -5164,12 +5164,52 @@ async function extractFluxoFromImage() {
       base64 = await blobToBase64(blob);
     }
 
-    const extractPrompt = `Analise este fluxograma de processo e extraia todas as etapas em formato JSON estruturado.
-Para cada etapa identifique: título, subtítulo (se houver), responsável (ator/setor), e ações/atividades.
-Para o tipo de cada ação use: "atividade" (tarefas normais), "decisao" (losangos/bifurcações), "evento" (início/fim), "observacao" (notas).
-Retorne APENAS JSON puro sem markdown e sem \`\`\`:
-[{"title":"Nome da etapa","subtitle":"","responsible":"Setor","respClass":"resp-green","actions":[{"type":"atividade","text":"Descrição","actor":""}],"note":null}]
-Se não identificar claramente algum campo, use string vazia. respClass deve ser sempre "resp-green".`;
+    const extractPrompt = `Você é um especialista em modelagem de processos BPMN. Analise este fluxograma BPMN da CAGE-RS com maxima atencao e precisao.
+
+NOTACAO BPMN - COMO INTERPRETAR CADA ELEMENTO:
+- CIRCULO VERDE ou circulo simples no inicio = Evento de INICIO do processo. Use type "evento", text "Inicio do processo"
+- CIRCULO VERMELHO ou circulo com borda grossa no final = Evento de FIM do processo. Use type "evento", text "Fim do processo"
+- CIRCULO INTERMEDIARIO = Evento intermediario (espera, mensagem). Use type "evento"
+- RETANGULO com cantos arredondados azul ou colorido = ATIVIDADE ou TAREFA. Use type "atividade"
+- LOSANGO com X = Gateway PARALELO (todas as saidas ocorrem). Use type "decisao"
+- LOSANGO com + = Gateway EXCLUSIVO (apenas uma saida). Use type "decisao"
+- LOSANGO vazio = Gateway de DECISAO (Sim/Nao). Use type "decisao"
+- RETANGULO CINZA sem borda forte = ANOTACAO ou OBSERVACAO. Use type "observacao"
+- SETAS SOLIDAS = fluxo de sequencia, siga-as para determinar a ordem
+- SETAS TRACEJADAS = fluxo de mensagem ou associacao
+- RAIAS HORIZONTAIS (swimlanes) = ATORES ou SETORES, o nome na esquerda e o responsavel daquela raia
+
+REGRAS DE EXTRACAO:
+1. SEMPRE comece pelo evento de inicio (circulo verde ou simples) e termine pelo evento de fim (circulo vermelho ou borda grossa)
+2. Siga as setas da ESQUERDA para a DIREITA para determinar a ordem cronologica
+3. Agrupe atividades por FASE ou COLUNA vertical quando houver fases marcadas no fluxograma
+4. Se nao houver fases, crie uma etapa para cada atividade principal ou grupo logico
+5. O campo "responsible" deve ser o nome da FASE ou setor principal da etapa
+6. O campo "actor" deve ser o nome exato da RAIA onde cada acao ocorre
+7. Para decisoes, inclua as alternativas no formato: "Decisao: [texto]? Sim: [destino] / Nao: [destino]"
+8. Capture o texto EXATO e COMPLETO de cada elemento, sem resumir
+9. Inclua TODAS as atividades visiveis, mesmo as de raias secundarias
+10. Anotacoes cinzas devem ser capturadas como type "observacao"
+
+FORMATO DE SAIDA - retorne APENAS JSON puro, sem markdown, sem explicacoes antes ou depois:
+[
+  {
+    "title": "Nome da Fase ou Etapa",
+    "subtitle": "Descricao complementar se houver, senao string vazia",
+    "responsible": "Nome da Fase ou Setor principal",
+    "respClass": "resp-green",
+    "actions": [
+      {"type": "evento",     "text": "Inicio do processo",                           "actor": "Nome da Raia"},
+      {"type": "atividade",  "text": "Texto exato da tarefa conforme no fluxograma", "actor": "Nome da Raia"},
+      {"type": "decisao",    "text": "Decisao: [texto]? Sim: [acao] / Nao: [acao]",  "actor": "Nome da Raia"},
+      {"type": "observacao", "text": "Texto da anotacao cinza",                      "actor": ""},
+      {"type": "evento",     "text": "Fim do processo",                              "actor": "Nome da Raia"}
+    ],
+    "note": "Observacao geral da etapa se houver, senao null"
+  }
+]
+
+ATENCAO ESPECIAL: Nao invente elementos. Se nao conseguir ler claramente um texto, escreva ilegivel. Preserve a ordem exata do fluxo.`;
 
     const text = await callGeminiVision(extractPrompt, base64, mediaType);
     // Robust JSON extraction — Gemini sometimes wraps with ```json
