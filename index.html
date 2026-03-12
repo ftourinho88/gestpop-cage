@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GestPOP · CAGE-RS — Gestão de Procedimentos Operacionais</title>
+<title>GestPROC · CAGE-RS — Gestão de Processos CAGE</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
@@ -638,8 +638,8 @@
 <div id="auth-overlay" class="auth-overlay">
   <div class="auth-box">
     <div class="auth-logo">G</div>
-    <div class="auth-title">GestPOP · CAGE-RS</div>
-    <div class="auth-sub">Gestão de Procedimentos Operacionais<br>Faça login para acessar e sincronizar seus dados</div>
+    <div class="auth-title">GestPROC · CAGE-RS</div>
+    <div class="auth-sub">Gestão de Processos CAGE<br>Faça login para acessar e sincronizar seus dados</div>
     <button class="auth-google-btn" onclick="signInGoogle()">
       <svg class="auth-google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Entrar com Google
@@ -658,7 +658,7 @@
   <div class="header-inner">
     <div class="header-brand">
       <div class="header-logo">G</div>
-      <div class="header-title"><strong>GestPOP · CAGE-RS</strong>Gestão de Procedimentos Operacionais</div>
+      <div class="header-title"><strong>GestPROC · CAGE-RS</strong>Gestão de Processos CAGE</div>
     </div>
     <div class="header-meta">
       <div class="sync-indicator" id="sync-indicator" style="display:none;">
@@ -706,6 +706,7 @@
     <button class="sidebar-pat-btn" onclick="closeSidebar();showPatModule();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Painel BI</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showArqModule();" style="margin-top:4px;background:rgba(139,92,246,.12);color:#c4b5fd;border-color:rgba(139,92,246,.25);">🏛 Arquitetura de Processos</button>
   </div>
   <div class="sidebar-list" id="sidebar-list"></div>
 </div>
@@ -1613,7 +1614,7 @@
               <div style="padding-bottom:14px;padding-left:0;padding-top:4px;flex:1;">
                 <div style="font-size:13px;font-weight:600;color:var(--cage-blue);margin-bottom:4px;">Envie seu arquivo + copie este prompt</div>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;position:relative;">
-                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text">Analise este documento POP e extraia em JSON puro para o GestPOP CAGE-RS.
+                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text">Analise este documento POP e extraia em JSON puro para o GestPROC CAGE-RS.
 
 REGRAS para classificar actions de cada etapa:
 - "atividade": ação executável ("Registrar no sistema", "Encaminhar para chefia")
@@ -4186,6 +4187,9 @@ const SUPA_URL = 'https://qdpkkzdlpdwoqqmbzpll.supabase.co';
 const GEMINI_KEY = 'AIzaSyBTuKgPsPcnBQR1SY48OcpD-323cCykW3g';
 const GEMINI_TEXT_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
 const GEMINI_VIS_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=';
+// ── Arquitetura de Processos CAGE-RS (importado da planilha) ──
+const CAGE_PROCESSOS = [{"macroprocesso": "Auditoria", "processo": "Realizar Tomada de Contas Especial", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe DAUD", "area": "Divisão de Auditoria", "objetivo": "Apurar a responsabilidade por ocorrências que resultem em dano ao erário (patrimônio público) e promover o ressarcimento desse prejuízo.", "fornecedores": "Tribunal de Contas do Estado", "entradas": "Ofício de solicitação de realização de tomada de contas especial", "entregas": "Relatório de tomada de contas especial", "clientes": "órgãos do estado, tribunal de contas do estado"}, {"macroprocesso": "Auditoria", "processo": "Realizar Inspeção", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Coordenadores setoriais; Coordenadores seccionais", "area": "DCO e DAUD", "objetivo": "Gerar valor para a gestão por meio de orientações, recomendações de melhorias processuais e identificação de pontos de controle e irregularidades.", "fornecedores": "Denúncias - Canal Fala BR, E-mail, Telefone, Órgãos, Seccionais, Gabinetes", "entradas": "Solicitações de Auditoria, Achados da atividade de controle, Denúncias recebidas.", "entregas": "Documentos de auditoria - Relatórios, comunicados e notificações.", "clientes": "Órgão auditado, TCE, MP, Governador."}, {"macroprocesso": "Auditoria", "processo": "Gerenciar Auditorias", "subprocesso": "Executar Auditorias", "natureza": "FINALÍSTICO", "gerente": "Coordenadores setoriais; Chefe DAUD", "area": "Divisão de Auditoria", "objetivo": "Fornecer uma avaliação independente e objetiva sobre o escopo de Auditoria.", "fornecedores": "\"Chefia da Divisão\nSeção de Planejamento\"", "entradas": "Escopo de trabalho elaborado e aprovado pela chefia da divisão e pelo planejamento.\nPlano de trabalho elaborado pela equipe.", "entregas": "Avaliação do escopo da auditoria", "clientes": "Chefia da Divisão;\nGestão da entidade auditada;\nSeção de Planejamento;\nSeção de consultoria e revisão."}, {"macroprocesso": "Auditoria", "processo": "Gerenciar Auditorias", "subprocesso": "Emitir Relatório de Auditoria", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de supervisão técnica (DAUD)", "area": "Divisão de Auditoria", "objetivo": "Comunicar de forma clara e concisa os resultados dos trabalhos de auditoria", "fornecedores": "\"Equipes de auditoria\nEquipe de revisão\"", "entradas": "Resultados dos testes e achados de auditoria.\nRevisão do documento e insumos e recomendações adequadas.", "entregas": "Comunicados e Relatórios de auditoria e Pareceres de exercício.\nPublicação no Portal da Transparência daqueles documentos não protegidos por grau de sigilo.", "clientes": "Gestores das entidades, Secretaria da pasta, MP, TCE Polícia Civil, Comissão Permanente de Responsabilização da Pessoa Jurídica (CRPJ) e a sociedade."}, {"macroprocesso": "Auditoria", "processo": "Gerenciar Auditorias", "subprocesso": "Monitorar Recomendações de Auditorias", "natureza": "FINALÍSTICO", "gerente": "Coordenadores setoriais; Chefe DAUD", "area": "Divisão de Auditoria", "objetivo": "Verificar se houve atendimento das recomendações ou saneamento das impropriedades identificadas.\nVerificar se as medidas implementadas pelas Entidades auditadas estão de acordo com as recomendações emitidas ou com o plano de ação acordado e se as medidas adotadas foram suficientes para solucionar a situação apontada como inadequada frente aos critérios adotados.", "fornecedores": "\"Equipes de auditoria\nEquipe de revisão\"", "entradas": "Comunicados e Relatórios emitidos \nBoas práticas internacionais de Auditoria \nPlanilha Excel de acompanhamento dos apontamentos e recomendações (preenchida no trabalho anterior)", "entregas": "Apontamento de follow-up nos Comunicados e Relatórios;\nPlanilha Excel de acompanhamento dos apontamentos e recomendações preenchida e atualizada.", "clientes": "Chefia da Divisão \nGestão da entidade auditada \nSeção de Planejamento \nSeção de Consultoria e Revisão \nSetorial de Auditoria responsável pela entidade"}, {"macroprocesso": "Auditoria", "processo": "Elaborar Plano Anual de Auditoria", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de planejamento e capacitação (DAUD)", "area": "Divisão de Auditoria", "objetivo": "Definir os trabalhos prioritários do próximo exercício", "fornecedores": "\"DCI - Demanda Interna\nSeção de Planejamento, Chefia da Divisão - DCI, Gabinete da CAGE. \"", "entradas": "\"Boas práticas de Auditoria;\nColeta das diretrizes da Gestão para elaboração do PAA.\"", "entregas": "PAA aprovado", "clientes": "Gabinete da CAGE e \nDCI"}, {"macroprocesso": "Auditoria", "processo": "Gerenciar Processo de Prestação de Contas Ordinárias", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de supervisão técnica (DAUD); Chefe seção de orientação e assessoramento (DCO)", "area": "DCO e DAUD", "objetivo": "Formalizar a opinião da CAGE em relação as contas do ordenador primário do exercício em referência", "fornecedores": "Órgãos", "entradas": "Documentos dos órgãos, dados acerca da execução orçamentária", "entregas": "Relatório elaborado", "clientes": "CAGE"}, {"macroprocesso": "Auditoria", "processo": "Gerenciar Auditorias", "subprocesso": "Planejar Auditorias", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de planejamento e capacitação (DAUD)", "area": "Divisão de Auditoria", "objetivo": "Definir os objetivos específicos e os procedimentos de auditoria que serão aplicados", "fornecedores": "Seção de Planejamento", "entradas": "PAA aprovado, elaborado e cadastrado no sistema", "entregas": "Escopo de trabalho elaborado e aprovado pela chefia da divisão e pelo planejamento.", "clientes": "Equipe de Auditoria\nChefia da Divisão\nSeção de Planejamento"}, {"macroprocesso": "Auditoria", "processo": "Elaborar Relatório Anual de Auditoria", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de planejamento e capacitação (DAUD)", "area": "Divisão de Auditoria", "objetivo": "Apresentar e analisar os resultados dos trabalhos de auditoria do PAA", "fornecedores": "Equipes de auditoria", "entradas": "Relatórios de auditoria emitidos no ano", "entregas": "Relatórios anual de auditoria", "clientes": "Gabinete da CAGE e \nDCI"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Elaborar o Plano de Comunicação Anual", "subprocesso": "", "natureza": "GESTÃO", "gerente": "Assessor de comunicação", "area": "Gabinete da CAGE", "objetivo": "Estruturar ações de comunicação com os  públicos externo e interno alinhado com a estratégia institucional", "fornecedores": "", "entradas": "", "entregas": "Plano de comunicação", "clientes": "CAGE"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Executar o Plano de Comunicação", "subprocesso": "Elaborar Semanalmente Pautas de Comunicação", "natureza": "GESTÃO", "gerente": "Assessor de comunicação", "area": "Gabinete da CAGE", "objetivo": "Realizar o levantamento dos conteúdos mais relevantes para divulgação", "fornecedores": "", "entradas": "", "entregas": "planejamento operacional de comunicação", "clientes": "Assessoria de comunicação (ASCOM e SECOM)"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Executar o Plano de Comunicação", "subprocesso": "Elaborar Materiais Institucionais e Peças de Comunicação", "natureza": "GESTÃO", "gerente": "Assessor de comunicação", "area": "Gabinete da CAGE", "objetivo": "Estabelecer uma comunicação efetiva, promovendo a aproximação e engajamento do público, e fortalecendo o relacionamento institucional da organização.", "fornecedores": "Servidores e divisões da CAGE", "entradas": "Solicitações dos servidores da CAGE. Publicações no DOE.", "entregas": "Notícias, informes, materiais institucionais.", "clientes": "CAGE, SEFAZ"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Executar o Plano de Comunicação", "subprocesso": "Gerenciar Canais Virtuais de Comunicação", "natureza": "GESTÃO", "gerente": "Assessor de comunicação", "area": "Gabinete da CAGE", "objetivo": "Estabelecer uma comunicação efetiva, promovendo a aproximação e engajamento do público, e fortalecendo o relacionamento institucional da organização.", "fornecedores": "", "entradas": "", "entregas": "Matérias e postagens no site,e redes sociais", "clientes": "CAGE, imprensa e sociedade em geral"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Promover Eventos Institucionais", "subprocesso": "Elaborar Plano Anual de Eventos", "natureza": "GESTÃO", "gerente": "Assessor de capacitação", "area": "Gabinete da CAGE", "objetivo": "Direcionar as ações de planejamento para execução dos eventos", "fornecedores": "áreas da CAGE", "entradas": "solicitações/necessidade de realização de eventos, calendário de eventos da sefaz", "entregas": "cronograma para a realização de eventos", "clientes": "CAGE"}, {"macroprocesso": "Comunicação e Relacionamento Institucional", "processo": "Promover Eventos Institucionais", "subprocesso": "Planejar e Executar os Eventos", "natureza": "GESTÃO", "gerente": "Assessor de capacitação", "area": "Gabinete da CAGE", "objetivo": "Realizar eventos previstos no Plano Anual de Eventos.", "fornecedores": "GEPESC; Demandante do evento; Fornecedores externos de materiais/serviços.", "entradas": "Previsão de evento no plano anual de eventos", "entregas": "Evento realizado", "clientes": "CAGE, orgão públicos, imprensa e sociedade em geral"}, {"macroprocesso": "Contabilidade", "processo": "Gerenciar Estrutura Hierárquica de Centro de Custos", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de custos e controles gerenciais (DIE)", "area": "Divisão de Informações Estratégicas", "objetivo": "Gerenciar a manutenção dos centros de custos, apoiando os usuários na construção da estrutura de centro de custos", "fornecedores": "", "entradas": "", "entregas": "Atendimento das demandas, aprovação da alteração da estrutura dos centros de custos", "clientes": "Toda a administração direta e indireta"}, {"macroprocesso": "Contabilidade", "processo": "Realizar Registros Orçamentários Contábeis e Patrimoniais", "subprocesso": "Realizar Conciliação Contábil", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de registro e controle contábil", "area": "Divisão de Contabilidade", "objetivo": "Verificação das contas bancárias pela confrontação do movimento bancário com o razão contábil.", "fornecedores": "Bancos e órgãos", "entradas": "\"Razão contábil FPE, extratos bancários enviados pelos órgãos ou extraídos do FPE.\nInformações sobre os lançamentos não conciliados realizados pelos órgãos.\"", "entregas": "Informação contábil com qualidade, para a execução das políticas Públicas ou repasse a terceiros. Contas conciliadas.", "clientes": "\"Usuários da informação contábil (TCE, SEFAZ, instituições financeiras etc) Administração Direta – na AD, quem realiza a conciliação bancária é a CAGE.\nObs.: Administração Indireta – em todos os entes do Estado, quem realiza a conciliação bancária são os contadores do próprio órgão.\""}, {"macroprocesso": "Contabilidade", "processo": "Dar Suporte ao Cumprimento das Obrigações Fiscais E-social, DCTF WEB e EFD-REINF", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe da Seção de Obrigações Tributárias Acessórias", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Auxiliar no cumprimento das obrigações fiscais no que tange aos sistemas, E-SOCIAL, DCTF WEB E EFD-REINF dos órgãos do estado, inclusive relacionados a interpretação da legislação.", "fornecedores": "Órgãos do estado, seccionais, contadores e entidades da administração indireta.", "entradas": "Dados da execução da despesa", "entregas": "Orientação aos usuários do sistema, geração da obrigação fiscal", "clientes": "Núcleos operacionais do E-SOCIAL, DCTF WEB e EFD-REINF dos órgãos"}, {"macroprocesso": "Contabilidade", "processo": "Realizar a Normatização Contábil", "subprocesso": "Atualizar Ementários PCASP, Receita, Despesa e Fontes de Recurso", "natureza": "FINALÍSTICO", "gerente": "Chefe da seção de normatização contábil", "area": "Divisão de Contabilidade", "objetivo": "Manter o processo de acordo com as normas e padrões do plano da STN - 163/2001 e controlar as origens e aplicações dos recursos financeiros por fonte de recursos.", "fornecedores": "", "entradas": "Layouts das normas da STN", "entregas": "Plano de contas e ementário atualizados", "clientes": "Seção de informação legal e gerencial, SPGG, PROCERGS"}, {"macroprocesso": "Contabilidade", "processo": "Realizar a Normatização Contábil", "subprocesso": "Criar Critérios Contábeis", "natureza": "FINALÍSTICO", "gerente": "Chefe da seção de normatização contábil", "area": "Divisão de Contabilidade", "objetivo": "Permitir a contabilização das transações executadas no FPE.", "fornecedores": "", "entradas": "Plano de Contas;\nNovas transações no FPE;\nTransações antigas que não foram contabilizadas ou foram contabilizadas incorretamente.", "entregas": "Critérios atualizados e novos criados no FPE.", "clientes": "Todos os usuários do FPE"}, {"macroprocesso": "Contabilidade", "processo": "Realizar a Normatização Contábil", "subprocesso": "Elaborar Normas Contábeis", "natureza": "FINALÍSTICO", "gerente": "Chefe da seção de normatização contábil", "area": "Divisão de Contabilidade", "objetivo": "Padronização e normatização de políticas contábeis.", "fornecedores": "", "entradas": "Implantação de um novo procedimento contábil; \nExistencia de procedimento sendo executado pelos órgãos de forma despadronizada.", "entregas": "Publicação das normas e treinamentos", "clientes": "Todos os agentes públicos do estado que realizam transações que reflitam na contabilidade, especialmente no FPE."}, {"macroprocesso": "Contabilidade", "processo": "Elaborar Relatórios Contábeis", "subprocesso": "Elaborar Relatórios Gerenciais", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de informações legais e gerenciais (DCON)", "area": "Divisão de Contabilidade", "objetivo": "Gerar informação contábil/fiscal para a tomada de decisão.", "fornecedores": "", "entradas": "Fechamento mensal e anual (Processo - Realizar encerramento contábil anual).\nValidação dos cubos de informações do fechamento DTI.", "entregas": "Publicação dos Relatórios gerenciais", "clientes": "Gestores e em especial o Secretário(a) da Fazenda"}, {"macroprocesso": "Contabilidade", "processo": "Elaborar Relatórios Contábeis", "subprocesso": "Elaborar Relatórios Legais (Contábeis, Fiscais)", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de informações legais e gerenciais (DCON)", "area": "Divisão de Contabilidade", "objetivo": "Gerar informação contábil/fiscal para atendimento de dispositivos legais da lei de responsabilidade fiscal.", "fornecedores": "", "entradas": "Fechamento mensal e anual (Processo - Realizar encerramento contábil anual).", "entregas": "Publicação dos relatórios legais.", "clientes": "Gestores e em especial o Secretário(a) da Fazenda, Governo Federal, Tribunal de Contas do Estado e a sociedade em geral"}, {"macroprocesso": "Contabilidade", "processo": "Elaborar Relatórios Contábeis", "subprocesso": "Elaborar Balanço Geral e Prestação de Contas", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de informações legais e gerenciais (DCON)", "area": "Divisão de Contabilidade", "objetivo": "Dar transparência as finanças públicas do estado referentes aos exercício financeiro e cumprir a exigência legal.", "fornecedores": "", "entradas": "Transações contábeis realizadas no exercício.", "entregas": "Publicação, entrega e divulgação", "clientes": "TCE, Governador, Assembleia e Sociedade"}, {"macroprocesso": "Contabilidade", "processo": "Realizar Encerramento Contábil", "subprocesso": "Realizar Encerramento Contábil Mensal", "natureza": "FINALÍSTICO", "gerente": "Chefe DTTI", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Garantir que o encerramento mensal no FPE seja realizado", "fornecedores": "", "entradas": "", "entregas": "Encerramente contábil realizado com a disponibilização dos arquivos de dados mensais", "clientes": "Contadores de todos os órgãos do estado"}, {"macroprocesso": "Contabilidade", "processo": "Realizar Encerramento Contábil", "subprocesso": "Realizar Encerramento Contábil Anual", "natureza": "FINALÍSTICO", "gerente": "Chefe DCON", "area": "Divisão de Contabilidade", "objetivo": "Garantir que todos os atos que alteram o patrimônio e o orçamento estejam registrados dentro de seu período de competência anual.", "fornecedores": "", "entradas": "Documentos suporte recebidos", "entregas": "Disponibilizar dados contábeis registrados finais - Encerramento anual.", "clientes": "Seção de informação legal e gerencial"}, {"macroprocesso": "Contabilidade", "processo": "Realizar Registros Orçamentários Contábeis e Patrimoniais", "subprocesso": "Realizar Registro de Execução de Despesa", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Registrar a execução da despesa (empenho, liquidação e retenção).", "fornecedores": "Órgãos do Estado", "entradas": "Solicitação feita via FPE associado a documentação via PROA / Email.", "entregas": "Liquidação disponível no contas a pagar, registro da execução orçamentaria", "clientes": "DPROF/ TE - Tesouro do Estado, todas as secretarias."}, {"macroprocesso": "Contabilidade", "processo": "Realizar Registros Orçamentários Contábeis e Patrimoniais", "subprocesso": "Realizar Registro de Ingresso de Receita", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de registro e controle contábil", "area": "Divisão de Contabilidade", "objetivo": "Registrar no FPE os valores recebidos pelo Estado, que serão utilizados nas políticas públicas (receitas orçamentárias) e repasses a terceiros (receitas extraorçamentárias).", "fornecedores": "", "entradas": "Razão contábil FPE, extratos bancários enviados pelos órgãos ou extraídos do FPE. \nInformações sobre os lançamentos não conciliados realizados pelos órgãos.", "entregas": "Ingresso gera o orçamento para execução das políticas Públicas ou lastro para o repasse.", "clientes": "Administração Direta – na AD, quem realiza os ingressos é a CAGE. \nObs.: Administração Indireta – em todos os entes do Estado, quem realiza os ingressos são os contadores do próprio órgão."}, {"macroprocesso": "Contabilidade", "processo": "Realizar Registros Orçamentários Contábeis e Patrimoniais", "subprocesso": "Identificar e Validar Regras de Retenção de Tributos", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Registrar no FPE os valores da retenção de tributos em conformidade à legislação e ao contrato.", "fornecedores": "Órgãos da administração direta", "entradas": "PROA e solicitação de liquidação liberada no FPE com as previsões de retenção", "entregas": "Retenções tributárias validadas", "clientes": "Órgãos da administração direta"}, {"macroprocesso": "Contabilidade", "processo": "Cumprir Obrigação Fiscal DIRF", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe da Seção de Obrigações Tributárias Acessórias", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Cumprir a obrigação fiscal da DIRF  do poder executiva da administração direta", "fornecedores": "", "entradas": "Ambiente Nacional de Dados – Layout – webservice - TECHNE", "entregas": "DIRF entregue", "clientes": "Receita Federal, Administração direta do Poder Executivo, todos os credores do estado"}, {"macroprocesso": "Controle", "processo": "Elaborar e Monitorar Plano de Trabalho Anual", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe da Seção de Monitoramento e Análise de Riscos (DCO)", "area": "Divisão de Controle e Orientação", "objetivo": "Organizar as atividades realizadas pelas seccionais da DCD e ao mesmo tempo definir o escopo do trabalho considerando a disponibilidade de recursos humanos e de tempo com o objetivo de priorizar os processos mais relevantes.", "fornecedores": "", "entradas": "Dados do Orçamento da Secretaria, CAGE Gerencial, diretrizes da DCD, histórico de trabalhos da Seccional", "entregas": "Plano de trabalho anual elaborado", "clientes": "Seccionais, Gabinete DCD e CAGE"}, {"macroprocesso": "Controle", "processo": "Realizar o Controle de Contratações Diretas", "subprocesso": "Controlar Locações", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar para que a contratação ocorra de acordo com os princípios e legislação aplicáveis", "fornecedores": "Órgãos", "entradas": "PROA instruido com a  minuta contratual e demais documentos aplicáveis", "entregas": "Resgistro do empenho, informação do auditor se aplicável", "clientes": "òrgão contratante"}, {"macroprocesso": "Controle", "processo": "Realizar o Controle de Contratações Diretas", "subprocesso": "Controlar Demais Contratações Diretas", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar para que a contratação ocorra de acordo com os princípios e legislação aplicáveis", "fornecedores": "Órgãos", "entradas": "PROA instruido com a  minuta contratual e demais documentos aplicáveis", "entregas": "Resgistro do empenho, informação do auditor se aplicável", "clientes": "òrgão contratante"}, {"macroprocesso": "Controle", "processo": "Controlar  Despesas Executadas por Adiantamento de Numerário", "subprocesso": "Controlar Concessão de Adiantamento", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar para que a concessão de adiantamento ocorra de acordo com os principios e legislação aplicáveis", "fornecedores": "", "entradas": "PROA instruido com os documentos aplicáveis", "entregas": "Resgistro do empenho e liquidação do adiantamento de numerário.", "clientes": "órgão e tesouraria"}, {"macroprocesso": "Controle", "processo": "Controlar  Despesas Executadas por Adiantamento de Numerário", "subprocesso": "Controlar Prestação de Contas de Adiantamento", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Avaliar a qualidade dos controles exercidos pela primeira linha de defesa, exercida pelos órgãos controlados, no processo de adiantamento de numerário.", "fornecedores": "DEMAIS ÓRGÃOS DO ESTADO", "entradas": "SOLICITAÇÃO VIA PROA E FPE", "entregas": "parecer mensal de prestação de contas  e registro de todas as baixas do período", "clientes": "demais órgãos do estado"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Transferências Voluntárias", "subprocesso": "Controlar a Celebração de Instrumentos de Repasse", "natureza": "FINALÍSTICO", "gerente": "Coordenador da seccional de Transferências Vol.", "area": "Divisão de Controle e Orientação", "objetivo": "Assegurar que a celebração das transferências voluntárias do estado seja realizada com efetividade e eficiência, garantindo que os recursos sejam aplicados de forma transparente e em conformidade com os objetivos pactuados, maximizando o impacto dos investimentos e o cumprimento das metas estabelecidas", "fornecedores": "Secretarias e Órgãos do Estado", "entradas": "Processo administrativo utilizado pelo órgão repassador (PROA, SEI ou SIM)", "entregas": "Registro do Empenho \nInformação – Auditor\nRegistro da aprovação do instrumento pela Seccional", "clientes": "Órgão concedente"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Transferências Voluntárias", "subprocesso": "Controlar a Liquidação de Repasses", "natureza": "FINALÍSTICO", "gerente": "Coordenador da seccional de Transferências Vol.", "area": "Divisão de Controle e Orientação", "objetivo": "Verificar se os requisitos necessários para a liquidação das despesas públicas foram atendidos e realizar o registro contábil.", "fornecedores": "Órgãos e Poderes de Estado", "entradas": "Processo administrativo utilizado pelo órgão repassador (PROA, SEI ou SIM)", "entregas": "Registro da liquidação", "clientes": "Órgão concedente"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Transferências Voluntárias", "subprocesso": "Controlar Aditivos e Alterações de Instrumentos de Transferências Voluntárias", "natureza": "FINALÍSTICO", "gerente": "Coordenador da seccional de Transferências Vol.", "area": "Divisão de Controle e Orientação", "objetivo": "Assegurar que as alterações promovidas nos instrumentos de transferências voluntárias celebrados preservem a efetividade e eficiência, garantindo que os recursos sejam aplicados de forma transparente e em conformidade com os objetivos pactuados, maximizando o impacto dos investimentos e o cumprimento das metas estabelecidas", "fornecedores": "", "entradas": "Processo administrativo utilizado pelo órgão repassador (PROA, SEI ou SIM)", "entregas": "Registro do Empenho \nInformação – Auditor\nRegistro da aprovação do instrumento pela Seccional", "clientes": "Órgão concedente"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Transferências Voluntárias", "subprocesso": "Controlar a Prestação de Contas de Repasses", "natureza": "FINALÍSTICO", "gerente": "Coordenador da seccional de Transferências Vol.", "area": "Divisão de Controle e Orientação", "objetivo": "Avaliar a execução e prestação de contas de transferências voluntárias, de modo a verificar se os processos foram conduzidos com observância dos princípios que regem a administração pública, se a conclusão do objeto está devidamente comprovada e se houve efetividade na implementação da política pública relacionada.", "fornecedores": "Órgãos", "entradas": "Base de dados do FPE", "entregas": "Comunicado de Auditoria; Comunicado Orientativo", "clientes": "Órgão concedente"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Indenizações e Ressarcimentos", "subprocesso": "Controlar Outros Ressarcimentos", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir os controles das indenizações e ressarcimentos concedidos pelos órgãos do estado.", "fornecedores": "Órgãos do estado", "entradas": "Solicitações de empenho e liquidação no PROA e FPE", "entregas": "Registro do empenho e da liquidação", "clientes": "Órgão contratante"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Indenizações e Ressarcimentos", "subprocesso": "Controlar o Pagamento de Diárias", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir os controles das indenizações e ressarcimentos concedidos pelos órgãos do estado.", "fornecedores": "Secretarias e Órgãos do Estado", "entradas": "Recebimento via PROA para Empenho da despesa.\nRecebimento via PROA para liquidação da despesa.", "entregas": "Diárias registradas.", "clientes": "Órgãos da administração direta concedentes de diárias."}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Indenizações e Ressarcimentos", "subprocesso": "Controlar Pagamento de Auxílio Funeral", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir os controles das indenizações de auxílio funeral concedidas pelo Estado.", "fornecedores": "Órgãos do Estado", "entradas": "", "entregas": "Registro do empenho e da liquidação", "clientes": "Órgão contratante"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Licitações", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional CELIC", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir que os processos licitatórios sejam lícitos e eficientes, cumpram o seu objeto e  atendam as demandas do Estado.", "fornecedores": "Órgãos da Administração Direta, Autarquias e Fundações - Por intermédio  da CELIC", "entradas": "Processo na fase interna antes da publicação;\nProcesso em fase externa antes da homologação.", "entregas": "Documento - Informação - para a CELIC (Publicação ou homologação, \ndevolução para correção do demandante ou correção interna da CELIC)", "clientes": "CELIC"}, {"macroprocesso": "Controle", "processo": "Controlar a Execução de Contratos Administrativos", "subprocesso": "Controlar a Execução das Atas de Registro de preço", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Analisar as despesas executadas por meio de ata de registro de preço, verificando sua adequação ao parâmetros pré-estabelecidos, e atender a solicitação de empenho/liquidação.", "fornecedores": "Órgãos do Estado", "entradas": "PROA", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável", "clientes": "Órgão contratante, Tesouraria e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar a Execução de Contratos Administrativos", "subprocesso": "Controlar os Contratos de Serviços  Sem Dedicação Exclusiva de Mão de Obra", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pela devida execução contratual conforme as condições da contratação e legislação aplicável", "fornecedores": "", "entradas": "PROA de empenho e liquidação", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável", "clientes": "Órgão contratante, Tesouraria e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar a Execução de Contratos Administrativos", "subprocesso": "Controlar Demais Contratos", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pela devida execução contratual conforme as condições da contratação e legislação aplicável", "fornecedores": "", "entradas": "PROA de liquidação e empenho", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável", "clientes": "Órgão contratante, Tesouraria e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar a Execução de Contratos Administrativos", "subprocesso": "Controlar Contratos de Serviços com Dedicação Exclusiva de Mão de Obra", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pela devida execução contratual conforme as condições da contratação e legislação aplicável", "fornecedores": "Secretarias e Órgãos do Estado", "entradas": "Recebimento via PROA para Empenho da despesa.\nRecebimento via PROA para liquidação da despesa.", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável", "clientes": "Órgão contratante, Tesouraria e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar a Execução de Contratos Administrativos", "subprocesso": "Controlar Despesas IEF", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pela devida execução contratual conforme as condições da contratação e legislação aplicável", "fornecedores": "", "entradas": "análise dos painéis do CAGE gerencial", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável", "clientes": "Órgão contratante, Tesouraria e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar Despesas de Obras e Serviços de Engenharia", "subprocesso": "Controlar a contratação de obras e serviços de engenharia", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional de obras", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir a adequada contratação e controle das obras públicas do estado.", "fornecedores": "Secretarias e Órgãos do Estado", "entradas": "Solicitação via PROA e FPE", "entregas": "Nota de Empenho\nInformação - Auditor", "clientes": "Órgãos ou secretarias"}, {"macroprocesso": "Controle", "processo": "Controlar Despesas de Obras e Serviços de Engenharia", "subprocesso": "Controlar a Fase de Liquidação de Faturas de Obras e Serviços de Engenharia", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional de obras", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir que ocorram pagamentos de serviços efetivamente executados e atestados e assegurar que a empresa executora esteja regular com suas obrigações", "fornecedores": "Secretarias e Órgãos do Estado", "entradas": "Solicitação via PROA e FPE", "entregas": "Nota de liquidação; notas financeiras (retenções); Informação - Auditor", "clientes": "Órgãos, secretarias e tesourarias"}, {"macroprocesso": "Controle", "processo": "Controlar Despesas de Obras e Serviços de Engenharia", "subprocesso": "Controlar Aditivos e Alterações de Contratos de Obras ou Serviços de Engenharia", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional de obras", "area": "Divisão de Controle e Orientação", "objetivo": "Manter controle sobre as alterações contratuais relativos a obras ou serviços de engenharia.", "fornecedores": "Órgãos públicos", "entradas": "Minutas de aditivo, solicitação de empenho, apostilas.", "entregas": "Informação dando de acordo ou não acerca do termo aditivo enviado pela secretaria. Empenho atendido quando é aditivo de valor.", "clientes": "Órgãos públicos"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Folha de Pagamento", "subprocesso": "Controlar a Destinação dos Recursos por Nota Financeira", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional da folha", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir a tempestiva destinação dos recursos dos descontos dos servidores", "fornecedores": "", "entradas": "", "entregas": "Notas financeiras no contas a pagar", "clientes": "Tesouraria ou pagadoria dos órgãos"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Folha de Pagamento", "subprocesso": "Controlar o Atendimento de Solicitações de Patronais", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional da folha", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir o repasse financeiro ao orgão de previdência e saúde", "fornecedores": "", "entradas": "", "entregas": "Liquidação disponível no contas a pagar, registro da execução orçamentaria", "clientes": "Tesouraria ou pagadoria dos órgãos e Administração financeira"}, {"macroprocesso": "Controle", "processo": "Realizar Controle de Folha de Pagamento", "subprocesso": "Contabilizar e Realizar o Ajuste Orçamentário da Folha", "natureza": "FINALÍSTICO", "gerente": "Coordenador seccional da folha", "area": "Divisão de Controle e Orientação", "objetivo": "Garantir o adequado registro dos fatos da folha.", "fornecedores": "", "entradas": "", "entregas": "Contabilização da folha\nAjustes de folha", "clientes": "Administração financeira e \nRH do Órgão"}, {"macroprocesso": "Controle", "processo": "Realizar Controle Patrimonial e Almoxarifado", "subprocesso": "Realizar o Controle Contábil do Patrimônio do Estado", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pelo adequado registro patrimonial do estado", "fornecedores": "", "entradas": "", "entregas": "controle da conciliação contábil baseado na realização dos inventários", "clientes": "Órgão contratante, TCE e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Realizar Controle Patrimonial e Almoxarifado", "subprocesso": "Realizar o Controle Contábil de Almoxarifado", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO", "area": "Divisão de Controle e Orientação", "objetivo": "Zelar pelo adequado registro patrimonial do estado", "fornecedores": "", "entradas": "", "entregas": "controle da conciliação contábil baseado na realização dos inventários", "clientes": "Órgão contratante, TCE e DNC/DTI"}, {"macroprocesso": "Controle", "processo": "Controlar o Pagamento de Auxílios", "subprocesso": "Realizar o Controle dos Pagamentos Continuados de Auxílios", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Assegurar que a transferência seja destinada ao público alvo de cada projeto em conformidade com os seus regramentos próprios.", "fornecedores": "Órgãos do Estado", "entradas": "Necessidade de operacionalizar o pagamento de auxílios", "entregas": "Registro do empenho e da liquidação\nInformação do Auditor, caso aplicável\nResultado do cruzamento de dados via SEI ou Painel CAGE-gerencial", "clientes": "Órgãos e entidades"}, {"macroprocesso": "Controle", "processo": "Controlar o Pagamento de Auxílios", "subprocesso": "Realizar o Controle de Pagamentos Esporádicos de Auxílios", "natureza": "FINALÍSTICO", "gerente": "Chefe DCO; Coordenadores seccionais", "area": "Divisão de Controle e Orientação", "objetivo": "Assegurar que a transferência seja destinada  ao público alvo de cada projeto em conformidade com os seus regramentos próprios", "fornecedores": "", "entradas": "", "entregas": "Registro do empenho e da liquidação\nInformação - Auditor, caso aplicável                                     Resultado do cruzamento de dados via PROA ou Painel CAGE-gerencial", "clientes": "Órgãos ou secretarias"}, {"macroprocesso": "Gestão Administrativa", "processo": "Realizar Gestão Orçamentária e Financeira", "subprocesso": "Elaborar a Proposta Orçamentária Anual", "natureza": "APOIO", "gerente": "Adjunto de gestão e tecnologia", "area": "Gabinete da CAGE", "objetivo": "Garantir os recursos necessários para a execução dos processos e projetos da CAGE contemplando todas as fontes de recursos como FUNSEFAZ, PROFISCO etc", "fornecedores": "", "entradas": "", "entregas": "Proposta orçamentária elaborada", "clientes": "CAGE"}, {"macroprocesso": "Gestão Administrativa", "processo": "Realizar Gestão Orçamentária e Financeira", "subprocesso": "Monitorar a Execução do Orçamento", "natureza": "APOIO", "gerente": "Adjunto de gestão e tecnologia", "area": "Gabinete da CAGE", "objetivo": "Garantir a execução do orçamento aprovado", "fornecedores": "", "entradas": "", "entregas": "Relatório de execução do orçamento", "clientes": "CAGE"}, {"macroprocesso": "Gestão Administrativa", "processo": "Gerir Patrimônio Interno", "subprocesso": "Realizar o Inventário", "natureza": "APOIO", "gerente": "Coordenador de gabinete", "area": "Gabinete da CAGE", "objetivo": "Verificar se o patrimônio está de acordo com os registro no sistema APE", "fornecedores": "", "entradas": "", "entregas": "Relatório de bens que constam no ECC do gabinete", "clientes": "DEPAD"}, {"macroprocesso": "Gestão Administrativa", "processo": "Gerir Patrimônio Interno", "subprocesso": "Realizar Sindicância Investigativa de Bens Não Encontrados no Inventário", "natureza": "APOIO", "gerente": "Presidente da comissão de sindicância", "area": "Gabinete da CAGE", "objetivo": "Investigar a falta de bens após mo inventário", "fornecedores": "", "entradas": "", "entregas": "Relatório da comissão para o titular da CAGE", "clientes": "SEFAZ"}, {"macroprocesso": "Gestão Administrativa", "processo": "Gerir Patrimônio Interno", "subprocesso": "Realizar  o Controle Permanente de Patrimônio", "natureza": "APOIO", "gerente": "Coordenador de gabinete", "area": "Gabinete da CAGE", "objetivo": "Registrar a entrada e a saída dos bens durante o ano para facilitar a realização do inventário", "fornecedores": "", "entradas": "", "entregas": "Planilha de controle permanente", "clientes": "Gabinete"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Gerir BI, Painéis Analíticos e Relatórios para Apoio à Gestão", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe da Seção de Inteligência de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "Desenvolver e implementar soluções tecnológicas de análise de dados para apoio a gestão.", "fornecedores": "", "entradas": "Insights da divisão e demandas recebidas dos órgãos - Reuniões, e-mail e contatos diretos.", "entregas": "Desenvolvimento, manutenção e evolução de soluções tecnológicas", "clientes": "Toda administração - Órgãos da administração Direta e indireta"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Gerir BI, painéis Analíticos e Relatórios para Apoio à Auditoria e Controle", "subprocesso": "Gerir a Arquitetura, integração e Armazenamento de Dados", "natureza": "APOIO", "gerente": "Chefe da Seção de Infraestrutura e Governança de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "", "fornecedores": "", "entradas": "", "entregas": "Garantindo a disponibilidade dos dados para os painéis", "clientes": "CAGE"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Gerir BI, painéis Analíticos e Relatórios para Apoio à Auditoria e Controle", "subprocesso": "Gerir o Acesso aos Dados", "natureza": "APOIO", "gerente": "Chefe da Seção de Infraestrutura e Governança de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "Disponibilizar acesso aos paineis para os usurários credenciados", "fornecedores": "", "entradas": "", "entregas": "Acesso aos painéis para os usuários credenciados", "clientes": "CAGE"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Gerir BI, painéis Analíticos e Relatórios para Apoio à Auditoria e Controle", "subprocesso": "Realizar Modelagem de Dados", "natureza": "APOIO", "gerente": "Chefe da Seção de Inteligência de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "Transformar os dados extraidos do sistema em informação para o usuário", "fornecedores": "", "entradas": "", "entregas": "Entregar os dados em formato que possa ser utilizado nos painéis", "clientes": "CAGE"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Gerir BI, painéis Analíticos e Relatórios para Apoio à Auditoria e Controle", "subprocesso": "Realizar Teste de QA dos Painéis", "natureza": "APOIO", "gerente": "Chefe da Seção de Inteligência de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "Aferir a qualidade dos painéis disponibilizados", "fornecedores": "", "entradas": "", "entregas": "Entregar a informação correta e tempestiva para os usuários", "clientes": "CAGE"}, {"macroprocesso": "Gestão de Dados e Informações", "processo": "Realizar Cruzamento, Análise e Mineração de dados", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe da Seção de Inteligência de Dados", "area": "Divisão de Informações Estratégicas", "objetivo": "", "fornecedores": "", "entradas": "", "entregas": "Relação dos cruzamentos realizados", "clientes": "CAGE"}, {"macroprocesso": "Gestão de Pessoas", "processo": "Gerenciar o Recrutamento e Alocação de Pessoas", "subprocesso": "Realizar o Concurso Público para o Cargo de Auditor do Estado", "natureza": "APOIO", "gerente": "Presidente da comissão de ingresso", "area": "Gabinete da CAGE", "objetivo": "Realizar o concurso público para admissão de novos auditores do estado na carreira,de forma eficaz e eficiente, e de acordo com as normas vigentes.", "fornecedores": "CAGE", "entradas": "Nomeação da comissão de realização do concurso público", "entregas": "Concurso público homologado", "clientes": "CAGE, candidatos"}, {"macroprocesso": "Gestão de Pessoas", "processo": "Gerenciar o Recrutamento e Alocação de Pessoas", "subprocesso": "Realizar o Ingresso e a Alocação de Servidores", "natureza": "APOIO", "gerente": "Coordenador de Gestão Estratégica", "area": "Gabinete da CAGE", "objetivo": "Receber novos servidores, ambientar à CAGE, disponibilizar infraestrutura física e tecnológica para o trabalho, além de alocar pessoas nas áreas, para atuação em projetos e processos, considerando as competências individuais e as necessidades institucionais.", "fornecedores": "DEPAD (GEPESC, DRH, SEINFRA), DETIC", "entradas": "Nomeação de novos servidores/aprovação do GAE para nomeação", "entregas": "Servidores recebidos e alocados nas áreas da CAGE.", "clientes": "CAGE, novos servidores"}, {"macroprocesso": "Gestão de Pessoas", "processo": "Gerenciar o Desenvolvimento de Pessoas", "subprocesso": "Elaborar e Executar Plano de Capacitação", "natureza": "APOIO", "gerente": "Assessor de capacitação", "area": "Gabinete da CAGE", "objetivo": "Capacitar servidores com base nas competências a serem desenvolvidas", "fornecedores": "", "entradas": "", "entregas": "Plano elaborado e servidores treinados", "clientes": "CAGE"}, {"macroprocesso": "Gestão de TIC", "processo": "Realizar manutenção corretiva e suporte aos usuários de TIC", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe seção de suporte técnico e orientação a usuários de sistemas", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Garantir a adequada utilização dos sistemas apoiando os usuários em suas atividades operacionais.", "fornecedores": "órgãos, cidadãos, empresas, servidores estaduais", "entradas": "Solicitações de orientação na execução das atividades no sistema.\nSolicitação de correções de demandas corretivas (Bug´s do sistema).", "entregas": "Atendimento das demandas;\nEncaminhamento da resolução para as áreas responsáveis\nElaboração e aplicação de treinamentos", "clientes": "Os usuários dos sistemas, servidores, e interessados externos."}, {"macroprocesso": "Gestão de TIC", "processo": "Gerenciar Projetos e Demandas de Desenvolvimento de Software", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe seção de projetos e gerenciamento de Sistemas", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Promover a melhoria contínua da experiência do usuário dos sistemas de competência da CAGE.", "fornecedores": "Usuários dos sistemas", "entradas": "Solicitações de otimizações de processos, integrações entre sistemas.\nProjetos com origem em alguma Legislação. Projetos estratégicos.", "entregas": "Funcionalidade implantada.", "clientes": "Internas - Divisões da CAGE\nTesouro e Receita Estadual.\nExternas - Secretarias e administração indireta.\nGabinete do Governador.\nObrigações legais"}, {"macroprocesso": "Gestão de TIC", "processo": "Realizar Gestão Administrativa de Sistemas", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe seção de projetos e gerenciamento de Sistemas", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Elaborar e gestionar os contratos novos e vigentes e realizar os atestes das faturas e entregas mensais.", "fornecedores": "", "entradas": "Autorização de início do processo de contratação.\nGestão do PROFISCO.\nGestão dos contratos pela DETIC.", "entregas": "Contratos de TI da divisão concretizados.", "clientes": "Divisões com contratos de TI"}, {"macroprocesso": "Gestão de TIC", "processo": "Gerenciar Políticas de Segurança de TIC", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe DTTI", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Padronizar os projetos, procedimentos operacionais e otimizar a utilização de recursos de TIC no âmbito da CAGE.", "fornecedores": "", "entradas": "", "entregas": "", "clientes": ""}, {"macroprocesso": "Gestão de TIC", "processo": "Priorizar Demandas de Desenvolvimento de TIC", "subprocesso": "", "natureza": "APOIO", "gerente": "Chefe seção de projetos e gerenciamento de Sistemas", "area": "DTTI, DIE", "objetivo": "Garantir o alinhamento estratégico dos projetos de TI e a transparecncia das demandas, bem como ampliar a eficiencia dos recursos de TI.", "fornecedores": "Usuários dos sistemas.", "entradas": "Formulário (forms) preenchido pelo solicitante.", "entregas": "Fila de projetos ranqueados.", "clientes": "CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Processos", "subprocesso": "Auditar processos internos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "O subprocesso Auditar Processos Internos, parte do processo Gerenciar Processos, tem como objetivo obter evidências de que a execução dos processos da CAGE esteja aderente ao que foi planejado no mapeamento, garantindo a mitigação de riscos operacionais e agregando valor à execução processual por meio de recomendações de melhoria.", "fornecedores": "Escritório de Processos", "entradas": "inclusão do processo mapeado no plano de trabalho anual", "entregas": "processo auditado", "clientes": "áreas da CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar a Estratégia", "subprocesso": "Elaborar Planejamento Estratégico", "natureza": "GESTÃO", "gerente": "Coordenador de Gestão Estratégica", "area": "Gabinete da CAGE", "objetivo": "Elaborar o mapa estratégico, desdobrar em projetos, iniciativas e atividades e monitorar a estratégia.", "fornecedores": "Gestão e Unidades da CAGE", "entradas": "Prioridades estratégicas da gestão, contexto interno e externo da CAGE.", "entregas": "Mapa estratégico, alinhamento dos projetos e processos da CAGE aos objetivos estratégicos.", "clientes": "Gestão e Unidades da CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar a Estratégia", "subprocesso": "Realizar o Desdobramento da Estratégia", "natureza": "GESTÃO", "gerente": "Coordenador de Gestão Estratégica", "area": "Gabinete da CAGE", "objetivo": "Desdobrar o mapa estratégico em projetos, iniciativas e atividades.", "fornecedores": "Gestão e Unidades da CAGE", "entradas": "Prioridades estratégicas da gestão, contexto interno e externo da CAGE.", "entregas": "Mapa estratégico, alinhamento dos projetos e processos da CAGE aos objetivos estratégicos.", "clientes": "Gestão e Unidades da CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar a Estratégia", "subprocesso": "Monitorar a Estratégia", "natureza": "GESTÃO", "gerente": "Coordenador de Gestão Estratégica", "area": "Gabinete da CAGE", "objetivo": "Monitorar a estratégia.", "fornecedores": "Gestão e Unidades da CAGE", "entradas": "Prioridades estratégicas da gestão, contexto interno e externo da CAGE.", "entregas": "Mapa estratégico, alinhamento dos projetos e processos da CAGE aos objetivos estratégicos.", "clientes": "Gestão e Unidades da CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Projetos e Portfólio", "subprocesso": "Gerenciar Projetos Estratégicos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "Garantir a execução adequada dos projetos dentro do prazo, escopo, custo, provendo boas práticas, técnicas e ferramentas, a segurando a geração de valor público e a entrega de beneficios alinhado a estratégia.", "fornecedores": "Comitê gestor de projetos", "entradas": "Demanda de projeto aprovada e priorizada", "entregas": "Projetos concluídos de acordo com os critérios de sucesso", "clientes": "CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Projetos e Portfólio", "subprocesso": "Gerenciar portfólio de projetos estratégicos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "Gerar valor público contínuo, equilibrando recursos, riscos e benefícios, mantendo o portfólio sempre alinhado e adaptável à estratégia da CAGE", "fornecedores": "Comitê gestor de projetos, PMO, áreas demandantes", "entradas": "Demanda de projeto para aprovação (formulário do PSA), demanda do comitê gestor de projetos, portfólio anterior, mapa estratégico.", "entregas": "Portfólio gerenciado.", "clientes": "CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Processos", "subprocesso": "Realizar a Governança de Processos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "Gerir a arquitetura de processos da organização e o escritório de processos, garantindo o alinhamento com a estratégia da organização e buscando a efetividade dos processos", "fornecedores": "", "entradas": "", "entregas": "Arquitetura de processos revisada e atualizada, cadeia de valor revisada e atualizada. Governança de processos estabelecida na CAGE.", "clientes": "CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Processos", "subprocesso": "Mapear e Redesenhar Processos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "Garantir a compreensão clara e compartilhada de todos os processos da organização.", "fornecedores": "Gerentes de processo e áreas da CAGE", "entradas": "Pedido de melhoria ou padronização de um processo", "entregas": "Processos documentados e modelados", "clientes": "SERVIDORES E ÁREAS DA CAGE"}, {"macroprocesso": "Gestão Estratégica", "processo": "Gerenciar Processos", "subprocesso": "Monitorar, Revisar e Acompanhar Processos", "natureza": "GESTÃO", "gerente": "Coordenador escritório de projetos e processos", "area": "Gabinete da CAGE", "objetivo": "O processo de Monitorar, Revisar e Acompanhar Processos tem como objetivos realizar o acompanhamento dos processos previamente mapeados, verificando a adequação de sua execução em relação ao convencionado, e também monitorar os indicadores e a efetividade dos processos críticos da CAGE. \n\n indicadores de processo e tomada de ação em casos de desvio", "fornecedores": "Áreas CAGE e DIE (painéis)", "entradas": "Indicadores de processos e processos mapeados", "entregas": "plano de ação em conjunto com o responsável pelo processo em casos de desvio; processos mapeados revisados; indicadores monitorados", "clientes": "CAGE"}, {"macroprocesso": "Orientação e Suporte à Tomada de Decisão", "processo": "Elaborar e Revisar Atos Normativos", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Coordenador de Orientação e Normatização", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Disciplinar temas de Controle Interno", "fornecedores": "", "entradas": "PROA", "entregas": "Minuta do Normativo revisada.", "clientes": "Órgãos, secretarias e entidades da administração pública\nPúblico interno da CAGE."}, {"macroprocesso": "Orientação e Suporte à Tomada de Decisão", "processo": "Realizar Orientações", "subprocesso": "Realizar Orientações Via Emissão de Informação DEO", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de orientação e assessoramento (DCO)", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Emitir uma orientação, mediante consulta, que reflita o posicionamento da CAGE nas questões pertinentes ao controle interno.", "fornecedores": "", "entradas": "PROA, e-mail, TEAMS, WhatsApp, Portal de demandas (em implantação)", "entregas": "Informação CAGE/DEO\nInformação solicitada - respondida via e-mail ou Teams", "clientes": "Órgãos, secretarias e entidades da administração pública. Público interno da CAGE"}, {"macroprocesso": "Orientação e Suporte à Tomada de Decisão", "processo": "Realizar Orientações", "subprocesso": "Realizar Orientações e Serviços Via Portal E-CAGE", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de supervisão técnica (DAUD); Coordenador seção de consultoria", "area": "Divisão de Controle e Orientação", "objetivo": "Atender às demandas por orientações ou serviços, encaminhadas via portal e-Cage.", "fornecedores": "órgãos, cidadãos, empresas, servidores estaduais, servidores da CAGE.", "entradas": "Demanda via portal E-CAGE.", "entregas": "Orientação ou serviço prestado", "clientes": "Adm direta e indireta, Poderes, servidores CAGE"}, {"macroprocesso": "Orientação e Suporte à Tomada de Decisão", "processo": "Realizar Orientações", "subprocesso": "Realizar Orientações Via PROA", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de orientação e assessoramento (DCO)", "area": "Divisão de Controle e Orientação", "objetivo": "Emitir uma orientação, mediante consulta, que reflita o posicionamento da CAGE nas questões pertinentes ao controle interno.", "fornecedores": "", "entradas": "", "entregas": "Informação. Respostas às consultas - PROA", "clientes": "Órgão e e secretarias da administração direta\nPúblico interno (seccionais)."}, {"macroprocesso": "Promoção da Integridade e Prevenção à Corrupção", "processo": "Avaliar Programas de Integridade", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de promoção da integridade", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Avalia os programas de integridade das empresas contratadas pelo Estado para emitir certificado nos casos em que há indícios de efetividade mínima do programa.", "fornecedores": "Empresas contratadas", "entradas": "SCPI - Envio de documentos para avaliação de programas de integridade", "entregas": "Decisão final de avaliação do programa de integridade, com a emissão ou indeferimento do certificado.", "clientes": "Empresas contratadas\nÓrgãos e entidades contratantes"}, {"macroprocesso": "Promoção da Integridade e Prevenção à Corrupção", "processo": "Participar em Procedimentos Preliminares de Investigação (PPI)", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de promoção da integridade", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Conduz e emite relatório sobre uma investigação de atos de fraude ou corrupção, propondo instauração de par ou outras medidas pelo Ministério Público ou Polícia Civil", "fornecedores": "", "entradas": "", "entregas": "Relatório final de PPI", "clientes": "Estado e Sociedade Civil."}, {"macroprocesso": "Promoção da Integridade e Prevenção à Corrupção", "processo": "Participar em Processos Administrativos de Responsabilização", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de promoção da integridade", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Conduz e emite relatório com proposta de decisão em  processos para apurar responsabilidade administrativa e aplicar penalidades a empresas por atos de corrupção e/ou fraude em licitações ou em contratos públicos.", "fornecedores": "", "entradas": "Denúncias enviadas à CRPJ, via PROA, FalaBR, e-mail, bem como notícias e detecção de situações por outros trabalhos da CAGE.", "entregas": "Decisão publicada no Diário Oficial\nAplicação de multas e sanções", "clientes": "Estado e Sociedade Civil."}, {"macroprocesso": "Promoção da Integridade e Prevenção à Corrupção", "processo": "Tratar Denúncias e Representações", "subprocesso": "Tratar Denúncias", "natureza": "FINALÍSTICO", "gerente": "Chefe da seção de apuração e operações", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Recebimento, tratamento, apuração e a comunicação de resultados de denúncias pela CAGE.", "fornecedores": "Denunciantes e órgãos públicos em geral", "entradas": "Denúncias, ofícios. (formas de recebimento: fala BR, e-mail, ofícios, teams, whatsapp ,telefone, pessoalmente)", "entregas": "Comunicação de resultados (relatório de apuração, relatório de operações especiais, comunicado de auditoria, comunicado orientativo, nota de auditoria etc). Produtos referentes ao estado atual do processo.", "clientes": "Órgãos de investigação e fiscalização (CRPJ, MP, PC etc), órgãos e entidades estaduais."}, {"macroprocesso": "Promoção da Integridade e Prevenção à Corrupção", "processo": "Tratar Denúncias e Representações", "subprocesso": "Tratar representações", "natureza": "FINALÍSTICO", "gerente": "Chefe da seção de apuração e operações", "area": "Divisão de Integridade e Responsabilização", "objetivo": "Receber, apurar e tratar representações (ofícios) recebidos pela CAGE originários de outros órgãos de controle, tais como MP e Polícia Civil.", "fornecedores": "Ministério Público, Polícia Civil e outros órgãos públicos", "entradas": "Representação recebida.", "entregas": "Relatório de apuração ou comunicado de auditoria", "clientes": "LEI COMPLEMENTAR - 13451/2010 - Entidade Auditada, Secretaria, Tribunal de Contas, Assembleia Legislativa, Governo do Estado e MP.\nTermo de cooperação com a Polícia Civil - Polícia Civil.\nDe acordo com a Demanda CRPJ/CAGE"}, {"macroprocesso": "Transparência e Estímulo ao Controle Social", "processo": "Gerenciar o Portal de Transparência de Estado", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Chefe seção de transparência", "area": "Divisão de Transparência e Tecnologia da Informação", "objetivo": "Disponibilizar para a sociedade informações relacionadas às receitas e despesas do Estado.", "fornecedores": "", "entradas": "Normas legais legislação;\nAnálise do ranking de atendimento das normas;\nLei de acesso a informação;\nBID - Maturidade da gestão fiscal.", "entregas": "Adequações legais, funcionais, novos conteúdos, entrega de dados e informações de interesse da sociedade com foco no cidadão.", "clientes": "Sociedade em geral e entidades estatais e privadas com interesses nos dados."}, {"macroprocesso": "Transparência e Estímulo ao Controle Social", "processo": "Atender às Demandas da Lei de Acesso à Informação (LAI) e Ouvidoria", "subprocesso": "", "natureza": "FINALÍSTICO", "gerente": "Gestor Local LAI", "area": "Gabinete da CAGE", "objetivo": "Responder no prazo legal os questionamentos encaminhados pelo cidadão por meio dos canais de atendimento da Ouvidoria Geral do Estado referentes aos assuntos inerentes à CAGE.", "fornecedores": "GERENTE: GESTOR LOCAL DA LAI\n\nOuvidoria Geral do Estado e Cidadão", "entradas": "Questionamentos encaminhados por meio da Central de Informação do estado - Central.rs.gov.br - Site do Governo do estado; \nCasa civil - analisa a  solicitação e distribui para as secretarias ou subsecretarias.", "entregas": "Respostas aos questionamentos dos cidadãos.", "clientes": "Cidadão solicitante e OGE."}];
+
 
 function geminiErrMsg(status, body) {
   if(status === 429) return 'Limite de requisições atingido. Aguarde 1 minuto e tente novamente.';
@@ -4837,7 +4841,7 @@ function exportBackup() {
     const payload = {
       _version: 2,
       _exported: new Date().toISOString(),
-      _app: 'GestPOP · CAGE-RS',
+      _app: 'GestPROC · CAGE-RS',
       d:    DATA.d,
       r:    DATA.r,
       pat:  DATA.pat || [],
@@ -4849,7 +4853,7 @@ function exportBackup() {
     const a    = document.createElement('a');
     const date = new Date().toISOString().slice(0,10);
     a.href     = url;
-    a.download = `gestpop-backup-${date}.json`;
+    a.download = `gestproc-backup-${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('✅ Backup exportado com sucesso!', 'success');
@@ -5164,34 +5168,38 @@ async function extractFluxoFromImage() {
       base64 = await blobToBase64(blob);
     }
 
-    const extractPrompt = `Você é um especialista em modelagem de processos BPMN. Analise este fluxograma BPMN da CAGE-RS com maxima atencao e precisao.
+    const extractPrompt = `Voce e um especialista em modelagem de processos BPMN. Analise este fluxograma BPMN da CAGE-RS com maxima atencao.
 
-NOTACAO BPMN - COMO INTERPRETAR CADA ELEMENTO:
-- CIRCULO VERDE ou circulo simples no inicio = Evento de INICIO do processo. Use type "evento", text "Inicio do processo"
-- CIRCULO VERMELHO ou circulo com borda grossa no final = Evento de FIM do processo. Use type "evento", text "Fim do processo"
-- CIRCULO INTERMEDIARIO = Evento intermediario (espera, mensagem). Use type "evento"
-- RETANGULO com cantos arredondados azul ou colorido = ATIVIDADE ou TAREFA. Use type "atividade"
-- LOSANGO com X = Gateway PARALELO (todas as saidas ocorrem). Use type "decisao"
-- LOSANGO com + = Gateway EXCLUSIVO (apenas uma saida). Use type "decisao"
-- LOSANGO vazio = Gateway de DECISAO (Sim/Nao). Use type "decisao"
-- RETANGULO CINZA sem borda forte = ANOTACAO ou OBSERVACAO. Use type "observacao"
-- SETAS SOLIDAS = fluxo de sequencia, siga-as para determinar a ordem
-- SETAS TRACEJADAS = fluxo de mensagem ou associacao
-- RAIAS HORIZONTAIS (swimlanes) = ATORES ou SETORES, o nome na esquerda e o responsavel daquela raia
+PASSO 1 - ENCONTRE O EVENTO DE INICIO:
+Antes de qualquer coisa, localize o EVENTO DE INICIO do processo.
+O evento de inicio e SEMPRE um circulo pequeno verde (ou circulo simples sem borda grossa) que possui apenas UMA seta saindo dele e NENHUMA seta entrando.
+O processo comeca nesse circulo, independente de qual raia (swimlane) ele esteja.
+NAO comece pela raia do topo. NAO comece pelo elemento mais a esquerda. Comece pelo circulo de inicio.
 
-REGRAS DE EXTRACAO:
-1. SEMPRE comece pelo evento de inicio (circulo verde ou simples) e termine pelo evento de fim (circulo vermelho ou borda grossa)
-2. Siga as setas da ESQUERDA para a DIREITA para determinar a ordem cronologica
-3. Agrupe atividades por FASE ou COLUNA vertical quando houver fases marcadas no fluxograma
-4. Se nao houver fases, crie uma etapa para cada atividade principal ou grupo logico
-5. O campo "responsible" deve ser o nome da FASE ou setor principal da etapa
-6. O campo "actor" deve ser o nome exato da RAIA onde cada acao ocorre
-7. Para decisoes, inclua as alternativas no formato: "Decisao: [texto]? Sim: [destino] / Nao: [destino]"
-8. Capture o texto EXATO e COMPLETO de cada elemento, sem resumir
-9. Inclua TODAS as atividades visiveis, mesmo as de raias secundarias
-10. Anotacoes cinzas devem ser capturadas como type "observacao"
+PASSO 2 - SIGA AS SETAS:
+A partir do evento de inicio, siga cada seta solida na direcao que ela aponta.
+A ordem do processo e definida pelas setas, nao pela posicao vertical das raias.
+Um processo pode comecar em qualquer raia (topo, meio ou base) e ir para qualquer direcao.
 
-FORMATO DE SAIDA - retorne APENAS JSON puro, sem markdown, sem explicacoes antes ou depois:
+PASSO 3 - IDENTIFIQUE OS ELEMENTOS:
+- CIRCULO VERDE ou circulo simples com apenas 1 seta saindo = Evento de INICIO. Type: "evento", text: "Inicio do processo"
+- CIRCULO VERMELHO ou circulo com borda grossa/dupla com apenas setas entrando = Evento de FIM. Type: "evento", text: "Fim do processo"
+- RETANGULO arredondado azul ou colorido = ATIVIDADE. Type: "atividade"
+- LOSANGO (qualquer variacao) = DECISAO/GATEWAY. Type: "decisao". Inclua as alternativas: "Sim: [destino] / Nao: [destino]"
+- RETANGULO CINZA tracejado = ANOTACAO. Type: "observacao"
+- SETA SOLIDA = sequencia do fluxo (siga essa)
+- SETA TRACEJADA = associacao ou mensagem (informacao adicional)
+- RAIA HORIZONTAL = ator ou setor responsavel pelas atividades naquela faixa
+
+PASSO 4 - AGRUPE POR FASES:
+Se o fluxograma tiver colunas verticais com nomes (fases), agrupe as atividades por fase.
+Se nao tiver fases explicitas, crie agrupamentos logicos seguindo o fluxo das setas.
+
+EXEMPLO DE ERRO A EVITAR:
+ERRADO: Comecar pela raia do topo ou pelo elemento mais a esquerda visualmente.
+CERTO: Localizar o circulo verde de inicio e comecar por ele, mesmo que esteja em uma raia do meio ou inferior.
+
+FORMATO DE SAIDA - retorne APENAS JSON puro, sem markdown, sem explicacoes:
 [
   {
     "title": "Nome da Fase ou Etapa",
@@ -5199,17 +5207,22 @@ FORMATO DE SAIDA - retorne APENAS JSON puro, sem markdown, sem explicacoes antes
     "responsible": "Nome da Fase ou Setor principal",
     "respClass": "resp-green",
     "actions": [
-      {"type": "evento",     "text": "Inicio do processo",                           "actor": "Nome da Raia"},
-      {"type": "atividade",  "text": "Texto exato da tarefa conforme no fluxograma", "actor": "Nome da Raia"},
-      {"type": "decisao",    "text": "Decisao: [texto]? Sim: [acao] / Nao: [acao]",  "actor": "Nome da Raia"},
-      {"type": "observacao", "text": "Texto da anotacao cinza",                      "actor": ""},
-      {"type": "evento",     "text": "Fim do processo",                              "actor": "Nome da Raia"}
+      {"type": "evento",     "text": "Inicio do processo",                            "actor": "Nome da Raia onde esta o circulo verde"},
+      {"type": "atividade",  "text": "Texto exato da atividade conforme fluxograma",  "actor": "Nome da Raia"},
+      {"type": "decisao",    "text": "Decisao: [texto]? Sim: [destino] / Nao: [destino]", "actor": "Nome da Raia"},
+      {"type": "observacao", "text": "Texto da anotacao cinza",                       "actor": ""},
+      {"type": "evento",     "text": "Fim do processo",                               "actor": "Nome da Raia onde esta o circulo vermelho"}
     ],
     "note": "Observacao geral da etapa se houver, senao null"
   }
 ]
 
-ATENCAO ESPECIAL: Nao invente elementos. Se nao conseguir ler claramente um texto, escreva ilegivel. Preserve a ordem exata do fluxo.`;
+CHECKLIST ANTES DE RESPONDER:
+1. O primeiro elemento da lista e o evento de inicio (circulo verde)?
+2. O ultimo elemento da lista e o evento de fim (circulo vermelho)?
+3. A ordem segue as setas, nao a posicao vertical das raias?
+4. Todos os textos foram copiados exatamente como estao no fluxograma?
+Se alguma resposta for nao, corrija antes de responder.`;
 
     const text = await callGeminiVision(extractPrompt, base64, mediaType);
     // Robust JSON extraction — Gemini sometimes wraps with ```json
@@ -5289,7 +5302,7 @@ async function exportPptx() {
 async function buildPptx(D) {
   const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_16x9';
-  pres.title  = 'GestPOP · ' + (D.meta?.name || 'POP');
+  pres.title  = 'GestPROC · ' + (D.meta?.name || 'POP');
 
   const C = {
     navy:'0A2540', mid:'1A4A7A', green:'00A86B', gold:'E8A020',
@@ -5523,7 +5536,7 @@ async function buildPptx(D) {
     s.background = { color: C.navy };
     s.addShape(pres.ShapeType.rect, { x:0, y:0, w:0.25, h:5.625, fill:{ color:C.green } });
     s.addShape(pres.ShapeType.ellipse, { x:6.5, y:2.5, w:5, h:5, fill:{ color:'FFFFFF', transparency:94 } });
-    s.addText('GestPOP · CAGE-RS', { x:0.5, y:1.5, w:8, h:0.5, fontSize:13, color:C.green, bold:true, charSpacing:2, margin:0 });
+    s.addText('GestPROC · CAGE-RS', { x:0.5, y:1.5, w:8, h:0.5, fontSize:13, color:C.green, bold:true, charSpacing:2, margin:0 });
     s.addText(nome, { x:0.5, y:2.1, w:8, h:1.0, fontSize:32, color:C.white, bold:true, margin:0 });
     s.addText('Procedimento Operacional Padrão', { x:0.5, y:3.2, w:8, h:0.4, fontSize:12, color:'8898BB', margin:0 });
     s.addText([
@@ -5533,7 +5546,7 @@ async function buildPptx(D) {
   }
 
   // ── SALVAR ───────────────────────────────────────────────────────────────
-  const fname = 'GestPOP_' + nome.replace(/[^a-zA-Z0-9]/g,'_') + '.pptx';
+  const fname = 'GestPROC_' + nome.replace(/[^a-zA-Z0-9]/g,'_') + '.pptx';
   await pres.writeFile({ fileName: fname });
   showToast('✅ PPT exportado: ' + fname, 'success');
 }
@@ -5819,6 +5832,222 @@ function deleteMeet(p,i) {
 
 
 
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO ARQUITETURA DE PROCESSOS
+// ══════════════════════════════════════════════════════════════
+
+let _arqData = null; // working copy, loaded from CAGE_PROCESSOS + Supabase overrides
+
+function arqGetData() {
+  if(!_arqData) {
+    // Start with hardcoded data, then apply any saved overrides
+    _arqData = JSON.parse(JSON.stringify(CAGE_PROCESSOS));
+    const saved = DATA._arqOverrides;
+    if(saved && Array.isArray(saved)) _arqData = saved;
+  }
+  return _arqData;
+}
+
+function showArqModule(show = true) {
+  const el = document.getElementById('arq-module');
+  const bi = document.getElementById('bi-module');
+  const qu = document.getElementById('quadro-module');
+  const main = document.querySelector('.main-content');
+  if(show) {
+    el.style.display = 'block';
+    if(bi)   bi.style.display   = 'none';
+    if(qu)   qu.style.display   = 'none';
+    if(main) main.style.display = 'none';
+    arqInit();
+  } else {
+    el.style.display = 'none';
+    if(main) main.style.display = '';
+  }
+}
+
+function arqInit() {
+  const data = arqGetData();
+
+  // Populate macro filter + datalist
+  const macros = [...new Set(data.map(r => r.macroprocesso))].sort();
+  const filterMacro = document.getElementById('arq-filter-macro');
+  const macroList   = document.getElementById('arq-macro-list');
+  filterMacro.innerHTML = '<option value="">Todos</option>' + macros.map(m => `<option value="${m}">${m}</option>`).join('');
+  macroList.innerHTML   = macros.map(m => `<option value="${m}">`).join('');
+
+  arqApplyFilter();
+}
+
+function arqApplyFilter() {
+  const data    = arqGetData();
+  const macro   = document.getElementById('arq-filter-macro').value.toLowerCase();
+  const nat     = document.getElementById('arq-filter-natureza').value.toLowerCase();
+  const search  = (document.getElementById('arq-filter-search').value || '').toLowerCase();
+
+  const filtered = data.filter(r => {
+    const matchMacro  = !macro  || r.macroprocesso.toLowerCase() === macro;
+    const matchNat    = !nat    || (r.natureza||'').toLowerCase() === nat;
+    const matchSearch = !search || [r.macroprocesso, r.processo, r.subprocesso, r.area, r.gerente]
+      .some(v => (v||'').toLowerCase().includes(search));
+    return matchMacro && matchNat && matchSearch;
+  });
+
+  arqRenderTable(filtered, data);
+  arqRenderStats(filtered, data);
+}
+
+function arqClearFilter() {
+  document.getElementById('arq-filter-macro').value    = '';
+  document.getElementById('arq-filter-natureza').value = '';
+  document.getElementById('arq-filter-search').value   = '';
+  arqApplyFilter();
+}
+
+function arqRenderStats(filtered, all) {
+  const macros   = new Set(filtered.map(r => r.macroprocesso)).size;
+  const procs    = new Set(filtered.map(r => r.macroprocesso + '|' + r.processo)).size;
+  const subs     = filtered.filter(r => r.subprocesso).length;
+  const stats = [
+    { label: 'Macroprocessos', val: macros,       color: '#0a2540' },
+    { label: 'Processos',      val: procs,        color: '#00a86b' },
+    { label: 'Subprocessos',   val: subs,         color: '#1a4a7a' },
+    { label: 'Total linhas',   val: filtered.length, color: '#64748b' },
+  ];
+  document.getElementById('arq-stats').innerHTML = stats.map(s =>
+    `<div style="background:white;border-radius:10px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);min-width:120px;">
+      <div style="font-size:24px;font-weight:700;color:${s.color};">${s.val}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:2px;">${s.label}</div>
+    </div>`
+  ).join('');
+}
+
+const NAT_COLORS = {
+  'FINALÍSTICO': { bg: '#dcfce7', color: '#166534' },
+  'APOIO':       { bg: '#dbeafe', color: '#1e40af' },
+  'GESTÃO':      { bg: '#fef9c3', color: '#854d0e' },
+};
+
+function arqRenderTable(filtered, all) {
+  const tbody = document.getElementById('arq-tbody');
+  const empty = document.getElementById('arq-empty');
+  if(!filtered.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Group by macro+processo for rowspan effect (color banding)
+  let lastMacro = '', lastProc = '', rowColor = false;
+  tbody.innerHTML = filtered.map((r, i) => {
+    if(r.macroprocesso !== lastMacro || r.processo !== lastProc) {
+      rowColor = !rowColor;
+      lastMacro = r.macroprocesso;
+      lastProc  = r.processo;
+    }
+    const nat = NAT_COLORS[r.natureza] || { bg: '#f1f5f9', color: '#475569' };
+    const realIdx = all.indexOf(r);
+    return `<tr style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;">
+      <td style="padding:10px 16px;font-weight:600;color:#0a2540;font-size:12px;">${r.macroprocesso}</td>
+      <td style="padding:10px 16px;color:#1e293b;font-size:13px;">${r.processo}</td>
+      <td style="padding:10px 16px;color:#475569;font-size:12px;">${r.subprocesso || '<span style="color:#cbd5e1;">—</span>'}</td>
+      <td style="padding:10px 16px;">
+        <span style="background:${nat.bg};color:${nat.color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;">${r.natureza||''}</span>
+      </td>
+      <td style="padding:10px 16px;color:#64748b;font-size:12px;">${r.area||''}</td>
+      <td style="padding:10px 16px;text-align:center;">
+        <button onclick="arqShowForm(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Editar">✏️</button>
+        <button onclick="arqDelete(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Excluir">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function arqShowForm(idx = null) {
+  const modal = document.getElementById('arq-form-modal');
+  const title = document.getElementById('arq-form-title');
+  document.getElementById('arq-form-idx').value = idx !== null ? idx : '';
+
+  if(idx !== null) {
+    const r = arqGetData()[idx];
+    title.textContent = 'Editar Processo';
+    document.getElementById('arq-f-macro').value    = r.macroprocesso || '';
+    document.getElementById('arq-f-processo').value = r.processo      || '';
+    document.getElementById('arq-f-sub').value      = r.subprocesso   || '';
+    document.getElementById('arq-f-natureza').value = r.natureza      || 'FINALÍSTICO';
+    document.getElementById('arq-f-area').value     = r.area          || '';
+    document.getElementById('arq-f-gerente').value  = r.gerente       || '';
+    document.getElementById('arq-f-objetivo').value = r.objetivo      || '';
+    document.getElementById('arq-f-entradas').value = r.entradas      || '';
+    document.getElementById('arq-f-entregas').value = r.entregas      || '';
+    document.getElementById('arq-f-clientes').value = r.clientes      || '';
+  } else {
+    title.textContent = 'Novo Processo';
+    ['macro','processo','sub','area','gerente','objetivo','entradas','entregas','clientes'].forEach(f =>
+      document.getElementById('arq-f-' + f).value = '');
+    document.getElementById('arq-f-natureza').value = 'FINALÍSTICO';
+  }
+  modal.style.display = 'flex';
+}
+
+function arqCloseForm() {
+  document.getElementById('arq-form-modal').style.display = 'none';
+}
+
+function arqSaveForm() {
+  const macro = document.getElementById('arq-f-macro').value.trim();
+  const proc  = document.getElementById('arq-f-processo').value.trim();
+  if(!macro || !proc) { showToast('Macroprocesso e Processo são obrigatórios.', 'warn'); return; }
+
+  const entry = {
+    macroprocesso: macro,
+    processo:      proc,
+    subprocesso:   document.getElementById('arq-f-sub').value.trim(),
+    natureza:      document.getElementById('arq-f-natureza').value,
+    area:          document.getElementById('arq-f-area').value.trim(),
+    gerente:       document.getElementById('arq-f-gerente').value.trim(),
+    objetivo:      document.getElementById('arq-f-objetivo').value.trim(),
+    entradas:      document.getElementById('arq-f-entradas').value.trim(),
+    entregas:      document.getElementById('arq-f-entregas').value.trim(),
+    clientes:      document.getElementById('arq-f-clientes').value.trim(),
+  };
+
+  const data = arqGetData();
+  const idxVal = document.getElementById('arq-form-idx').value;
+  if(idxVal !== '') {
+    data[parseInt(idxVal)] = entry;
+    showToast('✅ Processo atualizado!', 'success');
+  } else {
+    data.push(entry);
+    showToast('✅ Processo adicionado!', 'success');
+  }
+
+  // Persist to DATA
+  DATA._arqOverrides = data;
+  arqSaveToCloud();
+  arqCloseForm();
+  arqInit();
+}
+
+function arqDelete(idx) {
+  const r = arqGetData()[idx];
+  if(!confirm(`Excluir "${r.processo}"?\nEsta ação não pode ser desfeita.`)) return;
+  arqGetData().splice(idx, 1);
+  DATA._arqOverrides = _arqData;
+  arqSaveToCloud();
+  arqInit();
+  showToast('Processo removido.', 'success');
+}
+
+function arqSaveToCloud() {
+  if(currentUser) {
+    saveToCloud();
+  } else {
+    showToast('⚠️ Faça login para salvar as alterações na nuvem.', 'warn');
+  }
+}
+
 </script>
 
 <!-- READONLY BANNER -->
@@ -5993,6 +6222,128 @@ function deleteMeet(p,i) {
         <button class="btn btn-success" id="backup-import-btn" onclick="importBackup()" style="width:100%;margin-top:10px;display:none;">✅ Confirmar importação</button>
       </div>
 
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MÓDULO ARQUITETURA DE PROCESSOS
+════════════════════════════════════════════════════════════ -->
+<div id="arq-module" style="display:none;position:fixed;inset:0;z-index:900;background:#f0f2f7;overflow:auto;">
+  <div style="max-width:1200px;margin:0 auto;padding:28px 24px 60px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:22px;font-weight:700;color:#0a2540;">🏛 Arquitetura de Processos CAGE-RS</div>
+        <div style="font-size:13px;color:#64748b;margin-top:2px;">Gerencie macroprocessos, processos e subprocessos</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="arqShowForm()">＋ Novo Processo</button>
+        <button class="btn btn-outline" onclick="showArqModule(false)">✕ Fechar</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div style="background:white;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:1;min-width:180px;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Macroprocesso</label>
+        <select id="arq-filter-macro" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Natureza</label>
+        <select id="arq-filter-natureza" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
+          <option value="">Todas</option>
+          <option>FINALÍSTICO</option>
+          <option>APOIO</option>
+          <option>GESTÃO</option>
+        </select>
+      </div>
+      <div style="flex:2;min-width:200px;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Buscar</label>
+        <input id="arq-filter-search" oninput="arqApplyFilter()" placeholder="Digite para filtrar processos..." style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <button class="btn btn-outline" onclick="arqClearFilter()" style="font-size:12px;padding:8px 14px;">Limpar</button>
+    </div>
+
+    <!-- Stats -->
+    <div id="arq-stats" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+    <!-- Table -->
+    <div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#0a2540;color:white;">
+            <th style="padding:12px 16px;text-align:left;font-weight:600;">Macroprocesso</th>
+            <th style="padding:12px 16px;text-align:left;font-weight:600;">Processo</th>
+            <th style="padding:12px 16px;text-align:left;font-weight:600;">Subprocesso</th>
+            <th style="padding:12px 16px;text-align:left;font-weight:600;">Natureza</th>
+            <th style="padding:12px 16px;text-align:left;font-weight:600;">Área</th>
+            <th style="padding:12px 16px;text-align:center;font-weight:600;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="arq-tbody"></tbody>
+      </table>
+      <div id="arq-empty" style="display:none;text-align:center;padding:40px;color:#94a3b8;">Nenhum processo encontrado.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Form -->
+<div id="arq-form-modal" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:32px;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="font-size:18px;font-weight:700;color:#0a2540;margin-bottom:20px;" id="arq-form-title">Novo Processo</div>
+    <input type="hidden" id="arq-form-idx">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Macroprocesso *</label>
+        <input id="arq-f-macro" list="arq-macro-list" placeholder="Ex: Auditoria" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        <datalist id="arq-macro-list"></datalist>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Processo *</label>
+        <input id="arq-f-processo" placeholder="Nome do processo" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Subprocesso</label>
+        <input id="arq-f-sub" placeholder="Deixe em branco se não houver" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Natureza</label>
+        <select id="arq-f-natureza" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;">
+          <option>FINALÍSTICO</option><option>APOIO</option><option>GESTÃO</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Área</label>
+        <input id="arq-f-area" placeholder="Ex: Divisão de Auditoria" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Gerente do Processo</label>
+        <input id="arq-f-gerente" placeholder="Nome ou cargo" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Objetivo do Processo</label>
+        <textarea id="arq-f-objetivo" rows="3" placeholder="Descreva o objetivo..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Entradas do Processo</label>
+        <input id="arq-f-entradas" placeholder="O que inicia/alimenta este processo" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Entregas do Processo</label>
+        <input id="arq-f-entregas" placeholder="Produtos/resultados gerados" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Clientes do Processo</label>
+        <input id="arq-f-clientes" placeholder="Quem recebe as entregas" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+      <button class="btn btn-outline" onclick="arqCloseForm()">Cancelar</button>
+      <button class="btn btn-primary" onclick="arqSaveForm()">Salvar</button>
     </div>
   </div>
 </div>
