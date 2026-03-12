@@ -7419,10 +7419,7 @@ async function repoSaveDoc() {
       msg.textContent = 'Enviando ' + repoPendingFile.name + '...';
       bar.style.width = '30%';
 
-      // Upload com timeout de 60s
-      const uploadPromise = supaClient.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true, cacheControl: '3600' });
-      const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout — arquivo pode ser grande demais ou conexão lenta')), 60000));
-      const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
+      const { data, error } = await supaClient.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true, cacheControl: '3600' });
 
       if(error) throw new Error(error.message + (error.statusCode ? ' ('+error.statusCode+')' : ''));
       bar.style.width = '80%';
