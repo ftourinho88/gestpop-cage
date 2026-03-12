@@ -871,7 +871,7 @@
       <div class="home-card-desc">Canvas livre com post-its, atores e setas para modelagem visual de processos.</div>
       <div class="home-card-footer">Canvas interativo</div>
     </div>
-    <div class="home-card home-card-editor" onclick="showPatModule()" style="border-top:4px solid #3b82f6;">
+    <div class="home-card home-card-editor" onclick="isEditor ? showPatModule() : showToast('Acesso restrito a editores.','warn')" style="border-top:4px solid #3b82f6;">
       <div class="home-card-icon" style="background:#eff6ff;color:#3b82f6;">📅</div>
       <div class="home-card-title">Plano de Trabalho do EPP</div>
       <div class="home-card-desc">Gerencie o planejamento e as atividades do Escritório de Processos e Projetos.</div>
@@ -2582,6 +2582,9 @@ function popDomId(pop) {
 }
 
 function switchPop(pop, tabEl) {
+  // Esconder galeria se estiver ativa
+  const gal = document.getElementById('pop-gallery-panel');
+  if(gal) gal.classList.remove('active');
   const key    = popKey(pop);
   const domId  = popDomId(pop);
   const prefix = popPrefix(pop);
@@ -2619,16 +2622,24 @@ function switchPop(pop, tabEl) {
 // ═══ NAV ══════════════════════════════════════
 function showSection(id, tab, silent) {
   currentSection = id;
-  const prefix = popPrefix(currentPop);
+  // Esconder BPMN se estiver visível (voltando de outra aba)
+  const bpmnMod = document.getElementById('bpmn-module');
+  if(bpmnMod) bpmnMod.style.display = 'none';
+
+  // Garantir que o pop atual está ativo
+  document.querySelectorAll('.pop-content').forEach(p => p.classList.remove('active'));
   const activePop = document.getElementById('pop-' + popDomId(currentPop));
-  activePop.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById(prefix + '-' + id);
-  if(target) target.classList.add('active');
+  if(activePop) {
+    activePop.classList.add('active');
+    activePop.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(popPrefix(currentPop) + '-' + id);
+    if(target) target.classList.add('active');
+  }
   if(tab) {
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
   }
-  if(id === 'fluxo') renderStep(prefix, DATA[prefix].currentStep);
+  if(id === 'fluxo') renderStep(popPrefix(currentPop), DATA[popPrefix(currentPop)].currentStep);
   if(!silent && editMode) enableEditables(true);
 }
 
@@ -3158,8 +3169,9 @@ function showToast(msg,type=''){
 
 // ═══ FLUXO IMAGE MODULE ════════════════════════
 function showBpmn(tab) {
-  document.querySelectorAll('.pop-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  // Só ocultar as sections do pop atual, não o pop em si
+  const activePop = document.getElementById('pop-' + popDomId(currentPop));
+  if(activePop) activePop.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if(tab) tab.classList.add('active');
   document.getElementById('bpmn-module').style.display = 'block';
@@ -4355,6 +4367,7 @@ let currentUserEmail = null;
 let currentUserName  = null;
 let isEditor = false;
 let isAdmin  = false;
+let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
 let workspaceId = null;
 
 const ADMIN_EMAIL = 'f.ctourinho@gmail.com';
@@ -4368,7 +4381,9 @@ async function checkEditorPermission() {
   if(currentUserEmail === ADMIN_EMAIL) {
     isEditor = true;
     isAdmin  = true;
+    isViewer = false;
     applyPermissions();
+    homeRefresh();
     document.getElementById('perm-panel').style.display = 'flex';
     return;
   }
@@ -4380,14 +4395,17 @@ async function checkEditorPermission() {
     .single();
 
   if(data) {
-    isEditor = true;
-    isAdmin  = data.is_admin;
+    isAdmin  = !!data.is_admin;
+    isEditor = data.role !== 'viewer'; // viewer não é editor
+    isViewer = data.role === 'viewer';
   } else {
     isEditor = false;
     isAdmin  = false;
+    isViewer = false;
   }
 
   applyPermissions();
+  homeRefresh();
   document.getElementById('perm-panel').style.display = 'flex';
 }
 
@@ -4396,26 +4414,46 @@ function applyPermissions() {
   const editBtn = document.getElementById('edit-toggle');
   const saveBtn = document.getElementById('save-btn');
   const pptBtn  = document.getElementById('ppt-btn');
-  const patBtn  = document.querySelector('.sidebar-pat-btn');
 
-  if(isEditor) {
-    banner.classList.remove('show');
-    editBtn.style.display = '';
-    if(saveBtn) saveBtn.style.display = '';
-    if(pptBtn)  pptBtn.style.display  = '';
-    if(patBtn)  patBtn.style.display  = '';
+  // Encontrar botão PAT especificamente (é o 4º sidebar-pat-btn)
+  const allSidebarBtns = document.querySelectorAll('.sidebar-pat-btn');
+  const patBtn = [...allSidebarBtns].find(b => b.textContent.includes('Plano de Trabalho'));
+
+  const hasAccess = isEditor || isViewer; // qualquer um dos dois tem acesso ao sistema
+
+  if(hasAccess) {
+    // Viewer e Editor: removem overlay de bloqueio
     document.getElementById('access-request-overlay')?.remove();
+
+    if(isEditor) {
+      // Editor/Admin: acesso completo
+      banner.classList.remove('show');
+      if(editBtn) editBtn.style.display = '';
+      if(saveBtn) saveBtn.style.display = '';
+      if(pptBtn)  pptBtn.style.display  = '';
+      if(patBtn)  patBtn.style.display  = '';
+    } else {
+      // Viewer: só leitura — sem edição, sem PAT, sem salvar
+      banner.classList.remove('show');
+      if(editBtn) editBtn.style.display = 'none';
+      if(saveBtn) saveBtn.style.display = 'none';
+      if(pptBtn)  pptBtn.style.display  = 'none';
+      if(patBtn)  patBtn.style.display  = 'none';
+      if(editMode) toggleEditMode();
+      if(document.getElementById('pat-module')?.classList.contains('active')) {
+        showPatModule(false);
+      }
+    }
   } else {
+    // Sem acesso: bloquear tudo
     banner.classList.add('show');
-    editBtn.style.display = 'none';
+    if(editBtn) editBtn.style.display = 'none';
     if(saveBtn) saveBtn.style.display = 'none';
     if(patBtn)  patBtn.style.display  = 'none';
-    if(document.getElementById('pat-module').classList.contains('active')) {
+    if(document.getElementById('pat-module')?.classList.contains('active')) {
       showPatModule(false);
     }
     if(editMode) toggleEditMode();
-    // Só mostrar overlay de acesso restrito se o usuário JÁ está logado
-    // (auth-overlay escondido = usuário autenticado mas sem permissão)
     const authOverlay = document.getElementById('auth-overlay');
     const authVisible = authOverlay && authOverlay.style.display !== 'none';
     if(!authVisible && currentUser && !document.getElementById('access-request-overlay')) {
@@ -4663,12 +4701,12 @@ async function handleRequest(email, name, action) {
   await supaClient.from('gestpop_requests').update({ status: action }).eq('email', email);
   if(action === 'aprovado') {
     await supaClient.from('gestpop_editors').upsert(
-      { email, name: name || email, is_admin: false, added_at: new Date().toISOString() },
+      { email, name: name || email, is_admin: false, role: 'viewer', added_at: new Date().toISOString() },
       { onConflict: 'email' }
     );
-    showToast('Acesso aprovado para ' + email, 'success');
+    showToast('✅ Acesso aprovado para ' + email + ' (Visualizador)', 'success');
   } else {
-    showToast('Solicitacao de ' + email + ' rejeitada.', 'warn');
+    showToast('Solicitação de ' + email + ' rejeitada.', 'warn');
   }
   loadRequestsList();
   loadEditorList();
@@ -4678,20 +4716,48 @@ async function loadEditorList() {
   const el = document.getElementById('perm-editor-list');
   el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Carregando...</div>';
   const { data } = await supaClient.from('gestpop_editors').select('*').order('added_at');
-  if(!data?.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Nenhum editor cadastrado.</div>'; return; }
-  el.innerHTML = data.map(e => `
-    <div class="editor-row">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--cage-blue);">${e.name||e.email}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${e.email}</div>
+  if(!data?.length) { el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px 0;">Nenhum usuário cadastrado.</div>'; return; }
+  el.innerHTML = data.map(e => {
+    const isSelf    = e.email === currentUserEmail;
+    const safeEmail = e.email.replace(/'/g,"\'");
+    const canManage = isAdmin && !isSelf;
+    // Determinar role atual
+    const role = e.is_admin ? 'admin' : (e.role || 'editor');
+    const roleLabel = { admin:'Admin', editor:'Editor', viewer:'Visualizador' };
+    const roleBg    = { admin:'#fef9c3', editor:'#dbeafe', viewer:'#f0fdf4' };
+    const roleColor = { admin:'#854d0e', editor:'#1e40af', viewer:'#166534' };
+    return `<div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--cage-blue);">${e.name||e.email}${isSelf ? ' <span style="font-size:10px;color:#94a3b8;">(você)</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${e.email}</div>
+        </div>
+        <span style="background:${roleBg[role]};color:${roleColor[role]};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap;">${roleLabel[role]}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="editor-badge ${e.is_admin?'admin':'editor'}">${e.is_admin?'Admin':'Editor'}</span>
-        ${isAdmin && e.email !== currentUserEmail ? `<button class="edit-rm-btn" onclick="removeEditor('${e.email}')">✕</button>` : ''}
-      </div>
-    </div>`).join('');
-  // Show add button only for admins
+      ${canManage ? `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+        <button onclick="setEditorRole('${safeEmail}','viewer')" ${role==='viewer'?'disabled style="opacity:.4;cursor:default;"':''} style="flex:1;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;">👁 Visualizador</button>
+        <button onclick="setEditorRole('${safeEmail}','editor')" ${role==='editor'?'disabled style="opacity:.4;cursor:default;"':''} style="flex:1;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;">✏️ Editor</button>
+        <button onclick="setEditorRole('${safeEmail}','admin')"  ${role==='admin' ?'disabled style="opacity:.4;cursor:default;"':''} style="flex:1;background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;">⭐ Admin</button>
+        <button onclick="removeEditor('${safeEmail}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;">✕ Remover</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
   document.getElementById('perm-add-btn-row').style.display = isAdmin ? '' : 'none';
+}
+
+async function setEditorRole(email, role) {
+  // role: 'viewer' | 'editor' | 'admin'
+  const labels = { viewer: 'Visualizador', editor: 'Editor', admin: 'Admin' };
+  if(!confirm(`Alterar perfil de ${email} para ${labels[role]}?`)) return;
+  const is_admin = role === 'admin';
+  const { error } = await supaClient.from('gestpop_editors')
+    .update({ is_admin, role: role === 'admin' ? 'editor' : role }).eq('email', email);
+  if(error) showToast('Erro: ' + error.message, 'warn');
+  else { showToast(`✓ ${email} → ${labels[role]}`, 'success'); loadEditorList(); }
+}
+
+async function toggleEditorRole(email, makeAdmin) {
+  return setEditorRole(email, makeAdmin ? 'admin' : 'editor');
 }
 
 function showAddEditor() {
@@ -4702,10 +4768,11 @@ function showAddEditor() {
 async function saveNewEditor() {
   const email = document.getElementById('perm-new-email').value.trim();
   const name  = document.getElementById('perm-new-name').value.trim();
-  const admin = document.getElementById('perm-new-admin').checked;
+  const role  = document.getElementById('perm-new-role')?.value || 'viewer';
+  const is_admin = role === 'admin';
   if(!email) { showToast('Informe o e-mail.','warn'); return; }
   const { error } = await supaClient.from('gestpop_editors').upsert(
-    { email, name, is_admin: admin }, { onConflict: 'email' }
+    { email, name, is_admin, role: role === 'admin' ? 'editor' : role }, { onConflict: 'email' }
   );
   if(error) { showToast('Erro: ' + error.message,'warn'); return; }
   await logHistory('Adicionou editor: ' + email);
@@ -4905,106 +4972,9 @@ function setSyncStatus(status) {
   else { dot.className='sync-dot'; label.textContent='Sincronizado'; }
 }
 
-async function saveToCloud(attempt=1) {
-  if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
-  setSyncStatus('syncing');
-  harvestEditables();
-  const newPopKeys = Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat');
-  const payload = {
-    d: DATA.d, r: DATA.r,
-    pat: DATA.pat || [],
-    newPops: newPopKeys.map(k => ({ key: k, data: DATA[k] }))
-  };
-  // Always save locally first as backup
-  // localStorage desativado
-  const userId = currentUser.id;
-  try {
-    const { error } = await supaClient.from('gestpop_data').upsert(
-      { user_id: userId, data: payload, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
-    if(error) {
-      // Retry once on lock errors
-      if(attempt === 1 && (error.message?.includes('Lock') || error.message?.includes('AbortError'))) {
-        console.warn('Lock error, retrying in 1s...');
-        await new Promise(r => setTimeout(r, 1000));
-        return saveToCloud(2);
-      }
-      setSyncStatus('error');
-      showToast('Erro ao salvar: ' + error.message, 'warn');
-    } else {
-      setSyncStatus('synced');
-      document.getElementById('unsaved-dot').style.display = 'none';
-      showToast('☁️ Dados salvos na nuvem!', 'success');
-    }
-  } catch(e) {
-    if(attempt === 1) {
-      console.warn('Save exception, retrying...', e);
-      await new Promise(r => setTimeout(r, 1000));
-      return saveToCloud(2);
-    }
-    setSyncStatus('error');
-    showToast('Erro inesperado ao salvar. Dados preservados localmente.', 'warn');
-    console.error(e);
-  }
-}
+// [saveToCloud antiga removida — usa gestpop_workspace acima]
 
-async function loadFromCloud() {
-  if(!currentUser) return;
-  setSyncStatus('syncing');
-  const { data, error } = await supaClient.from('gestpop_data')
-    .select('data').eq('user_id', currentUser.id).single();
-  if(error || !data) {
-    setSyncStatus('synced');
-    // Sem fallback local — dados vêm apenas do Supabase
-    return;
-  }
-  try {
-    const payload = data.data;
-    if(payload.d) Object.assign(DATA.d, payload.d);
-    if(payload.r) Object.assign(DATA.r, payload.r);
-    if(payload.pat) DATA.pat = payload.pat;
-    if(payload.newPops?.length) {
-      payload.newPops.forEach(({ key, data: pd }) => {
-        DATA[key] = pd;
-        // Only mount if DOM doesn't already exist (avoid duplicates on re-sync)
-        if(!document.getElementById('pop-' + key)) {
-          mountNewPopTab(key, pd.meta?.name || 'POP', true); // silent restore
-        }
-        // Render content for this pop
-        const p = key;
-        try {
-          renderStep(p, pd.currentStep||0);
-          renderRoles(p); renderIndicators(p);
-          renderFaq(p); renderNormas(p); renderRevisions(p); renderFicha(p);
-        } catch(e) { console.warn('Render error for', p, e); }
-      });
-    }
-    // Restore arq overrides
-    if(payload.arqOverrides) {
-      DATA._arqOverrides = payload.arqOverrides;
-      _arqData = payload.arqOverrides; // reset cache
-    }
-    renderStep('d', DATA.d.currentStep||0); renderRoles('d'); renderIndicators('d');
-    renderFaq('d'); renderNormas('d'); renderRevisions('d'); renderFicha('d');
-    renderStep('r', DATA.r.currentStep||0); renderRoles('r'); renderIndicators('r');
-    renderFaq('r'); renderNormas('r'); renderRevisions('r'); renderFicha('r');
-    renderSidebar();
-    // Stay on home page after cloud load — just refresh stats
-    const homePage = document.getElementById('home-page');
-    if(typeof arqSyncFromPops === 'function') arqSyncFromPops();
-    if(homePage && homePage.style.display !== 'none') {
-      homeRefresh();
-    }
-    // Verificar prazos do Plano de Ação
-    setTimeout(() => patCheckDeadlines(), 800);
-    setSyncStatus('synced');
-    showToast('☁️ Dados sincronizados da nuvem!','success');
-  } catch(e) {
-    setSyncStatus('error');
-    console.error('Erro ao restaurar dados:', e);
-  }
-}
+// [loadFromCloud antiga removida — usa gestpop_workspace acima]
 
 // Override saveToStorage to also save to cloud
 // saveToStorage já chama saveToCloud internamente
@@ -6847,9 +6817,59 @@ function hideHome() {
 
 function showHomePops() {
   hideHome();
-  // Switch to first available pop
+  // Mostrar galeria de POPs (pop-switcher-bar) e o primeiro POP ativo
+  // Garantir que nav-tabs e pop-switcher estejam visíveis
+  const switcher = document.getElementById('pop-switcher-bar');
+  const navTabs  = document.getElementById('nav-tabs-bar');
+  if(switcher) switcher.style.display = '';
+  if(navTabs)  navTabs.style.display  = '';
+
+  // Mostrar tela de galeria de POPs em vez de abrir direto
+  showPopGallery();
+}
+
+function showPopGallery() {
+  // Esconder todos os pop-contents
+  document.querySelectorAll('.pop-content').forEach(p => p.classList.remove('active'));
+  // Mostrar painel de galeria (criar se não existir)
+  let gallery = document.getElementById('pop-gallery-panel');
+  if(!gallery) {
+    gallery = document.createElement('div');
+    gallery.id = 'pop-gallery-panel';
+    gallery.className = 'pop-content active';
+    gallery.style.cssText = 'padding:32px;max-width:900px;margin:0 auto;';
+    // Insert after pop-representacoes
+    const anchor = document.getElementById('pop-representacoes');
+    if(anchor?.parentNode) anchor.parentNode.insertBefore(gallery, anchor.nextSibling);
+    else document.body.appendChild(gallery);
+  } else {
+    gallery.classList.add('active');
+  }
+
   const keys = Object.keys(DATA).filter(k => k !== '_arqOverrides' && k !== 'pat');
-  if(keys.length) switchPop(keys[0]);
+  const popNames = { d: 'Tratar Denúncias', r: 'Tratar Representações' };
+
+  gallery.innerHTML = `
+    <div style="margin-bottom:28px;">
+      <div style="font-size:22px;font-weight:800;color:#0a2540;font-family:'DM Serif Display',serif;">📋 Procedimentos Operacionais</div>
+      <div style="font-size:14px;color:#64748b;margin-top:4px;">${keys.length} POP${keys.length !== 1 ? 's' : ''} cadastrado${keys.length !== 1 ? 's' : ''}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+      ${keys.map(k => {
+        const meta = DATA[k]?.meta || {};
+        const name = meta.name || popNames[k] || 'POP';
+        const area = meta.area || meta.gerente || '';
+        const steps = DATA[k]?.steps?.length || 0;
+        return `<div onclick="switchPop('${k}')" style="background:white;border:1.5px solid #e2e8f0;border-top:4px solid #00a86b;border-radius:12px;padding:20px;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.05);"
+          onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
+          onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.05)'">
+          <div style="font-size:28px;margin-bottom:10px;">📄</div>
+          <div style="font-size:14px;font-weight:700;color:#0a2540;margin-bottom:6px;">${name}</div>
+          ${area ? `<div style="font-size:11px;color:#64748b;margin-bottom:8px;">${area}</div>` : ''}
+          <div style="font-size:11px;color:#94a3b8;">${steps} etapa${steps !== 1 ? 's' : ''}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
 function homeRefresh() {
@@ -7203,14 +7223,12 @@ async function repoSaveDoc() {
     bar.style.width='20%';
     try {
       const path = 'repo/' + Date.now() + '_' + repoPendingFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      const { createClient } = window.supabase || {};
-      if(!createClient) throw new Error('Supabase não disponível');
-      const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      if(!supaClient) throw new Error('Supabase não disponível');
       bar.style.width='50%';
-      const { data, error } = await sb.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true });
+      const { data, error } = await supaClient.storage.from('gestpop-images').upload(path, repoPendingFile, { upsert: true });
       if(error) throw error;
       bar.style.width='80%';
-      const { data: pub } = sb.storage.from('gestpop-images').getPublicUrl(path);
+      const { data: pub } = supaClient.storage.from('gestpop-images').getPublicUrl(path);
       fileUrl  = pub.publicUrl;
       filePath = path;
       fileName = repoPendingFile.name;
@@ -7353,12 +7371,10 @@ function dropsCloseModal() {
 async function dropCoverSelected(file) {
   if(!file) return;
   try {
-    const { createClient } = window.supabase || {};
-    if(!createClient) throw new Error('Supabase não disponível');
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    if(!supaClient) throw new Error('Supabase não disponível');
     const path = 'drops/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    await sb.storage.from('gestpop-images').upload(path, file, { upsert: true });
-    const { data } = sb.storage.from('gestpop-images').getPublicUrl(path);
+    await supaClient.storage.from('gestpop-images').upload(path, file, { upsert: true });
+    const { data } = supaClient.storage.from('gestpop-images').getPublicUrl(path);
     document.getElementById('drop-cover-url').value = data.publicUrl;
     document.getElementById('drop-cover-img').src   = data.publicUrl;
     document.getElementById('drop-cover-preview').style.display='block';
@@ -7584,12 +7600,17 @@ showHome = function() {
               <input class="modal-input" id="perm-new-name" type="text" placeholder="Nome do usuário">
             </div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-              <input type="checkbox" id="perm-new-admin"> Administrador
-            </label>
-            <button class="btn btn-success" style="margin-left:auto;font-size:12px;" onclick="saveNewEditor()">Adicionar</button>
-            <button class="btn btn-outline" style="font-size:12px;" onclick="document.getElementById('perm-add-row').style.display='none'">Cancelar</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div>
+              <label class="gmod-label">Perfil</label>
+              <select id="perm-new-role" style="padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;">
+                <option value="viewer">Visualizador</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button class="btn btn-success" style="margin-left:auto;font-size:12px;align-self:flex-end;" onclick="saveNewEditor()">Adicionar</button>
+            <button class="btn btn-outline" style="font-size:12px;align-self:flex-end;" onclick="document.getElementById('perm-add-row').style.display='none'">Cancelar</button>
           </div>
         </div>
         <div id="perm-add-btn-row">
