@@ -4530,13 +4530,17 @@ async function checkEditorPermission() {
     return;
   }
 
+  // maybeSingle() retorna null sem erro quando não há registro (evita PGRST116)
   const { data, error } = await supaClient
     .from('gestpop_editors')
     .select('*')
     .eq('email', currentUserEmail)
-    .single();
+    .maybeSingle();
 
-  if(data) {
+  if(error) {
+    console.error('checkEditorPermission error:', error);
+    isEditor = false; isAdmin = false; isViewer = false;
+  } else if(data) {
     isAdmin  = !!data.is_admin;
     isEditor = data.role !== 'viewer'; // viewer não é editor
     isViewer = data.role === 'viewer';
@@ -4612,12 +4616,12 @@ function applyPermissions() {
 }
 
 async function showAccessRequestOverlay() {
-  // Verificar se já tem solicitação pendente
+  // Verificar se já tem solicitação pendente (maybeSingle evita erro PGRST116 quando não existe)
   const { data: existing } = await supaClient
     .from('gestpop_requests')
     .select('status')
     .eq('email', currentUserEmail)
-    .single();
+    .maybeSingle();
 
   let msg = '';
   if(existing?.status === 'pendente') {
@@ -4974,10 +4978,11 @@ function updateLastSaveChip(data) {
     const dt = new Date(data.updated_at).toLocaleString('pt-BR');
     chip.textContent = '💾 ' + (data.updated_by_name||data.updated_by) + ' · ' + dt;
   } else {
-    // Fetch latest
+    // Fetch latest (maybeSingle evita erro PGRST116 quando não há registros)
     supaClient.from('gestpop_workspace').select('updated_at,updated_by_name,updated_by')
-      .order('updated_at',{ascending:false}).limit(1).single()
-      .then(({data:d}) => { if(d) { const dt=new Date(d.updated_at).toLocaleString('pt-BR'); chip.textContent='💾 '+(d.updated_by_name||d.updated_by)+' · '+dt; }});
+      .order('updated_at',{ascending:false}).limit(1).maybeSingle()
+      .then(({data:d}) => { if(d) { const dt=new Date(d.updated_at).toLocaleString('pt-BR'); chip.textContent='💾 '+(d.updated_by_name||d.updated_by)+' · '+dt; }})
+      .catch(e => console.warn('updateLastSaveChip:', e));
   }
 }
 
