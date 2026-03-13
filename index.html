@@ -2769,13 +2769,15 @@ function enableEditables(on) {
 }
 
 let _autoSaveTimer = null;
-function markChanged() {
+// quick=true: salvar em 800ms (usado em blur — usuário terminou de editar o campo)
+// quick=false: salvar em 1500ms (usado em ações estruturais — add/remove itens, etc.)
+function markChanged(quick=false) {
   document.getElementById('unsaved-dot').style.display = 'inline-block';
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer = setTimeout(() => {
     // Só auto-salvar após app totalmente inicializado (evita salvar durante load)
     if(currentUser && window._appInitialized) saveToCloud();
-  }, 3000);
+  }, quick ? 800 : 1500);
 }
 
 function discardChanges() {
@@ -2957,7 +2959,7 @@ function renderStep(p, i) {
       else if(sf==='note') step.note=val;
       else if(sf==='dlabel') { if(step.decision) step.decision.label=val; }
       else if(sf==='dtext')  { if(step.decision) step.decision.text=val;  }
-      markChanged();
+      markChanged(true); // quick=true: salvar em 800ms após blur
     });
   });
   container.querySelectorAll('[data-ai]').forEach(el => {
@@ -2966,7 +2968,7 @@ function renderStep(p, i) {
       const cur = actionObj(DATA[pp].steps[si].actions[ai]);
       cur.text = this.innerText.trim();
       DATA[pp].steps[si].actions[ai] = cur;
-      markChanged();
+      markChanged(true); // quick=true: salvar em 800ms após blur
     });
   });
   renderTracker(p);
@@ -4734,7 +4736,7 @@ document.addEventListener('visibilitychange', () => {
 // Salvar ao fechar/atualizar a página usando fetch keepalive=true
 // (único mecanismo que garante a requisição mesmo após o unload da página)
 window.addEventListener('beforeunload', () => {
-  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken || !workspaceId) return;
+  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) return;
   const unsavedDot = document.getElementById('unsaved-dot');
   if(!unsavedDot || unsavedDot.style.display === 'none') return;
 
@@ -4755,24 +4757,37 @@ window.addEventListener('beforeunload', () => {
     drops:        DROPS     || []
   };
 
-  // fetch com keepalive=true: o browser completa a requisição mesmo após o unload
+  const reqBody = JSON.stringify({
+    data:            payload,
+    updated_at:      new Date().toISOString(),
+    updated_by:      currentUserEmail,
+    updated_by_name: currentUserName
+  });
+
+  // Alerta se payload exceder 60KB (limite keepalive do Chrome é ~64KB)
+  if(reqBody.length > 61440) {
+    console.warn('beforeunload: payload ' + reqBody.length + ' bytes — próximo do limite keepalive de 64KB');
+  }
+
+  const headers = {
+    'Content-Type':  'application/json',
+    'apikey':        SUPA_KEY,
+    'Authorization': 'Bearer ' + currentAccessToken,
+    'Prefer':        'return=minimal'
+  };
+
   try {
-    fetch(`${SUPA_URL}/rest/v1/gestpop_workspace?id=eq.${workspaceId}`, {
-      method:   'PATCH',
-      keepalive: true,
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPA_KEY,
-        'Authorization': 'Bearer ' + currentAccessToken,
-        'Prefer':        'return=minimal'
-      },
-      body: JSON.stringify({
-        data:            payload,
-        updated_at:      new Date().toISOString(),
-        updated_by:      currentUserEmail,
-        updated_by_name: currentUserName
-      })
-    });
+    if(workspaceId) {
+      // UPDATE registro existente
+      fetch(`${SUPA_URL}/rest/v1/gestpop_workspace?id=eq.${workspaceId}`, {
+        method: 'PATCH', keepalive: true, headers, body: reqBody
+      });
+    } else {
+      // INSERT — primeiro acesso, workspace ainda não foi criado
+      fetch(`${SUPA_URL}/rest/v1/gestpop_workspace`, {
+        method: 'POST', keepalive: true, headers, body: reqBody
+      });
+    }
   } catch(e) { console.warn('beforeunload save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
