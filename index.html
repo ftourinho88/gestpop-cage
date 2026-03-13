@@ -5014,14 +5014,34 @@ async function loadFromCloud() {
   console.log('📥 loadFromCloud iniciando...');
 
   try {
-    // Buscar o registro mais recente
+    // Buscar o registro mais recente (com timeout de 12s para evitar hang indefinido)
     console.log('[loadFromCloud] enviando query gestpop_workspace...');
-    let { data, error } = await supaClient
+    const QUERY_TIMEOUT_MS = 12000;
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('timeout')), QUERY_TIMEOUT_MS);
+    });
+    const queryPromise = supaClient
       .from('gestpop_workspace')
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    let { data, error } = await Promise.race([queryPromise, timeoutPromise])
+      .catch(async (err) => {
+        if(err.message === 'timeout') {
+          console.warn('[loadFromCloud] query timeout após ' + QUERY_TIMEOUT_MS + 'ms — tentando novamente...');
+          // Segunda tentativa sem timeout (pode recuperar após o primeiro hang)
+          return supaClient
+            .from('gestpop_workspace')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        }
+        throw err;
+      });
+    clearTimeout(timeoutId);
     console.log('[loadFromCloud] query retornou — data:', !!data, 'error:', error?.message);
 
     if(error) {
