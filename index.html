@@ -866,9 +866,13 @@
 .dfc-node { min-width:110px; max-width:170px; border-radius:8px; cursor:move; }
 .dfc-node.type-start, .dfc-node.type-end { background:var(--cage-blue); color:white; border-radius:50px; padding:7px 16px; text-align:center; }
 .dfc-node.type-task { background:white; border:2px solid var(--cage-mid); padding:8px 12px; }
-.dfc-node.type-decision { background:#fff8e1; border:2px solid var(--cage-gold); padding:8px 12px; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); padding:18px 20px; min-width:130px; text-align:center; }
+.dfc-node.type-decision { background:#fff8e1; border:2px dashed var(--cage-gold); padding:8px 12px; min-width:140px; border-radius:6px; }
 .dfc-lbl { font-size:12px; font-weight:600; color:inherit; outline:none; }
 .dfc-actor { font-size:10px; color:#64748b; margin-top:3px; font-style:italic; outline:none; }
+.dfc-out-tags { display:flex; flex-direction:column; gap:3px; margin-top:7px; align-items:flex-end; }
+.dfc-out-tag { font-size:10px; font-weight:700; padding:1px 6px; border-radius:3px; white-space:nowrap; }
+.dfc-out-tag.sim { background:#dcfce7; color:#16a34a; }
+.dfc-out-tag.nao { background:#fee2e2; color:#dc2626; }
 /* Port colors */
 .drawflow .input { background:#1a4a7a !important; border-color:#1a4a7a !important; }
 .drawflow .output { background:#00a86b !important; border-color:#00a86b !important; }
@@ -8837,14 +8841,23 @@ function saveStatusModal() {
   let _dfDragType = null;
 
   // Node HTML builders
-  function _dfHtml(type, label, actor) {
+  function _dfHtml(type, label, actor, outLabels) {
     label = label || {start:'Início',task:'Tarefa',decision:'Decisão?',end:'Fim'}[type] || 'Nó';
     actor = actor || '';
     if(type === 'start' || type === 'end') {
       return `<div class="dfc-node type-${type}" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div></div>`;
     }
     if(type === 'decision') {
-      return `<div class="dfc-node type-decision" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div>${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}</div>`;
+      const lSim = (outLabels && outLabels[0]) || 'Sim';
+      const lNao = (outLabels && outLabels[1]) || 'Não';
+      return `<div class="dfc-node type-decision" ondblclick="fdVizEditNode(this)">
+        <div class="dfc-lbl">${label}</div>
+        ${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}
+        <div class="dfc-out-tags">
+          <span class="dfc-out-tag sim" title="Saída 1 — clique 2x no nó para editar">${lSim} ›</span>
+          <span class="dfc-out-tag nao" title="Saída 2 — clique 2x no nó para editar">${lNao} ›</span>
+        </div>
+      </div>`;
     }
     return `<div class="dfc-node type-task" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div>${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}</div>`;
   }
@@ -8914,13 +8927,22 @@ function saveStatusModal() {
     if(!node) return;
     const newLabel = prompt('Nome do nó:', node.data.label || '');
     if(newLabel === null) return;
-    const newActor = (node.name !== 'start' && node.name !== 'end')
-      ? (prompt('Executor (opcional):', node.data.actor || '') || '')
-      : '';
+    let newActor = node.data.actor || '';
+    let outLabels = node.data.outLabels || ['Sim','Não'];
+    if(node.name !== 'start' && node.name !== 'end') {
+      newActor = prompt('Executor (opcional):', newActor) || '';
+    }
+    if(node.name === 'decision') {
+      const l1 = prompt('Rótulo da 1ª saída (ex: Sim, Aprovado):', outLabels[0] || 'Sim');
+      if(l1 !== null) outLabels[0] = l1 || 'Sim';
+      const l2 = prompt('Rótulo da 2ª saída (ex: Não, Reprovado):', outLabels[1] || 'Não');
+      if(l2 !== null) outLabels[1] = l2 || 'Não';
+    }
     node.data.label = newLabel;
     node.data.actor = newActor;
+    node.data.outLabels = outLabels;
     // Update HTML in editor
-    const html = _dfHtml(node.name, newLabel, newActor);
+    const html = _dfHtml(node.name, newLabel, newActor, outLabels);
     _dfEditor.drawflow.drawflow.Home.data[nodeId].html = html;
     const content = nodeEl.querySelector('.drawflow_content_node');
     if(content) content.innerHTML = html;
@@ -8979,9 +9001,12 @@ function saveStatusModal() {
       outKeys.forEach((outKey, i) => {
         const conns = node.outputs[outKey].connections || [];
         conns.forEach(conn => {
-          // Label: for decision, first output = "Sim", second = "Não"
+          // Label: use custom outLabels if set, otherwise default Sim/Não for decision
           let label = '';
-          if(node.name === 'decision') label = i === 0 ? 'Sim' : 'Não';
+          if(node.name === 'decision') {
+            const outLabels = node.data?.outLabels || ['Sim','Não'];
+            label = outLabels[i] || (i === 0 ? 'Sim' : 'Não');
+          }
           next.push({ id: idMap[conn.node] || ('n' + conn.node), label });
         });
       });
@@ -9033,14 +9058,18 @@ function saveStatusModal() {
     const dfIds = {};
     flowArr.forEach((n, i) => {
       const p = pos[n.id] || { x: X0 + i * HGAP, y: Y0 };
+      // Recover outLabels for decision nodes from next[] labels
+      const outLabels = n.type === 'decision'
+        ? (n.next || []).map(nx => nx.label || '')
+        : undefined;
       dfIds[n.id] = _dfEditor.addNode(
         n.type,
         _dfInputs(n.type),
         _dfOutputs(n.type),
         p.x, p.y,
         'dfc-wrap',
-        { label: n.name || '', actor: n.actor || '', type: n.type },
-        _dfHtml(n.type, n.name, n.actor)
+        { label: n.name || '', actor: n.actor || '', type: n.type, outLabels: outLabels || ['Sim','Não'] },
+        _dfHtml(n.type, n.name, n.actor, outLabels)
       );
     });
     // Add connections
