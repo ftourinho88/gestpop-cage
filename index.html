@@ -1127,6 +1127,22 @@
     <button class="pat-filter-btn" onclick="filterPatQuarter('q4',this)">4º Tri (Out–Dez)</button>
   </div>
 
+  <!-- Tipo Filters -->
+  <div class="pat-filter-row" id="pat-tipo-filters">
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);align-self:center;margin-right:4px;">TIPO:</span>
+    <button class="pat-filter-btn active" onclick="filterPatTipo('',this)">Todos</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Mapeamento de Processo',this)">Mapeamento</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Monitoramento de Indicadores',this)">Monit. Indicadores</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Acompanhamento de Implementação',this)">Acomp. Implementação</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Auditoria',this)">Auditoria</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Controle Interno',this)">Controle Interno</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Consultoria',this)">Consultoria</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Fiscalização',this)">Fiscalização</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Normatização',this)">Normatização</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Capacitação',this)">Capacitação</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Outro',this)">Outro</button>
+  </div>
+
   <!-- Cards -->
   <div id="pat-cards"></div>
 </div>
@@ -1246,6 +1262,8 @@
           <select class="modal-input" id="pat-tipo">
             <option value="">Selecione...</option>
             <option>Mapeamento de Processo</option>
+            <option>Monitoramento de Indicadores</option>
+            <option>Acompanhamento de Implementação</option>
             <option>Auditoria</option>
             <option>Controle Interno</option>
             <option>Consultoria</option>
@@ -4092,6 +4110,7 @@ if(!DATA.pat) DATA.pat = [];
 
 let _patFilter = 'todos';
 let _patQuarterFilter = 'todos';
+let _patTipoFilter = '';
 let _patEditIdx = null;
 
 function patCheckDeadlines() {
@@ -4209,6 +4228,13 @@ function filterPatQuarter(q, btn) {
   renderPat();
 }
 
+function filterPatTipo(tipo, btn) {
+  _patTipoFilter = tipo;
+  document.querySelectorAll('#pat-tipo-filters .pat-filter-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPat();
+}
+
 function _patItemQuarter(item) {
   const d = item.inicio || item.fim;
   if(!d) return null;
@@ -4228,7 +4254,8 @@ function renderPatKpis() {
   const el = document.getElementById('pat-kpis');
   if(!el) return;
   const allItems = DATA.pat || [];
-  const items = _patQuarterFilter === 'todos' ? allItems : allItems.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  let items = _patQuarterFilter === 'todos' ? allItems : allItems.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  if(_patTipoFilter) items = items.filter(i => i.tipo === _patTipoFilter);
   const total      = items.length;
   const planejado  = items.filter(i=>i.status==='planejado').length;
   const andamento  = items.filter(i=>i.status==='andamento').length;
@@ -4258,9 +4285,8 @@ function renderPatCards() {
   if(!el) return;
   const items = DATA.pat || [];
   let filtered = _patFilter === 'todos' ? items : items.filter(i => i.status === _patFilter);
-  if(_patQuarterFilter !== 'todos') {
-    filtered = filtered.filter(i => _patItemQuarter(i) === _patQuarterFilter);
-  }
+  if(_patQuarterFilter !== 'todos') filtered = filtered.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  if(_patTipoFilter)                filtered = filtered.filter(i => i.tipo === _patTipoFilter);
 
   if(!filtered.length) {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
