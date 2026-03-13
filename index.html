@@ -1885,7 +1885,7 @@ Retorne APENAS JSON sem markdown: {"nome":"","macro":"","processo":"","elaborado
       <button class="btn btn-outline" onclick="closeNovoPop()">Cancelar</button>
       <div style="display:flex;gap:8px;">
         <span id="npop-method-badge" style="font-size:12px;color:var(--text-muted);align-self:center;"></span>
-        <button class="btn btn-success" id="npop-confirm-btn" onclick="confirmNovoPop()">Criar POP vazio →</button>
+        <button class="btn btn-success" id="npop-confirm-btn" onclick="confirmNovoPop()">Iniciar Mapeamento →</button>
       </div>
     </div>
   </div>
@@ -3609,7 +3609,7 @@ function openNovoPop() {
     if(el) el.value = '';
   });
   resetNpopFile();
-  document.getElementById('npop-confirm-btn').textContent = 'Criar POP vazio →';
+  document.getElementById('npop-confirm-btn').textContent = 'Iniciar Mapeamento →';
   document.getElementById('npop-overlay').classList.add('open');
 }
 
@@ -3624,7 +3624,7 @@ function selectNpopMethod(m) {
   document.getElementById('npop-manual-form').style.display = m === 'manual' ? 'block' : 'none';
   document.getElementById('npop-ia-form').style.display    = m === 'ia'     ? 'block' : 'none';
   const btn = document.getElementById('npop-confirm-btn');
-  btn.textContent = m === 'ia' ? '📥 Importar JSON →' : 'Criar POP vazio →';
+  btn.textContent = m === 'ia' ? '📥 Importar JSON →' : 'Iniciar Mapeamento →';
 }
 
 // File upload wiring
@@ -3813,7 +3813,7 @@ function mountNewPopTab(key, label, silent=false) {
   const today = new Date().toLocaleDateString('pt-BR');
   const setTxt = (sel, val) => { const el = div.querySelector(sel); if(el) el.textContent = val; };
   setTxt('.pop-banner-title', label);
-  setTxt('.pop-banner-sub', (m.macro||'Macroprocesso') + ' · ' + (m.processo||'Processo'));
+  setTxt('.pop-banner-sub', [m.macro, m.processo, m.name].filter(Boolean).join(' · '));
   setTxt('[data-key="' + key + ':obj"]', m.desc || 'Descreva o objetivo deste POP.');
   setTxt('[data-key="' + key + ':entrada_resumo"]', m.input  || 'A definir');
   setTxt('[data-key="' + key + ':saida_resumo"]',   m.output || 'A definir');
@@ -4107,15 +4107,11 @@ function renderSidebar() {
 
   const isPatActive = document.getElementById('pat-module')?.classList.contains('active');
 
-  // Build list of all POPs
+  // Sidebar mostra apenas os POPs fixos (d e r)
+  // Mapeamentos dinâmicos ficam na página de Procedimentos Operacionais
   const pops = [
     { key:'d', label: DATA.d?.meta?.name || 'Tratar Denúncias',     macro: DATA.d?.meta?.macro || 'Promoção da Integridade' },
     { key:'r', label: DATA.r?.meta?.name || 'Tratar Representações', macro: DATA.r?.meta?.macro || 'Promoção da Integridade' },
-    ...Object.keys(DATA).filter(k => k !== 'd' && k !== 'r' && k !== 'pat').map(k => ({
-      key: k,
-      label: DATA[k]?.meta?.name || 'Novo Mapeamento',
-      macro: DATA[k]?.meta?.macro || ''
-    }))
   ];
 
   // Group by macroprocesso
@@ -4468,7 +4464,7 @@ let currentUserName  = null;
 let isEditor = false;
 let isAdmin  = false;
 let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
-let workspaceId = null;
+let workspaceId = sessionStorage.getItem('gestpop_wsid') || null;
 
 function hideAllModules() {
   ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module'].forEach(id => {
@@ -4722,7 +4718,7 @@ async function saveToCloud(attempt=1) {
         .limit(1)
         .maybeSingle();
       if(fetchErr) console.warn('saveToCloud: fetch workspaceId error', fetchErr);
-      if(existing?.id) workspaceId = existing.id;
+      if(existing?.id) { workspaceId = existing.id; sessionStorage.setItem('gestpop_wsid', workspaceId); }
       else console.log('saveToCloud: nenhum workspace existente — será criado');
     }
 
@@ -4751,7 +4747,7 @@ async function saveToCloud(attempt=1) {
         })
         .select('id, updated_at, updated_by_name')
         .single());
-      if(saved?.id) workspaceId = saved.id;
+      if(saved?.id) { workspaceId = saved.id; sessionStorage.setItem('gestpop_wsid', workspaceId); }
     }
 
     if(error) {
@@ -4814,7 +4810,7 @@ async function loadFromCloud() {
       return;
     }
 
-    workspaceId = data.id;
+    workspaceId = data.id; sessionStorage.setItem('gestpop_wsid', workspaceId);
     const payload = data.data;
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
@@ -5179,9 +5175,10 @@ async function initSupabase() {
   }
 
   supaClient.auth.onAuthStateChange(async (event, session) => {
-    // Ignorar eventos que não devem reinicializar o app quando já está rodando
-    if(window._appInitialized && (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN')) return;
-    // SIGNED_OUT sempre processa (logout real)
+    // Só processar SIGNED_OUT (logout real) quando já inicializado
+    // Todos os outros eventos (TOKEN_REFRESHED, SIGNED_IN, INITIAL_SESSION, USER_UPDATED)
+    // são ignorados após o primeiro load para evitar re-load de dados no reload da página
+    if(window._appInitialized && event !== 'SIGNED_OUT') return;
     await _handleSession(session?.user || null);
   });
 
@@ -5233,6 +5230,8 @@ async function signOut() {
   window._signoutPending = false;
   try { await supaClient.auth.signOut({ scope: 'local' }); } catch(e) {}
   try {
+    sessionStorage.removeItem('gestpop_wsid');
+    workspaceId = null;
     Object.keys(localStorage)
       .filter(k => k.includes('supabase') || k.includes('gestpop_auth'))
       .forEach(k => localStorage.removeItem(k));
@@ -6493,19 +6492,28 @@ function renderFicha(p) {
 
   const fmt = d => d ? new Date(d+'T12:00').toLocaleDateString('pt-BR') : '';
   const fields = [
-    { label:'Unidade',               icon:'🏛', value: m.unidade },
-    { label:'Tipo de Trabalho',      icon:'🔧', value: m.tipo },
-    { label:'Dificuldade',           icon:'📶', value: m.dificuldade },
-    { label:'Data de Início',        icon:'📅', value: fmt(m.dataInicio) },
-    { label:'Data Prevista Entrega', icon:'🗓', value: fmt(m.dataPrevista) },
-    { label:'Data Efetiva Entrega',  icon:'✅', value: fmt(m.dataEfetiva) },
-    { label:'Solicitante',           icon:'📩', value: m.solicitante },
-    { label:'Patrocinador',          icon:'🤝', value: m.patrocinador },
-    { label:'Equipe',                icon:'👥', value: m.equipe },
-    { label:'Resultados Esperados',  icon:'🎯', value: m.resultados },
-    { label:'Fornecedores',          icon:'📦', value: m.fornecedores },
-    { label:'Clientes',              icon:'👤', value: m.clientes },
-    { label:'Sistemas',              icon:'💻', value: m.sistemas },
+    // Identificação
+    { label:'Subprocesso',           icon:'📋', value: m.name,         group:'Identificação' },
+    { label:'Macroprocesso',         icon:'🗂', value: m.macro,        group:'Identificação' },
+    { label:'Processo Pai',          icon:'🔗', value: m.processo,     group:'Identificação' },
+    { label:'Unidade Responsável',   icon:'🏛', value: m.unidade,      group:'Identificação' },
+    { label:'Tipo de Trabalho',      icon:'🔧', value: m.tipo,         group:'Identificação' },
+    { label:'Dificuldade',           icon:'📶', value: m.dificuldade,  group:'Identificação' },
+    // Datas
+    { label:'Data de Início',        icon:'📅', value: fmt(m.dataInicio),    group:'Datas' },
+    { label:'Previsão de Entrega',   icon:'🗓', value: fmt(m.dataPrevista),  group:'Datas' },
+    { label:'Data Efetiva Entrega',  icon:'✅', value: fmt(m.dataEfetiva),   group:'Datas' },
+    // Pessoas
+    { label:'Solicitante',           icon:'📩', value: m.solicitante,  group:'Pessoas' },
+    { label:'Patrocinador',          icon:'🤝', value: m.patrocinador, group:'Pessoas' },
+    { label:'Elaborado por',         icon:'✍️', value: m.elaborado,   group:'Pessoas' },
+    { label:'Revisado por',          icon:'🔍', value: m.revisado,    group:'Pessoas' },
+    { label:'Equipe de Mapeamento',  icon:'👥', value: m.equipe,       group:'Pessoas' },
+    // Processo
+    { label:'Resultados Esperados',  icon:'🎯', value: m.resultados,   group:'Processo' },
+    { label:'Fornecedores',          icon:'📦', value: m.fornecedores, group:'Processo' },
+    { label:'Clientes / Destinatários', icon:'👤', value: m.clientes,  group:'Processo' },
+    { label:'Sistemas Utilizados',   icon:'💻', value: m.sistemas,    group:'Processo' },
   ].filter(f => f.value);
 
   if(!fields.length && !st) {
@@ -6518,18 +6526,30 @@ function renderFicha(p) {
   const card = document.getElementById(p + '-ficha-card');
   if(card) card.style.display = '';
 
-  const cols = [fields.slice(0, Math.ceil(fields.length/2)), fields.slice(Math.ceil(fields.length/2))];
-  el.innerHTML = statusBadge + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-    ${cols.map(col => `<div style="display:flex;flex-direction:column;gap:8px;">
-      ${col.map(f => `<div style="display:flex;gap:8px;align-items:flex-start;">
-        <span style="font-size:14px;flex-shrink:0;margin-top:1px;">${f.icon}</span>
-        <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">${f.label}</div>
-          <div style="font-size:13px;color:var(--text-primary);font-weight:500;">${f.value}</div>
-        </div>
-      </div>`).join('')}
-    </div>`).join('')}
-  </div>`;
+  // Agrupar por seção
+  const groupOrder = ['Identificação','Datas','Pessoas','Processo'];
+  const grouped = {};
+  fields.forEach(f => {
+    const g = f.group || 'Outros';
+    if(!grouped[g]) grouped[g] = [];
+    grouped[g].push(f);
+  });
+
+  const fieldHtml = groupOrder.filter(g => grouped[g]?.length).map(g => `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--cage-mid);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--cage-border);">${g}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+        ${grouped[g].map(f => `<div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="font-size:14px;flex-shrink:0;margin-top:1px;">${f.icon}</span>
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">${f.label}</div>
+            <div style="font-size:13px;color:var(--text-primary);font-weight:500;">${f.value}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  el.innerHTML = statusBadge + fieldHtml;
 }
 
 // ═══ GENERIC MODAL HELPERS ════════════════
@@ -7062,7 +7082,14 @@ function arqSyncFromPops() {
       );
       return procMatch || subMatch;
     });
+    // Mapeado se: existe POP com nome correspondente (qualquer status)
+    // OU POP com status=concluido explicitamente vinculado a este processo
+    const concluido = popMeta.find(m => {
+      const nameMatch = (m.name||'').toLowerCase() === (r.subprocesso||r.processo||'').toLowerCase();
+      return nameMatch && m.statusMap === 'concluido';
+    });
     if(match && !r.mapeado) { r.mapeado = true; changed = true; }
+    else if(concluido && !r.mapeado) { r.mapeado = true; changed = true; }
   });
 
   if(changed) {
@@ -7175,6 +7202,94 @@ function showPopGallery() {
     </div>`;
 }
 
+// ══ renderPopsGrid ══════════════════════════════════════════════
+function renderPopsGrid() {
+  const body = document.getElementById('pops-grid-body');
+  if(!body) return;
+  const defs = window._popDefs || [];
+  const search  = (document.getElementById('pops-search')?.value || '').toLowerCase();
+  const fMacro  = document.getElementById('pops-filter-macro')?.value  || '';
+  const fStatus = document.getElementById('pops-filter-status')?.value || '';
+
+  const statusColors = {
+    planejado:    { bg:'#f0f9ff', color:'#0369a1', border:'#bae6fd' },
+    em_andamento: { bg:'#fffbeb', color:'#b45309', border:'#fde68a' },
+    concluido:    { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+    atrasado:     { bg:'#fff1f2', color:'#be123c', border:'#fecdd3' },
+    suspenso:     { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
+  };
+  const statusLabels = { planejado:'📋 Planejado', em_andamento:'🔄 Em Andamento', concluido:'✅ Concluído', atrasado:'⚠️ Atrasado', suspenso:'⏸ Suspenso' };
+  const fmt = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '';
+
+  // Filtrar
+  const filtered = defs.filter(p => {
+    const meta = DATA[p.key]?.meta || {};
+    const st = meta.statusMap || '';
+    if(fMacro  && p.macro !== fMacro)   return false;
+    if(fStatus && st !== fStatus)        return false;
+    if(search) {
+      const hay = [p.label, p.macro, p.processo, p.subprocesso, meta.tipo||'', meta.equipe||''].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if(!filtered.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px;">Nenhum mapeamento encontrado.</div>';
+    return;
+  }
+
+  // Agrupar por macro
+  const groups = {};
+  filtered.forEach(p => {
+    const m = p.macro || '— Sem Macroprocesso';
+    if(!groups[m]) groups[m] = [];
+    groups[m].push(p);
+  });
+
+  let html = '';
+  Object.keys(groups).sort().forEach(macro => {
+    html += `<div style="margin-bottom:28px;">
+      <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;">
+        📁 ${macro} <span style="font-weight:400;color:#94a3b8;">(${groups[macro].length})</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+        ${groups[macro].map(p => {
+          const meta = DATA[p.key]?.meta || {};
+          const st = meta.statusMap || '';
+          const sc = statusColors[st];
+          const stLabel = statusLabels[st] || '';
+          const prevista = meta.dataPrevista ? fmt(meta.dataPrevista) : '';
+          const efetiva  = meta.dataEfetiva  ? fmt(meta.dataEfetiva)  : '';
+          const tipo = meta.tipo || '';
+          const equipe = meta.equipe || '';
+          const steps = DATA[p.key]?.steps?.length || 0;
+          return `<div onclick="hideHome();switchPop('${p.key}')"
+            style="background:white;border-radius:12px;padding:16px 18px;cursor:pointer;
+            box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid ${p.color};
+            transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;gap:5px;"
+            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
+            onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.06)'">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="font-size:14px;font-weight:700;color:#0a2540;line-height:1.3;">${p.subprocesso || p.label}</div>
+              ${sc ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border};white-space:nowrap;flex-shrink:0;">${stLabel}</span>` : ''}
+            </div>
+            ${p.processo ? `<div style="font-size:11px;color:#64748b;">🔗 ${p.processo}</div>` : ''}
+            ${tipo ? `<div style="font-size:11px;color:#64748b;font-weight:600;">📌 ${tipo}</div>` : ''}
+            ${equipe ? `<div style="font-size:11px;color:#64748b;">👥 ${equipe}</div>` : ''}
+            <div style="display:flex;gap:12px;margin-top:2px;flex-wrap:wrap;">
+              ${prevista ? `<div style="font-size:10px;color:#94a3b8;">📅 Previsto: ${prevista}</div>` : ''}
+              ${efetiva  ? `<div style="font-size:10px;color:#15803d;font-weight:600;">✅ Entregue: ${efetiva}</div>` : ''}
+            </div>
+            <div style="font-size:10px;color:#cbd5e1;margin-top:2px;">${steps} etapa${steps!==1?'s':''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
 function homeRefresh() {
   checkAllAutoStatus();
   const data = arqGetData();
@@ -7224,52 +7339,58 @@ function homeRefresh() {
     }
   });
 
-  // POPs grid
+  // POPs grid — agrupado por macroprocesso com filtros
   const grid = document.getElementById('home-pops-grid');
   if(!grid) return;
+
   const popDefs = [
-    { key: 'd', label: 'Tratar Denúncias',         color: '#00a86b', macro: 'Promoção da Integridade e Prevenção à Corrupção' },
-    { key: 'r', label: 'Tratar Representações',     color: '#60a5fa', macro: 'Promoção da Integridade e Prevenção à Corrupção' },
-    ...Object.keys(DATA)
-      .filter(k => k.startsWith('pop_'))
-      .map(k => ({ key: k, label: DATA[k]?.meta?.name || k, color: '#f59e0b', macro: DATA[k]?.meta?.macro || '' }))
+    { key: 'd', label: DATA.d?.meta?.name || 'Tratar Denúncias',
+      macro: DATA.d?.meta?.macro || 'Promoção da Integridade e Prevenção à Corrupção',
+      processo: DATA.d?.meta?.processo || 'Tratar Denúncias e Representações',
+      subprocesso: DATA.d?.meta?.name || 'Tratar Denúncias', color: '#00a86b' },
+    { key: 'r', label: DATA.r?.meta?.name || 'Tratar Representações',
+      macro: DATA.r?.meta?.macro || 'Promoção da Integridade e Prevenção à Corrupção',
+      processo: DATA.r?.meta?.processo || 'Tratar Denúncias e Representações',
+      subprocesso: DATA.r?.meta?.name || 'Tratar Representações', color: '#60a5fa' },
+    ...Object.keys(DATA).filter(k => k.startsWith('pop_')).map(k => ({
+      key: k,
+      label:      DATA[k]?.meta?.name     || 'Novo Mapeamento',
+      macro:      DATA[k]?.meta?.macro    || '— Sem Macroprocesso',
+      processo:   DATA[k]?.meta?.processo || '',
+      subprocesso:DATA[k]?.meta?.name     || '',
+      color: '#f59e0b'
+    }))
   ];
 
-  const statusColors = {
-    planejado:    { bg:'#f0f9ff', color:'#0369a1', border:'#bae6fd' },
-    em_andamento: { bg:'#fffbeb', color:'#b45309', border:'#fde68a' },
-    concluido:    { bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
-    atrasado:     { bg:'#fff1f2', color:'#be123c', border:'#fecdd3' },
-    suspenso:     { bg:'#f5f3ff', color:'#7c3aed', border:'#ddd6fe' },
-  };
-  const statusLabels = {
-    planejado:'📋 Planejado', em_andamento:'🔄 Em Andamento',
-    concluido:'✅ Concluído', atrasado:'⚠️ Atrasado', suspenso:'⏸ Suspenso'
-  };
+  // Render filtros e grid
+  const filterHtml = `
+    <div id="pops-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
+      <input type="text" id="pops-search" placeholder="🔍 Buscar mapeamento..." oninput="renderPopsGrid()"
+        style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;flex:1;min-width:200px;outline:none;">
+      <select id="pops-filter-macro" onchange="renderPopsGrid()"
+        style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;color:#374151;min-width:180px;">
+        <option value="">Todos os macroprocessos</option>
+        ${[...new Set(popDefs.map(p=>p.macro).filter(Boolean))].sort().map(m=>`<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <select id="pops-filter-status" onchange="renderPopsGrid()"
+        style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;color:#374151;">
+        <option value="">Todos os status</option>
+        <option value="planejado">📋 Planejado</option>
+        <option value="em_andamento">🔄 Em Andamento</option>
+        <option value="concluido">✅ Concluído</option>
+        <option value="atrasado">⚠️ Atrasado</option>
+        <option value="suspenso">⏸ Suspenso</option>
+      </select>
+    </div>
+    <div id="pops-grid-body"></div>`;
 
-  grid.innerHTML = popDefs.map(p => {
-    const meta = DATA[p.key]?.meta || {};
-    const st   = meta.statusMap || '';
-    const sc   = statusColors[st] || null;
-    const stLabel = statusLabels[st] || '';
-    const prevista = meta.dataPrevista ? '📅 Previsto: ' + new Date(meta.dataPrevista + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-    const efetiva  = meta.dataEfetiva  ? ' · ✅ Entregue: ' + new Date(meta.dataEfetiva + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-    const tipo = meta.tipo || '';
-    return `
-    <div onclick="hideHome();switchPop('${p.key}')" style="background:white;border-radius:12px;padding:16px 18px;cursor:pointer;
-         box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid ${p.color};
-         transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;gap:6px;"
-         onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.12)'"
-         onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.06)'">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <div style="font-size:14px;font-weight:700;color:#0a2540;line-height:1.3;">📋 ${p.label}</div>
-        ${sc ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border};white-space:nowrap;">${stLabel}</span>` : ''}
-      </div>
-      ${p.macro ? `<div style="font-size:11px;color:#94a3b8;">${p.macro}</div>` : ''}
-      ${tipo ? `<div style="font-size:11px;color:#64748b;font-weight:600;">${tipo}</div>` : ''}
-      ${(prevista||efetiva) ? `<div style="font-size:11px;color:#64748b;">${prevista}${efetiva}</div>` : ''}
-    </div>`;
-  }).join('');
+  grid.innerHTML = filterHtml;
+
+  // Guardar defs globalmente para renderPopsGrid() acessar
+  window._popDefs = popDefs;
+  renderPopsGrid();
+
+
 }
 
 // Override switchPop to hide home
@@ -7941,6 +8062,10 @@ function saveStatusModal() {
   DATA[p].meta.dataEfetiva  = document.getElementById('status-modal-efetiva').value;
   closeModal('status-map-modal');
   renderFicha(p);
+  // Sincronizar com Arquitetura: concluido → mapeado=true
+  if(DATA[p]?.meta?.statusMap === 'concluido') {
+    if(typeof arqSyncFromPops === 'function') arqSyncFromPops();
+  }
   markChanged();
   showToast('✅ Status atualizado!', 'success');
 }
