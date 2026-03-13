@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -845,6 +847,41 @@
         display: none !important;
     }
 }
+
+/* ── Flow Designer: Visual Editor (Drawflow) ─────────────────── */
+#fd-visual-outer { display:none; flex-direction:column; height:calc(100vh - 174px); min-height:520px; background:white; border-radius:var(--radius); border:1px solid var(--cage-border); overflow:hidden; box-shadow:var(--shadow-md); }
+#fd-visual-outer.active { display:flex !important; }
+#fd-palette { width:120px; flex-shrink:0; background:#f4f7fb; border-right:1px solid var(--cage-border); display:flex; flex-direction:column; gap:0; }
+#fd-palette-header { padding:8px 10px; background:var(--cage-blue); color:white; font-size:11px; font-weight:700; text-align:center; border-bottom:1px solid var(--cage-border); }
+.fd-pal-item { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-bottom:1px solid var(--cage-border); cursor:grab; font-size:11px; color:var(--text-secondary); transition:background .15s; user-select:none; }
+.fd-pal-item:hover { background:#e8f0fb; color:var(--cage-blue); }
+.fd-pal-icon { font-size:18px; }
+#fd-drawflow-wrap { flex:1; position:relative; overflow:hidden; height:100%; }
+#fd-drawflow { width:100%; height:100%; min-height:400px; }
+/* Drawflow canvas background */
+.drawflow { background-color:#f8fafc !important; background-image:radial-gradient(#dde4ef 1px,transparent 1px) !important; background-size:24px 24px !important; }
+/* Node styles */
+.drawflow .drawflow-node { border:none !important; padding:0 !important; background:transparent !important; box-shadow:none !important; }
+.drawflow .drawflow-node .drawflow_content_node { padding:0; }
+.dfc-node { min-width:110px; max-width:170px; border-radius:8px; cursor:move; }
+.dfc-node.type-start, .dfc-node.type-end { background:var(--cage-blue); color:white; border-radius:50px; padding:7px 16px; text-align:center; }
+.dfc-node.type-task { background:white; border:2px solid var(--cage-mid); padding:8px 12px; }
+.dfc-node.type-decision { background:#fff8e1; border:2px solid var(--cage-gold); padding:8px 12px; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); padding:18px 20px; min-width:130px; text-align:center; }
+.dfc-lbl { font-size:12px; font-weight:600; color:inherit; outline:none; }
+.dfc-actor { font-size:10px; color:#64748b; margin-top:3px; font-style:italic; outline:none; }
+/* Port colors */
+.drawflow .input { background:#1a4a7a !important; border-color:#1a4a7a !important; }
+.drawflow .output { background:#00a86b !important; border-color:#00a86b !important; }
+/* Connection lines */
+.drawflow .connection .main-path { stroke:#1a4a7a; stroke-width:2px; }
+/* Visual toolbar row */
+#fd-visual-toolbar { display:none; padding:7px 12px; border-bottom:1px solid var(--cage-border); align-items:center; gap:6px; flex-wrap:wrap; background:var(--cage-blue); }
+#fd-visual-toolbar.active { display:flex; }
+/* Collapse button for text panel */
+#fd-collapse-btn { padding:4px 8px; background:rgba(255,255,255,.1); color:white; border:1px solid rgba(255,255,255,.2); border-radius:5px; font-size:11px; cursor:pointer; flex-shrink:0; }
+#fd-left-panel { width:260px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--cage-border); transition:width .2s; }
+#fd-left-panel.collapsed { width:0 !important; overflow:hidden; border-right:none; }
+
 </style>
 </head>
 <body>
@@ -1699,13 +1736,18 @@
 <!-- FLOW DESIGNER MODULE — Desenho automático de fluxos        -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="fd-module" style="display:none;">
-  <div style="display:flex;height:calc(100vh - 174px);min-height:520px;background:white;border-radius:var(--radius);border:1px solid var(--cage-border);overflow:hidden;box-shadow:var(--shadow-md);">
 
-    <!-- LEFT: text input panel -->
-    <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--cage-border);">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
-        <div style="font-size:13px;font-weight:700;color:white;margin-bottom:1px;">Texto do Fluxo</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;">Um passo por linha. Termine com ? para decisão.<br>Indent + Sim:/Não: para ramificações.</div>
+  <!-- ── TEXT MODE (3-panel layout) ─────────────────────────── -->
+  <div id="fd-text-mode" style="display:flex;height:calc(100vh - 174px);min-height:520px;background:white;border-radius:var(--radius);border:1px solid var(--cage-border);overflow:hidden;box-shadow:var(--shadow-md);">
+
+    <!-- LEFT: collapsible text input panel -->
+    <div id="fd-left-panel">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:white;margin-bottom:1px;">Texto do Fluxo</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;">Um passo por linha. Termine com ? para decisão.</div>
+        </div>
+        <button id="fd-collapse-btn" title="Recolher painel" onclick="fdToggleLeftPanel()">◀</button>
       </div>
       <textarea id="fd-text-input" style="flex:1;border:none;outline:none;resize:none;padding:12px 14px;font-size:12px;font-family:'JetBrains Mono',monospace;line-height:1.65;background:#f8fafc;color:var(--text-primary);" placeholder="Início
 Receber solicitação [Auditor]
@@ -1716,7 +1758,7 @@ Documentação completa?
 Fim"></textarea>
       <div style="padding:10px 12px;border-top:1px solid var(--cage-border);background:#f8fafc;display:flex;flex-direction:column;gap:6px;">
         <button onclick="fdGenerateFromText()" style="padding:9px;background:var(--cage-accent);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">▶ Gerar Fluxo</button>
-        <div style="font-size:10px;color:var(--text-muted);line-height:1.5;"><strong>Tipos automáticos:</strong> "Início/Fim" = eventos · linha com "?" = decisão · demais = atividade · <code>[Ator]</code> no fim da linha</div>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.5;"><strong>Tipos:</strong> "Início/Fim" = evento · "?" = decisão · <code>[Ator]</code> no fim</div>
       </div>
     </div>
 
@@ -1724,6 +1766,7 @@ Fim"></textarea>
     <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
       <!-- Toolbar -->
       <div style="padding:7px 12px;border-bottom:1px solid var(--cage-border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--cage-blue);">
+        <button id="fd-expand-btn" title="Expandir painel de texto" onclick="fdToggleLeftPanel()" style="display:none;padding:4px 8px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">▶ Texto</button>
         <button onclick="fdZoom(1.2)" title="Zoom +" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">＋</button>
         <button onclick="fdZoom(0.83)" title="Zoom -" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">－</button>
         <button onclick="fdZoomReset()" title="Zoom 100%" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;">100%</button>
@@ -1735,6 +1778,7 @@ Fim"></textarea>
         <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
         <button onclick="fdExportSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ SVG</button>
         <button onclick="fdExportPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ PNG</button>
+        <button onclick="fdSwitchVisual()" style="padding:4px 9px;background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.3);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">🖱️ Modo Visual</button>
         <button onclick="fdSave()" title="Salvar (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.3);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;">☁️ Salvar</button>
       </div>
       <!-- Mermaid output -->
@@ -1761,8 +1805,46 @@ Fim"></textarea>
         <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Mermaid.js · <a href="https://mermaid.js.org/syntax/flowchart.html" target="_blank" style="color:var(--cage-mid);">sintaxe</a></div>
       </div>
     </div>
-  </div>
-</div>
+  </div><!-- /fd-text-mode -->
+
+  <!-- ── VISUAL MODE (Drawflow) ─────────────────────────────── -->
+  <div id="fd-visual-outer">
+    <!-- toolbar -->
+    <div id="fd-visual-toolbar" class="active">
+      <button onclick="fdSwitchText()" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:11px;cursor:pointer;">← Modo Texto</button>
+      <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
+      <button onclick="fdVizDelete()" style="padding:4px 9px;background:rgba(255,100,100,.25);color:#fca5a5;border:1px solid rgba(255,100,100,.3);border-radius:5px;font-size:11px;cursor:pointer;">🗑 Excluir nó</button>
+      <button onclick="fdVizClear()" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;">🧹 Limpar tudo</button>
+      <button onclick="fdVizApply()" style="padding:4px 9px;background:rgba(0,168,107,.3);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;">✅ Aplicar & Salvar</button>
+    </div>
+    <div style="display:flex;flex:1;min-height:0;overflow:hidden;">
+      <!-- Node palette -->
+      <div id="fd-palette">
+        <div id="fd-palette-header">ARRASTE</div>
+        <div class="fd-pal-item" draggable="true" data-type="start" ondragstart="fdPalDrag(event,'start')">
+          <span class="fd-pal-icon">▶</span>Início
+        </div>
+        <div class="fd-pal-item" draggable="true" data-type="task" ondragstart="fdPalDrag(event,'task')">
+          <span class="fd-pal-icon">📋</span>Tarefa
+        </div>
+        <div class="fd-pal-item" draggable="true" data-type="decision" ondragstart="fdPalDrag(event,'decision')">
+          <span class="fd-pal-icon">◆</span>Decisão
+        </div>
+        <div class="fd-pal-item" draggable="true" data-type="end" ondragstart="fdPalDrag(event,'end')">
+          <span class="fd-pal-icon">⏹</span>Fim
+        </div>
+        <div style="padding:8px 6px;font-size:10px;color:var(--text-muted);line-height:1.5;margin-top:4px;">
+          Arraste nós para o canvas. Conecte arrastando de uma porta verde para uma azul. Clique 2x para renomear.
+        </div>
+      </div>
+      <!-- Drawflow canvas -->
+      <div id="fd-drawflow-wrap" ondrop="fdVizDrop(event)" ondragover="event.preventDefault()">
+        <div id="fd-drawflow"></div>
+      </div>
+    </div>
+  </div><!-- /fd-visual-outer -->
+
+</div><!-- /fd-module -->
 
 </main>
 
@@ -3910,16 +3992,27 @@ let _npopKey    = null; // key in DATA for the new pop
 function openNovoPop() {
   _npopMethod = 'manual';
   _npopFile   = null;
+  window._npopExtractedFull   = null;
+  window._npopExtractedEtapas = null;
   selectNpopMethod('manual');
   document.getElementById('npop-s1').classList.add('active');
   document.getElementById('npop-s2').classList.remove('active');
   document.getElementById('npop-s3').classList.remove('active');
+  // Also reset inline display styles set by Gemini flow
+  document.getElementById('npop-s2').style.display = '';
+  document.getElementById('npop-s3').style.display = '';
   ['nf-nome','nf-macro','nf-processo','nf-elaborado','nf-revisado','nf-desc','nf-input','nf-output'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
   resetNpopFile();
-  document.getElementById('npop-confirm-btn').textContent = 'Iniciar Mapeamento →';
+  document.getElementById('npop-json-paste').value = '';
+  document.getElementById('npop-json-status').innerHTML = '';
+  const btn = document.getElementById('npop-confirm-btn');
+  btn.textContent = 'Iniciar Mapeamento →';
+  btn.style.display = '';
+  btn.onclick = confirmNovoPop;
+  document.querySelector('.npop-footer').style.display = '';
   document.getElementById('npop-overlay').classList.add('open');
 }
 
@@ -3994,6 +4087,20 @@ function confirmNovoPop() {
     }
     return;
   } else {
+    // When Gemini ran, _npopExtractedFull holds the full AI result; apply it (merging form edits)
+    if(window._npopExtractedFull) {
+      const extracted = window._npopExtractedFull;
+      window._npopExtractedFull = null;
+      const v = id => document.getElementById(id)?.value?.trim() || '';
+      if(v('nf-nome'))      extracted.nome      = v('nf-nome');
+      if(v('nf-macro'))     extracted.macro     = v('nf-macro');
+      if(v('nf-desc'))      extracted.desc      = v('nf-desc');
+      if(v('nf-input'))     extracted.input     = v('nf-input');
+      if(v('nf-output'))    extracted.output    = v('nf-output');
+      if(v('nf-elaborado')) extracted.elaborado = v('nf-elaborado');
+      applyIaResult(extracted);
+      return;
+    }
     const nome = document.getElementById('nf-nome').value.trim();
     if(!nome) { showToast('Informe o nome do subprocesso.', 'warn'); document.getElementById('nf-nome').focus(); return; }
     createBlankPop({
@@ -8712,8 +8819,241 @@ function saveStatusModal() {
     const code = _flowJsonToMermaid(flowArr);
     const p    = popPrefix(currentPop);
     if(!DATA[p]) DATA[p] = {};
-    DATA[p].flowDiagram = { mermaid: code };
+    DATA[p].flowDiagram = { mermaid: code, flow: flowArr };
   };
+
+  // ── Toggle left text panel (collapse/expand) ──────────────────
+  window.fdToggleLeftPanel = function() {
+    const panel    = document.getElementById('fd-left-panel');
+    const colBtn   = document.getElementById('fd-collapse-btn');
+    const expBtn   = document.getElementById('fd-expand-btn');
+    const collapsed = panel.classList.toggle('collapsed');
+    if(colBtn) colBtn.style.display = collapsed ? 'none' : '';
+    if(expBtn) expBtn.style.display = collapsed ? '' : 'none';
+  };
+
+  // ── Visual Editor (Drawflow) ─────────────────────────────────
+  let _dfEditor = null;
+  let _dfDragType = null;
+
+  // Node HTML builders
+  function _dfHtml(type, label, actor) {
+    label = label || {start:'Início',task:'Tarefa',decision:'Decisão?',end:'Fim'}[type] || 'Nó';
+    actor = actor || '';
+    if(type === 'start' || type === 'end') {
+      return `<div class="dfc-node type-${type}" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div></div>`;
+    }
+    if(type === 'decision') {
+      return `<div class="dfc-node type-decision" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div>${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}</div>`;
+    }
+    return `<div class="dfc-node type-task" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div>${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}</div>`;
+  }
+
+  function _dfInputs(type) { return type === 'start' ? 0 : 1; }
+  function _dfOutputs(type) { return type === 'end' ? 0 : type === 'decision' ? 2 : 1; }
+
+  // Switch to visual mode
+  window.fdSwitchVisual = function() {
+    document.getElementById('fd-text-mode').style.display  = 'none';
+    const vo = document.getElementById('fd-visual-outer');
+    vo.classList.add('active');
+
+    // Initialize Drawflow if not done
+    if(!_dfEditor) {
+      const container = document.getElementById('fd-drawflow');
+      _dfEditor = new Drawflow(container);
+      _dfEditor.reroute = true;
+      _dfEditor.start();
+      // Double-click on background = nothing (prevent adding nodes accidentally)
+    }
+
+    // Load current flow data if available
+    const p = popPrefix(currentPop);
+    const fd = DATA[p]?.flowDiagram;
+    if(fd?.flow && fd.flow.length > 0) {
+      _dfLoadFlow(fd.flow);
+    } else {
+      // Try to auto-detect from saved DATA flow
+      const popFlow = DATA[p]?.flow;
+      if(popFlow && popFlow.length > 0) _dfLoadFlow(popFlow);
+    }
+  };
+
+  // Switch back to text mode
+  window.fdSwitchText = function() {
+    document.getElementById('fd-visual-outer').classList.remove('active');
+    document.getElementById('fd-text-mode').style.display = 'flex';
+  };
+
+  // Drag from palette
+  window.fdPalDrag = function(e, type) {
+    _dfDragType = type;
+    e.dataTransfer.setData('text/plain', type);
+  };
+
+  // Drop on canvas
+  window.fdVizDrop = function(e) {
+    e.preventDefault();
+    const type = _dfDragType || e.dataTransfer.getData('text/plain');
+    if(!type || !_dfEditor) return;
+    const wrap = document.getElementById('fd-drawflow-wrap');
+    const rect = wrap.getBoundingClientRect();
+    const pos_x = (e.clientX - rect.left - _dfEditor.canvas_x) / _dfEditor.zoom - 60;
+    const pos_y = (e.clientY - rect.top  - _dfEditor.canvas_y) / _dfEditor.zoom - 30;
+    _dfEditor.addNode(type, _dfInputs(type), _dfOutputs(type), pos_x, pos_y,
+      'dfc-wrap', { label: '', actor: '', type }, _dfHtml(type));
+    _dfDragType = null;
+  };
+
+  // Double-click edit node
+  window.fdVizEditNode = function(el) {
+    const nodeEl = el.closest('.drawflow-node');
+    if(!nodeEl) return;
+    const nodeId = nodeEl.id.replace('node-','');
+    const node   = _dfEditor.getNodeFromId(nodeId);
+    if(!node) return;
+    const newLabel = prompt('Nome do nó:', node.data.label || '');
+    if(newLabel === null) return;
+    const newActor = (node.name !== 'start' && node.name !== 'end')
+      ? (prompt('Executor (opcional):', node.data.actor || '') || '')
+      : '';
+    node.data.label = newLabel;
+    node.data.actor = newActor;
+    // Update HTML in editor
+    const html = _dfHtml(node.name, newLabel, newActor);
+    _dfEditor.drawflow.drawflow.Home.data[nodeId].html = html;
+    const content = nodeEl.querySelector('.drawflow_content_node');
+    if(content) content.innerHTML = html;
+  };
+
+  // Delete selected node
+  window.fdVizDelete = function() {
+    if(!_dfEditor) return;
+    const selected = document.querySelector('.drawflow-node.selected');
+    if(selected) {
+      const id = selected.id.replace('node-','');
+      _dfEditor.removeNodeId('node-' + id);
+    } else {
+      showToast('Clique em um nó para selecioná-lo antes de excluir.', 'warn');
+    }
+  };
+
+  // Clear all
+  window.fdVizClear = function() {
+    if(!_dfEditor) return;
+    if(!confirm('Limpar todo o diagrama?')) return;
+    _dfEditor.clearModuleSelected();
+    _dfEditor.clear();
+  };
+
+  // Apply visual → Mermaid → save
+  window.fdVizApply = function() {
+    if(!_dfEditor) return;
+    const flowArr = _dfExportToFlowJson();
+    if(!flowArr.length) { showToast('Canvas vazio — adicione nós antes de aplicar.', 'warn'); return; }
+    const code = _flowJsonToMermaid(flowArr);
+    const p = popPrefix(currentPop);
+    if(!DATA[p]) DATA[p] = {};
+    DATA[p].flowDiagram = { mermaid: code, flow: flowArr };
+    _savedCode = code;
+    document.getElementById('fd-mermaid-code').value = code;
+    fdSwitchText();
+    _render(code);
+    fdSave();
+    showToast('✅ Diagrama visual aplicado e salvo!', 'success');
+  };
+
+  // Convert Drawflow data → flow[] JSON
+  function _dfExportToFlowJson() {
+    const dfData = _dfEditor.export();
+    const nodes  = dfData.drawflow.Home.data;
+    const result = [];
+    // Map drawflow numeric IDs to flow "n1" style IDs
+    const idMap = {};
+    let n = 1;
+    Object.keys(nodes).forEach(dfId => { idMap[dfId] = 'n' + n++; });
+
+    Object.entries(nodes).forEach(([dfId, node]) => {
+      const next = [];
+      const outKeys = Object.keys(node.outputs || {});
+      outKeys.forEach((outKey, i) => {
+        const conns = node.outputs[outKey].connections || [];
+        conns.forEach(conn => {
+          // Label: for decision, first output = "Sim", second = "Não"
+          let label = '';
+          if(node.name === 'decision') label = i === 0 ? 'Sim' : 'Não';
+          next.push({ id: idMap[conn.node] || ('n' + conn.node), label });
+        });
+      });
+      result.push({
+        id:    idMap[dfId],
+        type:  node.name || node.data?.type || 'task',
+        name:  node.data?.label || '',
+        actor: node.data?.actor || '',
+        next
+      });
+    });
+    return result;
+  }
+
+  // Load flow[] JSON into Drawflow (auto-layout)
+  function _dfLoadFlow(flowArr) {
+    if(!_dfEditor) return;
+    _dfEditor.clear();
+    // BFS layering for auto-layout
+    const nodeMap = {};
+    flowArr.forEach(n => { nodeMap[n.id] = n; });
+    const layers = {};
+    const visited = new Set();
+    const starts  = flowArr.filter(n => n.type === 'start');
+    let queue = (starts.length ? starts : [flowArr[0]]).map(n => ({id: n.id, layer: 0}));
+    while(queue.length) {
+      const {id, layer} = queue.shift();
+      if(visited.has(id)) continue;
+      visited.add(id);
+      layers[id] = layer;
+      (nodeMap[id]?.next || []).forEach(nx => {
+        if(!visited.has(nx.id)) queue.push({id: nx.id, layer: layer + 1});
+      });
+    }
+    // Assign positions by layer
+    const cols = {};
+    flowArr.forEach(n => {
+      const col = layers[n.id] ?? 0;
+      if(!cols[col]) cols[col] = [];
+      cols[col].push(n.id);
+    });
+    const HGAP = 200, VGAP = 110, X0 = 60, Y0 = 60;
+    const pos = {};
+    Object.entries(cols).forEach(([col, ids]) => {
+      const x = X0 + parseInt(col) * HGAP;
+      ids.forEach((id, i) => { pos[id] = { x, y: Y0 + i * VGAP }; });
+    });
+    // Map flow id → drawflow numeric id
+    const dfIds = {};
+    flowArr.forEach((n, i) => {
+      const p = pos[n.id] || { x: X0 + i * HGAP, y: Y0 };
+      dfIds[n.id] = _dfEditor.addNode(
+        n.type,
+        _dfInputs(n.type),
+        _dfOutputs(n.type),
+        p.x, p.y,
+        'dfc-wrap',
+        { label: n.name || '', actor: n.actor || '', type: n.type },
+        _dfHtml(n.type, n.name, n.actor)
+      );
+    });
+    // Add connections
+    flowArr.forEach(n => {
+      (n.next || []).forEach((nx, i) => {
+        const fromDf = dfIds[n.id];
+        const toDf   = dfIds[nx.id];
+        if(fromDf && toDf) {
+          try { _dfEditor.addConnection(fromDf, toDf, 'output_' + (i+1), 'input_1'); } catch(_) {}
+        }
+      });
+    });
+  }
 
   // Keyboard
   document.addEventListener('keydown', e => {
