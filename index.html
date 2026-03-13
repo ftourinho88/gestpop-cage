@@ -788,6 +788,65 @@
   .edit-bar { top: 52px; }
   .sidebar { top: 52px; height: calc(100vh - 52px); }
 }
+  /* --- RESET E TRANSFORMAÇÃO PARA BARRA INFERIOR --- */
+@media (max-width: 768px) {
+    /* 1. Esconde o botão de 3 linhas (hambúrguer) que não funciona */
+    .menu-toggle, #sidebarCollapse, .toggle-btn, .hamburger {
+        display: none !important;
+    }
+
+    /* 2. Força a Sidebar a ficar visível e no rodapé */
+    .sidebar {
+        display: flex !important;
+        visibility: visible !important;
+        transform: none !important; /* Anula qualquer animação de "esconder" */
+        position: fixed !important;
+        bottom: 0 !important;
+        top: auto !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 65px !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+        z-index: 9999 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 3. Ajusta os links para o formato de "App" */
+    .sidebar a {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 5px 0 !important;
+        color: #2e7d32 !important; /* Cor verde padrão do seu app */
+        font-size: 10px !important;
+        text-decoration: none !important;
+    }
+
+    /* 4. Ícones maiores e centralizados */
+    .sidebar a i {
+        font-size: 20px !important;
+        margin: 0 0 4px 0 !important;
+    }
+
+    /* 5. Ajuste do conteúdo principal para não ser coberto */
+    main, .content, #app-container, .main-panel {
+        margin-left: 0 !important;
+        margin-bottom: 70px !important; /* Espaço para a barra não cobrir o texto */
+        width: 100% !important;
+    }
+
+    /* 6. Esconde textos e logos que poluem a barra inferior */
+    .sidebar-header, .logo-img, .user-section, .sidebar span:not(.icon-text) {
+        display: none !important;
+    }
+}
 </style>
 </head>
 <body>
