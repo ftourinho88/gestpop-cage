@@ -2775,6 +2775,7 @@ function navStep(p,dir){ const n=DATA[p].currentStep+dir; if(n>=0&&n<DATA[p].ste
 
 // ═══ ROLES ════════════════════════════════════
 function renderRoles(p) {
+  if(!document.getElementById(p+'-role-grid')) return;
   const roles  = DATA[p].roles || [];
   const steps  = DATA[p].steps || [];
   const colors = ['role-green','role-blue','role-gold','role-red','role-purple'];
@@ -2851,7 +2852,9 @@ function rmRoleDuty(p,ri,di){ DATA[p].roles[ri].duties.splice(di,1); renderRoles
 
 // ═══ INDICATORS ═══════════════════════════════
 function renderIndicators(p) {
-  document.getElementById(p+'-indicator-grid').innerHTML = DATA[p].indicators.map((ind,i)=> {
+  const _indGrid = document.getElementById(p+'-indicator-grid');
+  if(!_indGrid) return;
+  _indGrid.innerHTML = DATA[p].indicators.map((ind,i)=> {
     const tagClass = ind.tag==='time' ? 'ind-tag-time' : 'ind-tag-perc';
     const tagLabel = ind.tag==='time' ? '⏱ Tempo' : '% Percentual';
     const meta = ind.meta ? `<span class="ind-meta-pill">🎯 Meta: <strong>${ind.meta}</strong></span>` : `<span class="ind-meta-pill" style="color:#fbbf24;">🎯 Meta não definida</span>`;
@@ -2957,7 +2960,9 @@ function saveIndModal(){
 
 // ═══ FAQ ══════════════════════════════════════
 function renderFaq(p) {
-  document.getElementById(p+'-faq-container').innerHTML = DATA[p].faqs.map((f,i)=>`
+  const _faqEl = document.getElementById(p+'-faq-container');
+  if(!_faqEl) return;
+  _faqEl.innerHTML = DATA[p].faqs.map((f,i)=>`
     <div class="faq-item ${!f.pending ? 'open' : ''}" id="${p}-faq-${i}">
       <div class="faq-q">
         <span class="faq-q-text" contenteditable="false" data-key="${p}:fq${i}">${i+1}. ${f.q}</span>
@@ -3032,7 +3037,9 @@ async function generateFaqIA(p) {
 
 // ═══ NORMAS ═══════════════════════════════════
 function renderNormas(p) {
-  document.getElementById(p+'-norm-list').innerHTML = DATA[p].normas.map((n,i)=>{
+  const _normEl = document.getElementById(p+'-norm-list');
+  if(!_normEl) return;
+  _normEl.innerHTML = DATA[p].normas.map((n,i)=>{
     const hasUrl = n.url && n.url.trim();
     const codeEl = hasUrl
       ? `<a href="${n.url}" target="_blank" rel="noopener" class="norm-code norm-link" title="Abrir norma">${n.code} 🔗</a>`
