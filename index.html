@@ -4975,6 +4975,8 @@ async function loadFromCloud() {
     if(!data || !data.data || Object.keys(data.data).length === 0) {
       console.log('loadFromCloud: workspace vazio ou inexistente — usando dados padrão');
       setSyncStatus('synced');
+      const chip = document.getElementById('last-save-chip');
+      if(chip) chip.textContent = 'Sem dados salvos';
       // Renderizar mesmo sem dados do cloud para evitar tela em branco
       ['d','r'].forEach(p => {
         try { sanitizePop(p); renderStep(p, DATA[p].currentStep); renderRoles(p); renderIndicators(p); } catch(e) {}
@@ -5353,6 +5355,7 @@ async function initSupabase() {
     if(window._appInitialized) {
       // Apenas renovar permissões sem recarregar dados (ex: TOKEN_REFRESHED)
       await checkEditorPermission();
+      updateLastSaveChip(null); // garantir que o chip reflita o estado atual
       return;
     }
     _loadingCloud = true;
