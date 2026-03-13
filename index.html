@@ -4492,8 +4492,9 @@ function deletePat(idx) {
 }
 
 // ═══ WORKSPACE COMPARTILHADO ══════════════════════════════
-let currentUserEmail = null;
-let currentUserName  = null;
+let currentUserEmail   = null;
+let currentUserName    = null;
+let currentAccessToken = null;   // token de acesso atual — atualizado a cada sessão/refresh
 let isEditor = false;
 let isAdmin  = false;
 let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
@@ -4713,7 +4714,7 @@ let _saveQueue      = 0;   // conta chamadas enfileiradas
 // Garantir que o lock é limpo se a página foi recarregada
 window.addEventListener('pageshow', () => { _saveInProgress = false; _saveQueue = 0; });
 
-// Salvar ao sair/atualizar a página (visibilitychange é mais confiável que beforeunload)
+// Salvar ao trocar aba / minimizar janela (visibilitychange dispara cedo o suficiente para async)
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'hidden' && currentUser && window._appInitialized && isEditor) {
     clearTimeout(_autoSaveTimer);
@@ -4721,18 +4722,49 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Aviso ao usuário se houver alterações não salvas ao tentar fechar/atualizar
-window.addEventListener('beforeunload', (e) => {
+// Salvar ao fechar/atualizar a página usando fetch keepalive=true
+// (único mecanismo que garante a requisição mesmo após o unload da página)
+window.addEventListener('beforeunload', () => {
+  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken || !workspaceId) return;
   const unsavedDot = document.getElementById('unsaved-dot');
-  if(unsavedDot && unsavedDot.style.display !== 'none' && currentUser && window._appInitialized && isEditor) {
-    // Tentar colher DOM imediatamente antes do unload
-    try { harvestEditables(); } catch(err) { /* silencioso */ }
-    clearTimeout(_autoSaveTimer);
-    saveToCloud();
-    // Aviso padrão do browser (o texto é ignorado em browsers modernos)
-    e.preventDefault();
-    e.returnValue = '';
-  }
+  if(!unsavedDot || unsavedDot.style.display === 'none') return;
+
+  // Colher estado atual do DOM antes do unload
+  try { harvestEditables(); } catch(e) {}
+  clearTimeout(_autoSaveTimer);
+
+  // Montar payload idêntico ao saveToCloud()
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops']);
+  const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
+  const payload = {
+    d:            DATA.d,
+    r:            DATA.r,
+    pat:          DATA.pat || [],
+    arqOverrides: DATA._arqOverrides || null,
+    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
+    repoDocs:     REPO_DOCS || [],
+    drops:        DROPS     || []
+  };
+
+  // fetch com keepalive=true: o browser completa a requisição mesmo após o unload
+  try {
+    fetch(`${SUPA_URL}/rest/v1/gestpop_workspace?id=eq.${workspaceId}`, {
+      method:   'PATCH',
+      keepalive: true,
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPA_KEY,
+        'Authorization': 'Bearer ' + currentAccessToken,
+        'Prefer':        'return=minimal'
+      },
+      body: JSON.stringify({
+        data:            payload,
+        updated_at:      new Date().toISOString(),
+        updated_by:      currentUserEmail,
+        updated_by_name: currentUserName
+      })
+    });
+  } catch(e) { console.warn('beforeunload save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
@@ -5230,6 +5262,8 @@ async function initSupabase() {
   }
 
   supaClient.auth.onAuthStateChange(async (event, session) => {
+    // Sempre manter o access token atualizado (inclusive no TOKEN_REFRESHED)
+    if(session?.access_token) currentAccessToken = session.access_token;
     // Só processar SIGNED_OUT (logout real) quando já inicializado
     // Todos os outros eventos (TOKEN_REFRESHED, SIGNED_IN, INITIAL_SESSION, USER_UPDATED)
     // são ignorados após o primeiro load para evitar re-load de dados no reload da página
@@ -5239,6 +5273,7 @@ async function initSupabase() {
 
   // Verificar sessão existente imediatamente (sem esperar o evento)
   const { data: { session: existingSession } } = await supaClient.auth.getSession();
+  if(existingSession?.access_token) currentAccessToken = existingSession.access_token;
   if(existingSession?.user) {
     await _handleSession(existingSession.user);
   } else {
