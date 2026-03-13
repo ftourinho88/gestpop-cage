@@ -2605,6 +2605,35 @@ function harvestEditables() {
       }
     }
   });
+
+  // Capturar campos de etapas (data-sf) que são persistidos via blur events
+  document.querySelectorAll('[data-sf]').forEach(el => {
+    const pp = el.dataset.sp;
+    const si = parseInt(el.dataset.si);
+    const sf = el.dataset.sf;
+    if(!pp || isNaN(si) || !sf || !DATA[pp] || !DATA[pp].steps || !DATA[pp].steps[si]) return;
+    const val = el.innerText?.replace(/^👤\s*/, '').trim() || '';
+    const step = DATA[pp].steps[si];
+    if(sf === 'title')       step.title = val;
+    else if(sf === 'subtitle')    step.subtitle = val;
+    else if(sf === 'responsible') step.responsible = val;
+    else if(sf === 'note')        step.note = val;
+    else if(sf === 'dlabel' && step.decision) step.decision.label = val;
+    else if(sf === 'dtext'  && step.decision) step.decision.text  = val;
+  });
+
+  // Capturar texto das ações (data-ai) que são persistidos via blur events
+  document.querySelectorAll('[data-ai][data-sp]').forEach(el => {
+    const pp = el.dataset.sp;
+    const si = parseInt(el.dataset.si);
+    const ai = parseInt(el.dataset.ai);
+    if(!pp || isNaN(si) || isNaN(ai) || !DATA[pp] || !DATA[pp].steps || !DATA[pp].steps[si]) return;
+    const step = DATA[pp].steps[si];
+    if(!step.actions || !step.actions[ai]) return;
+    const cur = actionObj(step.actions[ai]);
+    cur.text = el.innerText?.trim() || '';
+    step.actions[ai] = cur;
+  });
 }
 
 function clearStorage() {
@@ -2833,6 +2862,10 @@ function sanitizePop(p) {
 }
 
 function renderStep(p, i) {
+  if(!DATA[p] || !Array.isArray(DATA[p].steps) || !DATA[p].steps[i]) {
+    console.warn('renderStep: estado inválido para pop=' + p + ' step=' + i);
+    return;
+  }
   const s = DATA[p].steps[i];
   const em = editMode;
   const ce = em ? 'contenteditable="true"' : '';
@@ -2921,8 +2954,8 @@ function renderStep(p, i) {
       else if(sf==='subtitle') step.subtitle=val;
       else if(sf==='responsible') step.responsible=val;
       else if(sf==='note') step.note=val;
-      else if(sf==='dlabel') step.decision.label=val;
-      else if(sf==='dtext') step.decision.text=val;
+      else if(sf==='dlabel') { if(step.decision) step.decision.label=val; }
+      else if(sf==='dtext')  { if(step.decision) step.decision.text=val;  }
       markChanged();
     });
   });
@@ -4679,6 +4712,28 @@ let _saveInProgress = false;
 let _saveQueue      = 0;   // conta chamadas enfileiradas
 // Garantir que o lock é limpo se a página foi recarregada
 window.addEventListener('pageshow', () => { _saveInProgress = false; _saveQueue = 0; });
+
+// Salvar ao sair/atualizar a página (visibilitychange é mais confiável que beforeunload)
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden' && currentUser && window._appInitialized && isEditor) {
+    clearTimeout(_autoSaveTimer);
+    saveToCloud();
+  }
+});
+
+// Aviso ao usuário se houver alterações não salvas ao tentar fechar/atualizar
+window.addEventListener('beforeunload', (e) => {
+  const unsavedDot = document.getElementById('unsaved-dot');
+  if(unsavedDot && unsavedDot.style.display !== 'none' && currentUser && window._appInitialized && isEditor) {
+    // Tentar colher DOM imediatamente antes do unload
+    try { harvestEditables(); } catch(err) { /* silencioso */ }
+    clearTimeout(_autoSaveTimer);
+    saveToCloud();
+    // Aviso padrão do browser (o texto é ignorado em browsers modernos)
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
@@ -4814,8 +4869,8 @@ async function loadFromCloud() {
     const payload = data.data;
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
-    if(payload.d) { Object.assign(DATA.d, payload.d); sanitizePopData(DATA.d); }
-    if(payload.r) { Object.assign(DATA.r, payload.r); sanitizePopData(DATA.r); }
+    if(payload.d) { DATA.d = payload.d; sanitizePopData(DATA.d); }
+    if(payload.r) { DATA.r = payload.r; sanitizePopData(DATA.r); }
     if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : [];
     if(Array.isArray(payload.repoDocs)) { REPO_DOCS = payload.repoDocs; }
     if(Array.isArray(payload.drops))    { DROPS     = payload.drops; dropsRender(); }
