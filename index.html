@@ -866,7 +866,10 @@
 .dfc-node { min-width:110px; max-width:170px; border-radius:8px; cursor:move; }
 .dfc-node.type-start, .dfc-node.type-end { background:var(--cage-blue); color:white; border-radius:50px; padding:7px 16px; text-align:center; }
 .dfc-node.type-task { background:white; border:2px solid var(--cage-mid); padding:8px 12px; }
-.dfc-node.type-decision { background:#fff8e1; border:2px dashed var(--cage-gold); padding:8px 12px; min-width:140px; border-radius:6px; }
+/* Decision: rotated square (diamond) + counter-rotated label outside the shape */
+.dfc-node.type-decision { background:transparent; border:none; padding:4px 6px; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:120px; }
+.dfc-diamond-shape { width:88px; height:88px; background:#fff8e1; border:2px solid var(--cage-gold); transform:rotate(45deg); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dfc-diamond-lbl { transform:rotate(-45deg); font-size:11px; font-weight:700; color:var(--cage-blue); text-align:center; max-width:64px; word-break:break-word; line-height:1.3; }
 .dfc-lbl { font-size:12px; font-weight:600; color:inherit; outline:none; }
 .dfc-actor { font-size:10px; color:#64748b; margin-top:3px; font-style:italic; outline:none; }
 .dfc-out-tags { display:flex; flex-direction:column; gap:3px; margin-top:7px; align-items:flex-end; }
@@ -8747,10 +8750,16 @@ function saveStatusModal() {
   window.fdSave = function() {
     const p    = popPrefix(currentPop);
     const code = document.getElementById('fd-mermaid-code').value.trim();
+    if(!code) { showToast('Nenhum diagrama para salvar.', 'warn'); return; }
     if(!DATA[p]) DATA[p] = {};
-    DATA[p].flowDiagram = { mermaid: code };
+    // Preserve existing flow[] JSON if present (set by visual editor)
+    const existingFlow = DATA[p].flowDiagram?.flow;
+    DATA[p].flowDiagram = { mermaid: code, ...(existingFlow ? { flow: existingFlow } : {}) };
+    _savedCode = code;
+    // Save immediately to cloud (not just debounced) — critical for persistence
     markChanged();
-    showToast('Fluxo salvo.', 'success');
+    saveToCloud();
+    showToast('☁️ Fluxo salvo na nuvem.', 'success');
   };
 
   // ── Generate from DSL text ────────────────────────────────────
@@ -8760,8 +8769,13 @@ function saveStatusModal() {
     const code = _dslToMermaid(txt);
     document.getElementById('fd-mermaid-code').value = code;
     _render(code);
+    // Persist immediately — without this, the diagram is lost on reload
+    const p = popPrefix(currentPop);
+    if(!DATA[p]) DATA[p] = {};
+    DATA[p].flowDiagram = { mermaid: code };
+    _savedCode = code;
     markChanged();
-    showToast('Fluxo gerado!', 'success');
+    showToast('Fluxo gerado! Clique em ☁️ Salvar para persistir.', 'success');
   };
 
   // ── Render raw Mermaid code from right panel ──────────────────
@@ -8848,14 +8862,13 @@ function saveStatusModal() {
       return `<div class="dfc-node type-${type}" ondblclick="fdVizEditNode(this)"><div class="dfc-lbl">${label}</div></div>`;
     }
     if(type === 'decision') {
-      const lSim = (outLabels && outLabels[0]) || 'Sim';
-      const lNao = (outLabels && outLabels[1]) || 'Não';
+      const l1 = (outLabels && outLabels[0]) || 'Sim';
+      const l2 = (outLabels && outLabels[1]) || 'Não';
       return `<div class="dfc-node type-decision" ondblclick="fdVizEditNode(this)">
-        <div class="dfc-lbl">${label}</div>
-        ${actor ? `<div class='dfc-actor'>${actor}</div>` : ''}
+        <div class="dfc-diamond-shape"><div class="dfc-diamond-lbl">${label}</div></div>
         <div class="dfc-out-tags">
-          <span class="dfc-out-tag sim" title="Saída 1 — clique 2x no nó para editar">${lSim} ›</span>
-          <span class="dfc-out-tag nao" title="Saída 2 — clique 2x no nó para editar">${lNao} ›</span>
+          <span class="dfc-out-tag sim" title="Saída 1 (output_1) — 2x clique para editar">${l1} ›</span>
+          <span class="dfc-out-tag nao" title="Saída 2 (output_2) — 2x clique para editar">${l2} ›</span>
         </div>
       </div>`;
     }
@@ -8981,8 +8994,10 @@ function saveStatusModal() {
     document.getElementById('fd-mermaid-code').value = code;
     fdSwitchText();
     _render(code);
-    fdSave();
-    showToast('✅ Diagrama visual aplicado e salvo!', 'success');
+    // Save immediately — do not rely only on debounce
+    markChanged();
+    saveToCloud();
+    showToast('✅ Diagrama visual aplicado e salvo na nuvem!', 'success');
   };
 
   // Convert Drawflow data → flow[] JSON
