@@ -8672,19 +8672,9 @@ const SW_VERSION = '2';
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/processoscage/sw.js?v=' + SW_VERSION).then(reg => {
     console.log('[SW] Registrado v' + SW_VERSION + ':', reg.scope);
-
-    // Detectar nova versão instalada e recarregar uma única vez
-    reg.onupdatefound = () => {
-      const installingWorker = reg.installing;
-      installingWorker.onstatechange = () => {
-        // Só recarrega se: (1) novo SW instalado E (2) já havia um SW ativo antes
-        // Isso evita reload na primeira instalação (que causava o loop)
-        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log('[SW] Nova versão instalada — recarregando para aplicar atualização...');
-          window.location.reload();
-        }
-      };
-    };
+    // Sem onupdatefound/reload: o SW já é network-first para HTML,
+    // então o conteúdo mais recente é sempre servido da rede.
+    // O reload forçado causava interrupção do loadFromCloud/saveToCloud a cada F5.
   }).catch(err => console.warn('[SW] Falha no registro:', err));
 }
 </script>
