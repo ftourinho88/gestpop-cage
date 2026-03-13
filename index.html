@@ -757,6 +757,26 @@
 
   /* Auth box */
   .auth-box { padding: 28px 20px !important; width: 92vw !important; }
+
+  /* Edit bar — ajustar top para altura do header mobile (56px) */
+  .edit-bar { top: 56px; }
+
+  /* Sidebar — ajustar top e altura para header mobile */
+  .sidebar { top: 56px; height: calc(100vh - 56px); }
+
+  /* Sidebar toggle — área de toque maior e posição correta para sidebar 88vw */
+  .sidebar-toggle { width: 32px; }
+  .sidebar-toggle.shifted { left: min(88vw, 320px); }
+  .sidebar.open ~ .sidebar-toggle { left: min(88vw, 320px); }
+
+  /* BPMN — remover min-height que causa overflow em tela pequena */
+  .bpmn-canvas-wrap { min-height: 0 !important; }
+
+  /* Search modal — reduzir padding-top excessivo */
+  .search-modal-overlay { padding-top: 16px; }
+
+  /* Toast — afastar da borda inferior em mobile */
+  .toast { bottom: 12px; right: 12px; left: 12px; text-align: center; }
 }
 
 @media (max-width: 480px) {
@@ -768,6 +788,10 @@
   #home-stats > div { flex: 1 1 100% !important; }
   .step-dot-label { display: none; }
   .header-inner { height: 52px; }
+
+  /* Edit bar e sidebar — ajustar para header 52px */
+  .edit-bar { top: 52px; }
+  .sidebar { top: 52px; height: calc(100vh - 52px); }
 }
 
 </style>
