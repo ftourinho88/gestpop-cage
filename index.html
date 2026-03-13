@@ -4830,14 +4830,19 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', () => {
   // DEBUG: sempre logar para diagnóstico
   console.log('[beforeunload] user='+!!currentUser+' editor='+isEditor+' init='+window._appInitialized+' token='+!!currentAccessToken);
-  // Não verificar _appInitialized aqui — se init=false o unsaved-dot estará oculto
-  // (nenhuma edição foi feita ainda), então o check do dot abaixo já filtra corretamente.
   if(!currentUser || !isEditor || !currentAccessToken) {
     console.warn('[beforeunload] SKIP — condição não atendida');
     return;
   }
+  // Nunca salvar se o app não terminou de carregar — evita sobrescrever dados reais
+  // com os dados padrão embutidos no HTML (causa perda de dados)
+  if(!window._appInitialized) {
+    console.warn('[beforeunload] SKIP — app não inicializado (loadFromCloud pendente)');
+    return;
+  }
   const unsavedDot = document.getElementById('unsaved-dot');
-  const dotVisible = unsavedDot && unsavedDot.style.display !== 'none';
+  // Checar estilo inline explícito — style.display==='' (não setado) NÃO é visível
+  const dotVisible = unsavedDot && unsavedDot.style.display === 'inline-block';
   console.log('[beforeunload] unsaved-dot visível:', dotVisible);
   if(!dotVisible) return;
 
