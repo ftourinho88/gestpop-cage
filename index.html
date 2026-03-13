@@ -4783,30 +4783,43 @@ window.addEventListener('beforeunload', () => {
   try { harvestEditables(); } catch(e) {}
   clearTimeout(_autoSaveTimer);
 
-  // Montar payload idêntico ao saveToCloud()
+  // Montar payload — limite keepalive do Chrome é 64KB (65536 bytes)
+  // Incluir repoDocs e drops apenas se couberem no orçamento
+  const KEEPALIVE_LIMIT = 63000; // margem de segurança abaixo de 64KB
   const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
+
+  // Payload essencial (POPs, PAT, arquitetura)
   const payload = {
     d:            DATA.d,
     r:            DATA.r,
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
     newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
-    repoDocs:     REPO_DOCS || [],
-    drops:        DROPS     || []
+    repoDocs:     [],
+    drops:        []
   };
 
-  const reqBody = JSON.stringify({
+  let reqBody = JSON.stringify({
     data:            payload,
     updated_at:      new Date().toISOString(),
     updated_by:      currentUserEmail,
     updated_by_name: currentUserName
   });
 
-  // Alerta se payload exceder 60KB (limite keepalive do Chrome é ~64KB)
-  if(reqBody.length > 61440) {
-    console.warn('beforeunload: payload ' + reqBody.length + ' bytes — próximo do limite keepalive de 64KB');
+  // Tentar incluir repoDocs e drops se ainda couber dentro do limite
+  if(reqBody.length < KEEPALIVE_LIMIT) {
+    const fullPayload = { ...payload, repoDocs: REPO_DOCS || [], drops: DROPS || [] };
+    const fullBody = JSON.stringify({ data: fullPayload, updated_at: new Date().toISOString(),
+      updated_by: currentUserEmail, updated_by_name: currentUserName });
+    if(fullBody.length <= KEEPALIVE_LIMIT) {
+      reqBody = fullBody;
+    } else {
+      console.warn('[beforeunload] repoDocs/drops excluídos para caber no limite keepalive (' + fullBody.length + ' bytes > ' + KEEPALIVE_LIMIT + ')');
+    }
   }
+
+  console.log('[beforeunload] payload final: ' + reqBody.length + ' bytes (limite: ' + KEEPALIVE_LIMIT + ')');
 
   const headers = {
     'Content-Type':  'application/json',
@@ -8618,10 +8631,19 @@ function saveStatusModal() {
 // ─── Service Worker — cache-busting automático ───────────────────────────────
 if ('serviceWorker' in navigator) {
   let _swRefreshing = false;
+  // CRÍTICO: capturar ANTES do registro se já havia um SW ativo.
+  // controllerchange também dispara na primeira instalação (sem SW anterior),
+  // caso em que NÃO devemos recarregar — só recarregar quando é uma ATUALIZAÇÃO.
+  const _hadController = !!navigator.serviceWorker.controller;
 
-  // Quando um novo SW assume o controle, recarregar para pegar a versão nova
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (_swRefreshing) return;
+    if (!_hadController) {
+      // Primeira instalação — não recarregar, apenas logar
+      console.log('[SW] Primeiro SW instalado — sem reload.');
+      return;
+    }
+    // Havia SW anterior e um novo assumiu = atualização de versão → recarregar
     _swRefreshing = true;
     console.log('[SW] Nova versão assumiu controle — recarregando...');
     window.location.reload();
@@ -8629,16 +8651,6 @@ if ('serviceWorker' in navigator) {
 
   navigator.serviceWorker.register('/processoscage/sw.js').then(reg => {
     console.log('[SW] Registrado:', reg.scope);
-
-    // Detectar quando uma nova versão está sendo instalada
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log('[SW] Nova versão instalada — skipWaiting vai ativar em breve.');
-        }
-      });
-    });
   }).catch(err => console.warn('[SW] Falha no registro:', err));
 }
 </script>
