@@ -1291,6 +1291,16 @@
 
   <!-- FLUXO -->
   <section id="d-fluxo" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#f0f5ff,#e8f4ff);border:1px solid #c7d9f0;border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🎨</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--cage-blue);">Precisa editar ou corrigir o fluxograma?</div>
+          <div style="font-size:12px;color:var(--text-muted);">Use o editor de fluxo para desenhar, ajustar e exportar o diagrama.</div>
+        </div>
+      </div>
+      <button onclick="showFlowDesigner(document.getElementById('tab-fd'))" style="flex-shrink:0;padding:8px 16px;background:var(--cage-blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🎨 Abrir Editor de Fluxo</button>
+    </div>
     <div id="d-step-tracker" class="step-tracker"></div>
     <div id="d-step-panel"></div>
     <div class="nav-buttons">
@@ -1490,6 +1500,16 @@
 
   <!-- FLUXO -->
   <section id="r-fluxo" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#f0f5ff,#e8f4ff);border:1px solid #c7d9f0;border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🎨</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--cage-blue);">Precisa editar ou corrigir o fluxograma?</div>
+          <div style="font-size:12px;color:var(--text-muted);">Use o editor de fluxo para desenhar, ajustar e exportar o diagrama.</div>
+        </div>
+      </div>
+      <button onclick="showFlowDesigner(document.getElementById('tab-fd'))" style="flex-shrink:0;padding:8px 16px;background:var(--cage-blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🎨 Abrir Editor de Fluxo</button>
+    </div>
     <div id="r-step-tracker" class="step-tracker"></div>
     <div id="r-step-panel"></div>
     <div class="nav-buttons">
@@ -1979,30 +1999,45 @@ Fim"></textarea>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;position:relative;">
                   <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text"># PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
 Analise o documento de processo enviado (POP, manual de processo ou relatório de processo) e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS.
-Leia o documento inteiro antes de estruturar os dados. Nunca invente informações. Se algum campo não existir, retornar null ou lista vazia. Retorne APENAS JSON puro.
+Leia o documento INTEIRO antes de estruturar os dados. Nunca invente informações. Se um campo não existir no documento, retorne null ou lista vazia. Retorne APENAS JSON puro, sem explicações.
 
 # REGRA CRÍTICA — LIMPEZA
 1. Todos os campos começam vazios. 2. Nunca reutilize informações de processos anteriores. 3. Cada documento gera um JSON totalmente independente.
 
-# CLASSIFICAÇÃO DAS AÇÕES
-- atividade: ação executável (ex: "Registrar processo", "Encaminhar relatório")
-- decisao: ponto de escolha (ex: "O processo é novo?", "Há dados sigilosos?")
-- evento: marco de início ou fim (ex: "Receber denúncia", "Processo encerrado")
-- observacao: explicações, comentários, OBS:, parênteses explicativos
+# SIGLAS
+Extraia TODAS as siglas e abreviações presentes no documento (ex: CAGE, CGE, TCE, POP, SAEWEB, SEI, SIAPC).
+Para cada uma inclua o significado completo como "descricao". Não invente siglas ausentes no documento.
 
-NUNCA classifique perguntas, comentários ou observações como "atividade".
+# EXECUTORES DO PROCESSO
+REGRA CRÍTICA: crie uma entrada SEPARADA em executores[] para CADA executor.
+Se o documento listar "Auxiliar administrativo; Analista; Auditor", gere 3 objetos distintos — NUNCA em uma única entrada.
+No campo "actor" de CADA action dentro de steps[], use EXATAMENTE o mesmo texto do campo "name" do executor responsável por aquela ação.
+O campo "title" deve conter o cargo/função do executor. O campo "duties" deve conter as responsabilidades gerais desse executor (não as atividades do processo).
+
+# CLASSIFICAÇÃO DAS AÇÕES (campo "type")
+- atividade: ação executável (ex: "Registrar processo", "Encaminhar relatório")
+- decisao: ponto de escolha binário/múltiplo (ex: "Documentação completa?", "Processo novo?")
+- evento: marco de início ou fim (ex: "Receber solicitação", "Processo encerrado")
+- observacao: explicações, comentários, OBS:, textos entre parênteses
+
+NUNCA classifique perguntas ou comentários como "atividade".
+
+# FLUXO DETALHADO (campo flow[])
+Mapeie TODOS os passos do processo SEM simplificar. Inclua obrigatoriamente:
+- Exceções e tratamentos de erro (ex: "Documentação inválida?" → caminho Não)
+- Loops de retorno (setas voltando para etapas anteriores — o "next" pode apontar para um "id" já usado antes)
+- Todos os caminhos de cada decisão com seus respectivos rótulos
+- O "actor" de cada nó "task" deve ser o nome EXATO do executor correspondente
+Regras técnicas: id único por nó (n1, n2, ...); nós de decisão têm label obrigatório nas setas ("Sim"/"Não" ou equivalente); pelo menos um nó "start" e um "end".
 
 # FORMATO FINAL DO JSON
 {"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[{"id":"","label":"Sim|Não|ou vazio"}]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}
 
-REGRAS DO CAMPO flow[]:
-- Cada nó tem um "id" único (ex: "n1", "n2", ...).
-- "next" é lista de objetos {"id":"nX","label":"texto da seta"}.
-- Em nós de decisão, o label DEVE ser preenchido (ex: "Sim", "Não", "Aprovado", "Reprovado").
-- Em nós normais, label pode ser vazio "".
-- Exemplo de decisão: {"id":"n3","type":"decision","name":"Aprovado?","actor":"Chefia","next":[{"id":"n4","label":"Sim"},{"id":"n5","label":"Não"}]}
-
-VALIDAÇÃO FINAL: siglas contém apenas siglas do documento · flow possui pelo menos um start e um end · decisões têm label nas setas</div>
+VALIDAÇÃO FINAL OBRIGATÓRIA:
+✓ siglas[] contém TODAS as siglas do documento, cada uma como entrada separada
+✓ executores[] tem uma entrada por executor (nunca concatenados com ";" em um único name)
+✓ steps[].actions[].actor usa o nome EXATO de um executor em executores[].name
+✓ flow[] possui pelo menos um "start" e um "end", todos os caminhos de decisão mapeados, loops incluídos</div>
                   <button onclick="copyNpopPrompt()" id="npop-copy-btn"
                     style="margin-top:8px;padding:5px 12px;background:var(--cage-blue);color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
                     📋 Copiar prompt
@@ -4190,11 +4225,24 @@ function applyIaResult(parsed) {
       output:    parsed.output    || '',
     },
     steps,
-    roles: (parsed.executores || parsed.roles || []).map(r => ({
-      cls:'role-green', icon:'👤',
-      name: r.name||'Ator', title: r.title||r.cargo||'',
-      duties: r.duties||r.responsabilidades||[]
-    })),
+    roles: (() => {
+      const COLOR_CYCLE = ['role-green','role-blue','role-gold','role-purple','role-red'];
+      const ICONS = ['👤','👩‍💼','🔍','📋','⚙️'];
+      // Flatten entries where AI concatenated multiple executors in one "name" (e.g. "A; B; C")
+      const rawExec = parsed.executores || parsed.roles || [];
+      const expanded = rawExec.flatMap(r => {
+        const names = (r.name||'').split(/[;\/]/).map(n => n.trim()).filter(Boolean);
+        if(names.length <= 1) return [r];
+        return names.map(name => ({ ...r, name, duties: r.duties||[] }));
+      });
+      return expanded.map((r, ri) => ({
+        cls:   COLOR_CYCLE[ri % COLOR_CYCLE.length],
+        icon:  ICONS[ri % ICONS.length],
+        name:  r.name||'Ator',
+        title: r.title||r.cargo||'',
+        duties: r.duties||r.responsabilidades||[]
+      }));
+    })(),
     indicators: (parsed.indicators || []).map(ind => ({
       icon: ind.icon||'📊', title: ind.title||'', desc: ind.desc||'',
       tag: ind.tag||'perc', formula: ind.formula||'', fonte: ind.fonte||'',
@@ -8168,11 +8216,16 @@ async function npopExtractWithGemini(file) {
 
     const prompt = document.getElementById('npop-prompt-text')?.textContent?.trim() ||
 `# PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
-Analise o documento de processo enviado e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS. Leia o documento inteiro antes de estruturar. Nunca invente informações. Retorne APENAS JSON puro.
+Analise o documento de processo enviado e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS. Leia o documento INTEIRO antes de estruturar. Nunca invente informações. Retorne APENAS JSON puro.
 
-CLASSIFICAÇÃO DAS AÇÕES: atividade=ação executável · decisao=ponto de escolha · evento=marco início/fim · observacao=comentário/OBS
+SIGLAS: extraia TODAS as siglas do documento, cada uma como entrada separada em siglas[].
+EXECUTORES: crie uma entrada SEPARADA para cada executor — nunca concatene nomes com ";" em um único "name". Use o nome exato do executor no campo "actor" de cada action.
+FLUXO: mapeie TODOS os passos sem simplificar — inclua exceções, loops de retorno, todos os caminhos de decisão.
 
-FORMATO FINAL:
+CLASSIFICAÇÃO: atividade=ação executável · decisao=ponto de escolha · evento=marco início/fim · observacao=comentário/OBS
+VALIDAÇÃO: executores[] um por linha · siglas[] todas separadas · flow[] tem start+end+todos os caminhos
+
+FORMATO:
 {"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[{"id":"","label":"Sim|Não|ou vazio"}]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}`;
 
     pbar.style.width = '60%';
