@@ -1942,9 +1942,16 @@ Leia o documento inteiro antes de estruturar os dados. Nunca invente informaçõ
 NUNCA classifique perguntas, comentários ou observações como "atividade".
 
 # FORMATO FINAL DO JSON
-{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}
+{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[{"id":"","label":"Sim|Não|ou vazio"}]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}
 
-VALIDAÇÃO FINAL: siglas contém apenas siglas do documento · flow possui pelo menos um start e um end</div>
+REGRAS DO CAMPO flow[]:
+- Cada nó tem um "id" único (ex: "n1", "n2", ...).
+- "next" é lista de objetos {"id":"nX","label":"texto da seta"}.
+- Em nós de decisão, o label DEVE ser preenchido (ex: "Sim", "Não", "Aprovado", "Reprovado").
+- Em nós normais, label pode ser vazio "".
+- Exemplo de decisão: {"id":"n3","type":"decision","name":"Aprovado?","actor":"Chefia","next":[{"id":"n4","label":"Sim"},{"id":"n5","label":"Não"}]}
+
+VALIDAÇÃO FINAL: siglas contém apenas siglas do documento · flow possui pelo menos um start e um end · decisões têm label nas setas</div>
                   <button onclick="copyNpopPrompt()" id="npop-copy-btn"
                     style="margin-top:8px;padding:5px 12px;background:var(--cage-blue);color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
                     📋 Copiar prompt
@@ -8060,7 +8067,7 @@ Analise o documento de processo enviado e extraia todas as informações estrutu
 CLASSIFICAÇÃO DAS AÇÕES: atividade=ação executável · decisao=ponto de escolha · evento=marco início/fim · observacao=comentário/OBS
 
 FORMATO FINAL:
-{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}`;
+{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[{"id":"","label":"Sim|Não|ou vazio"}]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}`;
 
     pbar.style.width = '60%';
     msg.textContent = 'Gemini analisando o documento...';
@@ -8450,8 +8457,15 @@ function saveStatusModal() {
 
     flowArr.forEach(n => {
       (n.next || []).forEach(nxt => {
-        if(idMap[n.id] && idMap[nxt])
-          code += `  ${idMap[n.id]} --> ${idMap[nxt]}\n`;
+        // next[] pode ser string "id" ou objeto {id, label}
+        const toId  = typeof nxt === 'string' ? nxt : nxt.id;
+        const label = typeof nxt === 'string' ? '' : (nxt.label || '');
+        if(idMap[n.id] && idMap[toId]) {
+          if(label)
+            code += `  ${idMap[n.id]} -- "${label}" --> ${idMap[toId]}\n`;
+          else
+            code += `  ${idMap[n.id]} --> ${idMap[toId]}\n`;
+        }
       });
     });
 
