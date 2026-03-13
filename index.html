@@ -769,6 +769,13 @@
   .sidebar-toggle.shifted { left: min(88vw, 320px); }
   .sidebar.open ~ .sidebar-toggle { left: min(88vw, 320px); }
 
+  /* CRÍTICO: no mobile a sidebar é overlay — NÃO empurrar o conteúdo */
+  body.sidebar-open .main { margin-left: 0 !important; }
+  body.sidebar-open .pop-switcher,
+  body.sidebar-open .nav-tabs,
+  body.sidebar-open .edit-bar,
+  body.sidebar-open .readonly-banner { padding-left: 12px !important; }
+
   /* BPMN — remover min-height que causa overflow em tela pequena */
   .bpmn-canvas-wrap { min-height: 0 !important; }
 
@@ -864,6 +871,9 @@
 </div>
 
 <!-- SIDEBAR -->
+<!-- Backdrop escuro ao abrir sidebar no mobile — clique fecha -->
+<div id="sidebar-backdrop" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:89;"></div>
+
 <div class="sidebar" id="sidebar">
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
@@ -4151,6 +4161,9 @@ function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebar-toggle').classList.add('shifted');
   document.body.classList.add('sidebar-open');
+  // Mostrar backdrop no mobile
+  const bd = document.getElementById('sidebar-backdrop');
+  if(bd) bd.style.display = 'block';
   renderSidebar();
 }
 
@@ -4159,6 +4172,9 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebar-toggle').classList.remove('shifted');
   document.body.classList.remove('sidebar-open');
+  // Esconder backdrop
+  const bd = document.getElementById('sidebar-backdrop');
+  if(bd) bd.style.display = 'none';
 }
 
 
@@ -4942,6 +4958,12 @@ async function loadFromCloud() {
     if(!data || !data.data || Object.keys(data.data).length === 0) {
       console.log('loadFromCloud: workspace vazio ou inexistente — usando dados padrão');
       setSyncStatus('synced');
+      // Renderizar mesmo sem dados do cloud para evitar tela em branco
+      ['d','r'].forEach(p => {
+        try { sanitizePop(p); renderStep(p, DATA[p].currentStep); renderRoles(p); renderIndicators(p); } catch(e) {}
+      });
+      const homePage = document.getElementById('home-page');
+      if(homePage && homePage.style.display !== 'none') homeRefresh();
       return;
     }
 
@@ -5313,10 +5335,10 @@ async function initSupabase() {
   supaClient.auth.onAuthStateChange(async (event, session) => {
     // Sempre manter o access token atualizado (inclusive no TOKEN_REFRESHED)
     if(session?.access_token) currentAccessToken = session.access_token;
-    // Só processar SIGNED_OUT (logout real) quando já inicializado
-    // Todos os outros eventos (TOKEN_REFRESHED, SIGNED_IN, INITIAL_SESSION, USER_UPDATED)
-    // são ignorados após o primeiro load para evitar re-load de dados no reload da página
+    // Se app já inicializado: só processar logout real
     if(window._appInitialized && event !== 'SIGNED_OUT') return;
+    // Se app ainda não inicializado mas token foi renovado com sessão válida,
+    // tratar como login (cobre caso de token expirado sendo renovado no reload)
     await _handleSession(session?.user || null);
   });
 
