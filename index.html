@@ -4770,7 +4770,9 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', () => {
   // DEBUG: sempre logar para diagnóstico
   console.log('[beforeunload] user='+!!currentUser+' editor='+isEditor+' init='+window._appInitialized+' token='+!!currentAccessToken);
-  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) {
+  // Não verificar _appInitialized aqui — se init=false o unsaved-dot estará oculto
+  // (nenhuma edição foi feita ainda), então o check do dot abaixo já filtra corretamente.
+  if(!currentUser || !isEditor || !currentAccessToken) {
     console.warn('[beforeunload] SKIP — condição não atendida');
     return;
   }
@@ -8628,27 +8630,11 @@ function saveStatusModal() {
 
 
 <script>
-// ─── Service Worker — cache-busting automático ───────────────────────────────
+// ─── Service Worker — cache-busting (network-first para HTML) ────────────────
+// O SW usa estratégia network-first: sempre busca HTML novo da rede, garantindo
+// que o usuário sempre receba a versão mais recente sem precisar limpar cache.
+// Não forçamos reload automático — isso causava loop infinito de recarregamentos.
 if ('serviceWorker' in navigator) {
-  let _swRefreshing = false;
-  // CRÍTICO: capturar ANTES do registro se já havia um SW ativo.
-  // controllerchange também dispara na primeira instalação (sem SW anterior),
-  // caso em que NÃO devemos recarregar — só recarregar quando é uma ATUALIZAÇÃO.
-  const _hadController = !!navigator.serviceWorker.controller;
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (_swRefreshing) return;
-    if (!_hadController) {
-      // Primeira instalação — não recarregar, apenas logar
-      console.log('[SW] Primeiro SW instalado — sem reload.');
-      return;
-    }
-    // Havia SW anterior e um novo assumiu = atualização de versão → recarregar
-    _swRefreshing = true;
-    console.log('[SW] Nova versão assumiu controle — recarregando...');
-    window.location.reload();
-  });
-
   navigator.serviceWorker.register('/processoscage/sw.js').then(reg => {
     console.log('[SW] Registrado:', reg.scope);
   }).catch(err => console.warn('[SW] Falha no registro:', err));
