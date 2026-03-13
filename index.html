@@ -4960,12 +4960,14 @@ async function loadFromCloud() {
 
   try {
     // Buscar o registro mais recente
+    console.log('[loadFromCloud] enviando query gestpop_workspace...');
     let { data, error } = await supaClient
       .from('gestpop_workspace')
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    console.log('[loadFromCloud] query retornou — data:', !!data, 'error:', error?.message);
 
     if(error) {
       console.error('loadFromCloud query error:', error);
@@ -5333,6 +5335,9 @@ async function initSupabase() {
       },
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // Bypass Web Locks API — evita deadlock onde queries ficam esperando
+      // um refresh de token que nunca libera o lock (causa queries travadas)
+      lock: (name, acquireTimeout, fn) => fn(),
     }
   });
   // Escopo global para que markChanged() possa verificar antes de auto-salvar
