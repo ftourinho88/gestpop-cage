@@ -2753,16 +2753,20 @@ function showSection(id, tab, silent) {
 }
 
 // ═══ EDIT MODE ════════════════════════════════
-function toggleEditMode() {
-  editMode = !editMode;
+function toggleEditMode(forceState) {
+  editMode = forceState !== undefined ? forceState : !editMode;
   document.body.classList.toggle('edit-mode', editMode);
   document.getElementById('edit-toggle').textContent = editMode ? '👁 Visualização' : '✏️ Modo Edição';
   enableEditables(editMode);
   document.querySelectorAll('[id$="-add-faq"]').forEach(el => {
     el.style.display = editMode ? 'inline-flex' : 'none';
   });
-  if(editMode) showToast('✏️ Modo Edição ativo — clique em qualquer campo para editar','warn');
-  else showToast('Modo visualização ativo');
+  // Persistir estado do modo edição entre recarregamentos
+  try { localStorage.setItem('gestpop_editMode', editMode ? '1' : '0'); } catch(e) {}
+  if(forceState === undefined) {
+    if(editMode) showToast('✏️ Modo Edição ativo — clique em qualquer campo para editar','warn');
+    else showToast('Modo visualização ativo');
+  }
 }
 
 function enableEditables(on) {
@@ -3940,8 +3944,8 @@ function addRole(p) {
 
 // ── Show edit-add-btn for addStep in edit mode ─
 const _origToggleEdit = toggleEditMode;
-toggleEditMode = function() {
-  _origToggleEdit();
+toggleEditMode = function(forceState) {
+  _origToggleEdit(forceState);
   document.querySelectorAll('[id$="-add-step-btn"]').forEach(btn => {
     btn.style.display = editMode ? 'inline-flex' : 'none';
   });
@@ -4764,9 +4768,16 @@ document.addEventListener('visibilitychange', () => {
 // Salvar ao fechar/atualizar a página usando fetch keepalive=true
 // (único mecanismo que garante a requisição mesmo após o unload da página)
 window.addEventListener('beforeunload', () => {
-  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) return;
+  // DEBUG: sempre logar para diagnóstico
+  console.log('[beforeunload] user='+!!currentUser+' editor='+isEditor+' init='+window._appInitialized+' token='+!!currentAccessToken);
+  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) {
+    console.warn('[beforeunload] SKIP — condição não atendida');
+    return;
+  }
   const unsavedDot = document.getElementById('unsaved-dot');
-  if(!unsavedDot || unsavedDot.style.display === 'none') return;
+  const dotVisible = unsavedDot && unsavedDot.style.display !== 'none';
+  console.log('[beforeunload] unsaved-dot visível:', dotVisible);
+  if(!dotVisible) return;
 
   // Colher estado atual do DOM antes do unload
   try { harvestEditables(); } catch(e) {}
@@ -4806,17 +4817,18 @@ window.addEventListener('beforeunload', () => {
 
   try {
     if(workspaceId) {
-      // UPDATE registro existente
+      console.log('[beforeunload] PATCH workspaceId='+workspaceId+' payload='+reqBody.length+'bytes');
       fetch(`${SUPA_URL}/rest/v1/gestpop_workspace?id=eq.${workspaceId}`, {
         method: 'PATCH', keepalive: true, headers, body: reqBody
       });
     } else {
-      // INSERT — primeiro acesso, workspace ainda não foi criado
+      console.log('[beforeunload] POST novo workspace payload='+reqBody.length+'bytes');
       fetch(`${SUPA_URL}/rest/v1/gestpop_workspace`, {
         method: 'POST', keepalive: true, headers, body: reqBody
       });
     }
-  } catch(e) { console.warn('beforeunload save failed:', e); }
+    console.log('[beforeunload] fetch keepalive enviado OK');
+  } catch(e) { console.warn('[beforeunload] save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
@@ -4952,6 +4964,9 @@ async function loadFromCloud() {
       });
       const homePage = document.getElementById('home-page');
       if(homePage && homePage.style.display !== 'none') homeRefresh();
+      try {
+        if(isEditor && localStorage.getItem('gestpop_editMode') === '1' && !editMode) toggleEditMode(true);
+      } catch(e) {}
       return;
     }
 
@@ -5005,6 +5020,12 @@ async function loadFromCloud() {
     updateLastSaveChip(data);
     showToast('☁️ Conteúdo carregado!', 'success');
     console.log('loadFromCloud: OK');
+    // Restaurar modo edição se o usuário era editor e estava em modo edição antes do reload
+    try {
+      if(isEditor && localStorage.getItem('gestpop_editMode') === '1' && !editMode) {
+        toggleEditMode(true);
+      }
+    } catch(e) {}
 
   } catch(e) {
     setSyncStatus('error');
@@ -8592,5 +8613,34 @@ function saveStatusModal() {
   </div>
 </div>
 
+
+<script>
+// ─── Service Worker — cache-busting automático ───────────────────────────────
+if ('serviceWorker' in navigator) {
+  let _swRefreshing = false;
+
+  // Quando um novo SW assume o controle, recarregar para pegar a versão nova
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshing) return;
+    _swRefreshing = true;
+    console.log('[SW] Nova versão assumiu controle — recarregando...');
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('/processoscage/sw.js').then(reg => {
+    console.log('[SW] Registrado:', reg.scope);
+
+    // Detectar quando uma nova versão está sendo instalada
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('[SW] Nova versão instalada — skipWaiting vai ativar em breve.');
+        }
+      });
+    });
+  }).catch(err => console.warn('[SW] Falha no registro:', err));
+}
+</script>
 </body>
 </html>
