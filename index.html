@@ -8030,11 +8030,45 @@ function saveStatusModal() {
       document.getElementById('fd-mermaid-code').value = _savedCode;
       _render(_savedCode);
     } else {
+      _savedCode = '';
       document.getElementById('fd-mermaid-code').value = '';
       document.getElementById('fd-mermaid-out').innerHTML =
         '<div style="color:#94a3b8;font-size:14px;padding:60px 20px;text-align:center;font-family:\'DM Sans\',sans-serif;">Cole o texto no painel e clique em "Gerar Fluxo"</div>';
     }
   }
+
+  // ── Auto-save visual state into DATA (triggered by Drawflow events) ──
+  function _dfAutoSave() {
+    if(!_dfEditor) return;
+    const p = popPrefix(currentPop);
+    if(!DATA[p]) return;
+    try {
+      const flowArr = _dfExportToFlowJson();
+      if(flowArr.length === 0) return; // don't erase existing data with empty canvas
+      const code = _flowJsonToMermaid(flowArr);
+      DATA[p].flowDiagram = { mermaid: code, flow: flowArr };
+      _savedCode = code;
+      const ta = document.getElementById('fd-mermaid-code');
+      if(ta) ta.value = code;
+      markChanged(); // debounced cloud save
+    } catch(e) { console.warn('_dfAutoSave error:', e); }
+  }
+  window._dfAutoSave = _dfAutoSave;
+
+  // ── Auto-save textarea changes into DATA (no extra cloud call needed — markChanged debounces it) ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const ta = document.getElementById('fd-mermaid-code');
+    if(!ta) return;
+    ta.addEventListener('input', () => {
+      const code = ta.value.trim();
+      const p = popPrefix(currentPop);
+      if(!p || !DATA[p] || !code) return;
+      const existingFlow = DATA[p].flowDiagram?.flow;
+      DATA[p].flowDiagram = { mermaid: code, ...(existingFlow ? { flow: existingFlow } : {}) };
+      _savedCode = code;
+      markChanged();
+    });
+  });
 
   // ── Render Mermaid code ───────────────────────────────────────
   async function _render(code) {
@@ -8380,7 +8414,12 @@ function saveStatusModal() {
       _dfEditor = new Drawflow(container);
       _dfEditor.reroute = true;
       _dfEditor.start();
-      // Double-click on background = nothing (prevent adding nodes accidentally)
+      // Auto-save on every structural change (node add/remove/move, connection add/remove)
+      _dfEditor.on('nodeCreated',       _dfAutoSave);
+      _dfEditor.on('nodeRemoved',       _dfAutoSave);
+      _dfEditor.on('nodeMoved',         _dfAutoSave);
+      _dfEditor.on('connectionCreated', _dfAutoSave);
+      _dfEditor.on('connectionRemoved', _dfAutoSave);
     }
 
     // Load current flow data if available
@@ -8389,16 +8428,22 @@ function saveStatusModal() {
     if(fd?.flow && fd.flow.length > 0) {
       _dfLoadFlow(fd.flow);
     } else {
-      // Try to auto-detect from saved DATA flow
+      // ALWAYS clear the editor — never show a different POP's diagram
+      _dfEditor.clear();
+      // Try to auto-detect from saved DATA flow (legacy field)
       const popFlow = DATA[p]?.flow;
       if(popFlow && popFlow.length > 0) _dfLoadFlow(popFlow);
     }
   };
 
-  // Switch back to text mode
+  // Switch back to text mode — auto-harvest visual state first
   window.fdSwitchText = function() {
+    _dfAutoSave(); // capture any unsaved visual changes before leaving
     document.getElementById('fd-visual-outer').classList.remove('active');
     document.getElementById('fd-text-mode').style.display = 'flex';
+    // Refresh textarea with latest code
+    const ta = document.getElementById('fd-mermaid-code');
+    if(ta && _savedCode) ta.value = _savedCode;
   };
 
   // Drag from palette
