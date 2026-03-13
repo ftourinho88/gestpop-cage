@@ -8613,5 +8613,34 @@ function saveStatusModal() {
   </div>
 </div>
 
+
+<script>
+// ─── Service Worker — cache-busting automático ───────────────────────────────
+if ('serviceWorker' in navigator) {
+  let _swRefreshing = false;
+
+  // Quando um novo SW assume o controle, recarregar para pegar a versão nova
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshing) return;
+    _swRefreshing = true;
+    console.log('[SW] Nova versão assumiu controle — recarregando...');
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('/processoscage/sw.js').then(reg => {
+    console.log('[SW] Registrado:', reg.scope);
+
+    // Detectar quando uma nova versão está sendo instalada
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('[SW] Nova versão instalada — skipWaiting vai ativar em breve.');
+        }
+      });
+    });
+  }).catch(err => console.warn('[SW] Falha no registro:', err));
+}
+</script>
 </body>
 </html>
