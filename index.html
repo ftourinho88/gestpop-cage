@@ -5397,9 +5397,10 @@ async function initSupabase() {
     document.getElementById('auth-overlay').style.display = 'flex';
     return;
   }
+  // Forçar novo login a cada reload/F5 — limpar sessão salva antes de criar o cliente
+  try { localStorage.removeItem('gestpop_auth'); } catch(e) {}
+
   // Liberar qualquer Web Lock travado da sessão anterior antes de criar o cliente
-  // (reload/F5 pode deixar o lock "supabase-gotrue-token-refresh-gestpop_auth" preso,
-  //  causando getSession() e todas as queries ficarem suspensas indefinidamente)
   if (typeof navigator !== 'undefined' && navigator.locks) {
     try {
       await navigator.locks.request(
