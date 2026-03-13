@@ -5419,6 +5419,12 @@ async function initSupabase() {
   supaClient.auth.onAuthStateChange(async (event, session) => {
     // Sempre manter o access token atualizado (inclusive no TOKEN_REFRESHED)
     if(session?.access_token) currentAccessToken = session.access_token;
+    // INITIAL_SESSION é tratado pelo getSession() explícito abaixo (que roda após
+    // _initialize completar). Processar aqui causaria deadlock: _notifyAllSubscribers
+    // aguarda este callback, e o callback chama loadFromCloud() que internamente
+    // chama getSession() que aguarda initializePromise que aguarda _initialize()
+    // que aguarda _notifyAllSubscribers — ciclo infinito.
+    if(event === 'INITIAL_SESSION') return;
     // Se app já inicializado: só processar logout real
     if(window._appInitialized && event !== 'SIGNED_OUT') return;
     // Se app ainda não inicializado mas token foi renovado com sessão válida,
