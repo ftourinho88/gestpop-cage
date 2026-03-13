@@ -4764,9 +4764,16 @@ document.addEventListener('visibilitychange', () => {
 // Salvar ao fechar/atualizar a página usando fetch keepalive=true
 // (único mecanismo que garante a requisição mesmo após o unload da página)
 window.addEventListener('beforeunload', () => {
-  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) return;
+  // DEBUG: sempre logar para diagnóstico
+  console.log('[beforeunload] user='+!!currentUser+' editor='+isEditor+' init='+window._appInitialized+' token='+!!currentAccessToken);
+  if(!currentUser || !isEditor || !window._appInitialized || !currentAccessToken) {
+    console.warn('[beforeunload] SKIP — condição não atendida');
+    return;
+  }
   const unsavedDot = document.getElementById('unsaved-dot');
-  if(!unsavedDot || unsavedDot.style.display === 'none') return;
+  const dotVisible = unsavedDot && unsavedDot.style.display !== 'none';
+  console.log('[beforeunload] unsaved-dot visível:', dotVisible);
+  if(!dotVisible) return;
 
   // Colher estado atual do DOM antes do unload
   try { harvestEditables(); } catch(e) {}
@@ -4806,17 +4813,18 @@ window.addEventListener('beforeunload', () => {
 
   try {
     if(workspaceId) {
-      // UPDATE registro existente
+      console.log('[beforeunload] PATCH workspaceId='+workspaceId+' payload='+reqBody.length+'bytes');
       fetch(`${SUPA_URL}/rest/v1/gestpop_workspace?id=eq.${workspaceId}`, {
         method: 'PATCH', keepalive: true, headers, body: reqBody
       });
     } else {
-      // INSERT — primeiro acesso, workspace ainda não foi criado
+      console.log('[beforeunload] POST novo workspace payload='+reqBody.length+'bytes');
       fetch(`${SUPA_URL}/rest/v1/gestpop_workspace`, {
         method: 'POST', keepalive: true, headers, body: reqBody
       });
     }
-  } catch(e) { console.warn('beforeunload save failed:', e); }
+    console.log('[beforeunload] fetch keepalive enviado OK');
+  } catch(e) { console.warn('[beforeunload] save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
