@@ -278,6 +278,10 @@
     .pop-switcher{padding:0 16px;}
   }
 
+  /* ── FLOW DESIGNER ── */
+  .fd-ctx-item{padding:7px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s;}
+  .fd-ctx-item:hover{background:#f1f5f9;}
+
   /* ── BPMN MODULE ── */
   .bpmn-panel{max-width:1300px;margin:0 auto;padding:0;}
 
@@ -947,7 +951,8 @@
     <div class="nav-tab" onclick="showSection('riscos',this)">⚠️ Riscos</div>
     <div class="nav-tab" onclick="showSection('plano-acao',this)">✅ Plano de Ação</div>
     <div class="nav-tab" onclick="showSection('reunioes',this)">🤝 Reuniões</div>
-    <div class="nav-tab nav-tab-bpmn" onclick="showBpmn(this)" id="tab-bpmn">🔀 Fluxograma BPMN</div>
+    <div class="nav-tab nav-tab-bpmn" onclick="showBpmn(this)" id="tab-bpmn">🖼 Imagem BPMN</div>
+    <div class="nav-tab nav-tab-fd" onclick="showFlowDesigner(this)" id="tab-fd">🎨 Desenhar Fluxo</div>
   </div>
 </nav>
 
@@ -1646,7 +1651,6 @@
           <button class="bpmn-tool-btn" onclick="imgZoom(-0.15)" title="Zoom out">－</button>
           <button class="bpmn-tool-btn" onclick="bpmnFit()" title="Encaixar na tela">⛶</button>
           <div class="bpmn-divider"></div>
-          <button class="bpmn-tool-btn" id="bpmn-extract-btn" onclick="extractFluxoFromImage()" style="display:none;background:rgba(124,58,237,.3);color:#c4b5fd;border-color:rgba(124,58,237,.5);">🤖 Extrair Fluxo com IA</button>
           <button class="bpmn-tool-btn" onclick="exportBpmnSvg()" title="Baixar imagem">⬇ Baixar</button>
           <button class="bpmn-tool-btn bpmn-tool-danger" onclick="resetBpmn()" title="Trocar arquivo">🔄 Trocar</button>
         </div>
@@ -1666,6 +1670,96 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FLOW DESIGNER MODULE — Desenho automático de fluxos        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="fd-module" style="display:none;">
+  <div style="display:flex;height:calc(100vh - 174px);min-height:520px;background:white;border-radius:var(--radius);border:1px solid var(--cage-border);overflow:hidden;box-shadow:var(--shadow-md);">
+
+    <!-- LEFT: text input panel -->
+    <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--cage-border);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
+        <div style="font-size:13px;font-weight:700;color:white;margin-bottom:1px;">Texto do Fluxo</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;">Um passo por linha. Termine com ? para decisão.<br>Indent + Sim:/Não: para ramificações.</div>
+      </div>
+      <textarea id="fd-text-input" style="flex:1;border:none;outline:none;resize:none;padding:12px 14px;font-size:12px;font-family:'JetBrains Mono',monospace;line-height:1.65;background:#f8fafc;color:var(--text-primary);" placeholder="Início
+Receber solicitação [Auditor]
+Analisar documentação
+Documentação completa?
+  Sim: Elaborar parecer -> Assinar -> Arquivar -> Fim
+  Não: Notificar solicitante -> Receber solicitação
+Fim"></textarea>
+      <div style="padding:10px 12px;border-top:1px solid var(--cage-border);background:#f8fafc;display:flex;flex-direction:column;gap:6px;">
+        <button onclick="fdGenerateFromText()" style="padding:9px;background:var(--cage-accent);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">▶ Gerar Fluxo</button>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.5;"><strong>Tipos automáticos:</strong> "Início/Fim" = eventos · linha com "?" = decisão · demais = atividade · <code>[Ator]</code> no fim da linha</div>
+      </div>
+    </div>
+
+    <!-- CENTER: SVG canvas -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <!-- Toolbar -->
+      <div style="padding:7px 12px;border-bottom:1px solid var(--cage-border);display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:var(--cage-blue);">
+        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-right:2px;">Adicionar:</span>
+        <button onclick="fdAddNode('start')" title="Evento Início" style="padding:4px 9px;background:rgba(0,168,107,.35);color:#6ee7b7;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">○ Início</button>
+        <button onclick="fdAddNode('task')" title="Atividade" style="padding:4px 9px;background:rgba(96,165,250,.2);color:#93c5fd;border:1px solid rgba(96,165,250,.4);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">□ Atividade</button>
+        <button onclick="fdAddNode('decision')" title="Gateway de decisão" style="padding:4px 9px;background:rgba(232,160,32,.25);color:#fde068;border:1px solid rgba(232,160,32,.45);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">◇ Decisão</button>
+        <button onclick="fdAddNode('end')" title="Evento Fim" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">● Fim</button>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 3px;"></div>
+        <button onclick="fdFit()" title="Encaixar na tela" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⛶ Fit</button>
+        <button onclick="fdUndo()" title="Desfazer Ctrl+Z" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">↩</button>
+        <button onclick="fdRedo()" title="Refazer Ctrl+Y" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">↪</button>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 3px;"></div>
+        <button onclick="fdExportSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ SVG</button>
+        <button onclick="fdExportPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ PNG</button>
+        <button onclick="fdSave()" title="Salvar (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.3);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;">☁️ Salvar</button>
+      </div>
+      <!-- Canvas -->
+      <div style="flex:1;overflow:hidden;background:#f0f4f8;position:relative;" id="fd-canvas-wrap">
+        <svg id="fd-canvas" style="width:100%;height:100%;cursor:default;display:block;"
+             viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+        </svg>
+      </div>
+    </div>
+
+    <!-- RIGHT: properties panel -->
+    <div style="width:210px;flex-shrink:0;border-left:1px solid var(--cage-border);display:flex;flex-direction:column;background:#f8fafc;">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
+        <div style="font-size:13px;font-weight:700;color:white;">Propriedades</div>
+      </div>
+      <div id="fd-props" style="padding:14px;flex:1;overflow-y:auto;font-size:12px;">
+        <div style="color:var(--text-muted);text-align:center;padding:20px 0;line-height:1.6;">Clique em um nó<br>para editar</div>
+      </div>
+      <div style="padding:10px 12px;border-top:1px solid var(--cage-border);">
+        <div style="font-size:10.5px;color:var(--text-muted);line-height:1.6;">
+          <strong style="color:var(--text-secondary);">Atalhos:</strong><br>
+          Clique → Selecionar<br>
+          Duplo-clique → Editar texto<br>
+          Clique direito → Menu<br>
+          Arrastar → Mover nó<br>
+          Del → Excluir selecionado<br>
+          Ctrl+Z/Y → Desfazer/Refazer<br>
+          Scroll → Zoom · Drag fundo → Pan
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flow Designer — Context menu -->
+<div id="fd-ctx-menu" style="display:none;position:fixed;background:white;border:1px solid var(--cage-border);border-radius:8px;box-shadow:var(--shadow-lg);z-index:9999;min-width:180px;overflow:hidden;">
+  <div style="padding:4px 0;">
+    <div style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Mudar tipo para</div>
+    <div onclick="fdCtxChangeType('start')" class="fd-ctx-item"><span style="color:#00a86b;">○</span> Evento Início</div>
+    <div onclick="fdCtxChangeType('task')" class="fd-ctx-item"><span style="color:#1a4a7a;">□</span> Atividade / Tarefa</div>
+    <div onclick="fdCtxChangeType('decision')" class="fd-ctx-item"><span style="color:#e8a020;">◇</span> Decisão (Gateway)</div>
+    <div onclick="fdCtxChangeType('end')" class="fd-ctx-item"><span style="color:#0a2540;">●</span> Evento Fim</div>
+    <hr style="border:none;border-top:1px solid var(--cage-border);margin:3px 0;">
+    <div onclick="fdCtxConnect()" class="fd-ctx-item">→ Conectar a...</div>
+    <div onclick="fdCtxEditLabel()" class="fd-ctx-item">✏️ Editar texto</div>
+    <div onclick="fdCtxDelete()" class="fd-ctx-item" style="color:#dc2626;">✕ Excluir nó</div>
   </div>
 </div>
 
@@ -1902,17 +1996,25 @@
               <div style="padding-bottom:14px;padding-left:0;padding-top:4px;flex:1;">
                 <div style="font-size:13px;font-weight:600;color:var(--cage-blue);margin-bottom:4px;">Envie seu arquivo + copie este prompt</div>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;position:relative;">
-                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text">Analise este documento POP e extraia em JSON puro para o GestPROC CAGE-RS.
+                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text"># PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
+Analise o documento de processo enviado (POP, manual de processo ou relatório de processo) e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS.
+Leia o documento inteiro antes de estruturar os dados. Nunca invente informações. Se algum campo não existir, retornar null ou lista vazia. Retorne APENAS JSON puro.
 
-REGRAS para classificar actions de cada etapa:
-- "atividade": ação executável ("Registrar no sistema", "Encaminhar para chefia")
-- "decisao": ponto de escolha ("Verificar se há indícios", "Avaliar se procede")
-- "evento": gatilho ou marco ("Receber denúncia", "Prazo iniciado")
-- "observacao": nota, comentário ou esclarecimento que NÃO é ação (textos com "Obs:", parênteses explicativos, referências normativas dentro da etapa)
+# REGRA CRÍTICA — LIMPEZA
+1. Todos os campos começam vazios. 2. Nunca reutilize informações de processos anteriores. 3. Cada documento gera um JSON totalmente independente.
+
+# CLASSIFICAÇÃO DAS AÇÕES
+- atividade: ação executável (ex: "Registrar processo", "Encaminhar relatório")
+- decisao: ponto de escolha (ex: "O processo é novo?", "Há dados sigilosos?")
+- evento: marco de início ou fim (ex: "Receber denúncia", "Processo encerrado")
+- observacao: explicações, comentários, OBS:, parênteses explicativos
 
 NUNCA classifique perguntas, comentários ou observações como "atividade".
 
-Retorne APENAS JSON sem markdown: {"nome":"","macro":"","processo":"","elaborado":"","revisado":"","desc":"","input":"","output":"","steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"roles":[{"name":"","title":"","duties":[]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}],"normas":[{"icon":"📄","code":"","name":""}]}</div>
+# FORMATO FINAL DO JSON
+{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}
+
+VALIDAÇÃO FINAL: siglas contém apenas siglas do documento · flow possui pelo menos um start e um end</div>
                   <button onclick="copyNpopPrompt()" id="npop-copy-btn"
                     style="margin-top:8px;padding:5px 12px;background:var(--cage-blue);color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
                     📋 Copiar prompt
@@ -3442,8 +3544,6 @@ function showBpmnImage(dataUrl) {
     window._imgState = { zoom: fitZoom, tx, ty };
     applyImgTransform();
     updateZoomLabel();
-    const btn = document.getElementById('bpmn-extract-btn');
-    if(btn) btn.style.display = 'inline-flex';
   };
   img.onerror = () => {
     document.getElementById('bpmn-loading').style.display = 'none';
@@ -3557,6 +3657,8 @@ function restoreFluxoImg(dataUrl) {
 
 function hideBpmnIfNeeded() {
   document.getElementById('bpmn-module').style.display = 'none';
+  const fdMod = document.getElementById('fd-module');
+  if(fdMod) fdMod.style.display = 'none';
 }
 
 const _origShowSection = showSection;
@@ -3603,8 +3705,6 @@ function resetBpmn() {
   const imgWrap = document.getElementById('bpmn-image-viewer');
   if(imgWrap) imgWrap.remove();
   window._imgState = { zoom:1, tx:0, ty:0 };
-  const btn = document.getElementById('bpmn-extract-btn');
-  if(btn) btn.style.display = 'none';
   // Clear all image data for current pop
   const p = popPrefix(currentPop);
   if(DATA[p]) {
@@ -4042,8 +4142,19 @@ function applyIaResult(parsed) {
     })),
     faqs:     (parsed.faqs    || []),
     normas:   (parsed.normas  || []).map(n => ({icon: n.icon||'📄', code: n.code||'', name: n.name||''})),
-    revisions:[{num:'0', date: today, desc:'Emissão Inicial (importado via IA).', author: parsed.elaborado||''}]
+    revisions:[{num:'0', date: today, desc:'Emissão Inicial (importado via IA).', author: parsed.elaborado||''}],
+    siglas: (parsed.siglas || []),
+    flowDiagram: null,  // will be built below if flow[] exists
   };
+
+  // Auto-build flow diagram from flow[] if extracted
+  if(Array.isArray(parsed.flow) && parsed.flow.length > 0 && typeof fdBuildFromFlowJSON === 'function') {
+    // Temporarily set currentPop to key so fdBuildFromFlowJSON stores in correct slot
+    const _prevPop = currentPop;
+    currentPop = key;
+    fdBuildFromFlowJSON(parsed.flow);
+    currentPop = _prevPop;
+  }
 
   document.getElementById('npop-s2').classList.remove('active');
   document.getElementById('npop-s3').classList.add('active');
@@ -4075,7 +4186,11 @@ function applyIaResult(parsed) {
   const btn = document.getElementById('npop-confirm-btn');
   btn.style.display = 'inline-flex';
   btn.textContent = '✅ Criar POP →';
-  btn.onclick = () => { mountNewPopTab(key, DATA[key].meta.name); closeNovoPop(); showToast('✅ POP importado com sucesso!', 'success'); };
+  btn.onclick = () => {
+    mountNewPopTab(key, DATA[key].meta.name);
+    closeNovoPop();
+    showToast('✅ POP importado! O desenho do fluxo foi gerado automaticamente na aba "Desenhar Fluxo".', 'success');
+  };
 }
 
 function copyNpopPrompt() {
@@ -4229,12 +4344,10 @@ function renderSidebar() {
 
   const isPatActive = document.getElementById('pat-module')?.classList.contains('active');
 
-  // Sidebar mostra apenas os POPs fixos (d e r)
-  // Mapeamentos dinâmicos ficam na página de Procedimentos Operacionais
-  const pops = [
-    { key:'d', label: DATA.d?.meta?.name || 'Tratar Denúncias',     macro: DATA.d?.meta?.macro || 'Promoção da Integridade' },
-    { key:'r', label: DATA.r?.meta?.name || 'Tratar Representações', macro: DATA.r?.meta?.macro || 'Promoção da Integridade' },
-  ];
+  // Sidebar mostra apenas mapeamentos dinâmicos (não os POPs fixos d e r)
+  const pops = Object.keys(DATA)
+    .filter(k => k !== 'd' && k !== 'r' && k !== 'pat' && DATA[k]?.meta?.name)
+    .map(k => ({ key: k, label: DATA[k].meta.name, macro: DATA[k].meta.macro || '— Sem Macroprocesso' }));
 
   // Group by macroprocesso
   const groups = {};
@@ -4590,7 +4703,7 @@ let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
 let workspaceId = sessionStorage.getItem('gestpop_wsid') || null;
 
 function hideAllModules() {
-  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module'].forEach(id => {
+  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module','fd-module'].forEach(id => {
     const el = document.getElementById(id);
     if(el) { el.style.display = 'none'; el.classList.remove('active'); }
   });
@@ -6292,216 +6405,7 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape') closeSearchModal();
 });
 
-// ═══ EXTRAIR FLUXO DA IMAGEM COM IA ══════════════════════════
-async function extractFluxoFromImage() {
-  const p = popPrefix(currentPop);
-  const imgEl = document.getElementById('bpmn-img-el');
-  if(!imgEl || !imgEl.src) { showToast('Nenhuma imagem carregada.','warn'); return; }
-
-  if(!confirm('A IA vai analisar a imagem e substituir todas as etapas do fluxo atual. Deseja continuar?')) return;
-
-  const btn = document.getElementById('bpmn-extract-btn');
-  if(btn) { btn.disabled=true; btn.textContent='⏳ Analisando...'; }
-  showToast('🤖 Analisando imagem com IA...','success');
-
-  try {
-    // Get image for Gemini Vision
-    let base64, mediaType;
-    const p2 = popPrefix(currentPop);
-
-    // Helper: safe blob→base64 using FileReader (no stack overflow for any size)
-    const blobToBase64 = (blob) => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Erro ao converter imagem'));
-      reader.readAsDataURL(blob);
-    });
-
-    // Best: use in-memory File object from this session
-    const memFile = DATA[p2]?._fluxoFile;
-    if(memFile) {
-      mediaType = memFile.type || 'image/png';
-      base64 = await blobToBase64(memFile);
-    } else {
-      // Fallback: fetch from storage URL
-      const imgUrl = DATA[p2]?.fluxoImgUrl || DATA[p2]?.fluxoImg || imgEl.src;
-      if(!imgUrl) throw new Error('Nenhuma imagem disponível. Faça o upload novamente.');
-      showToast('🤖 Carregando imagem do storage para análise...', 'success');
-      const fetchResp = await fetch(imgUrl);
-      if(!fetchResp.ok) throw new Error('Não foi possível carregar a imagem do storage.');
-      const blob = await fetchResp.blob();
-      mediaType = blob.type || 'image/png';
-      base64 = await blobToBase64(blob);
-    }
-
-    const extractPrompt = `Voce e um especialista em leitura de fluxogramas BPMN. Siga RIGOROSAMENTE as instrucoes abaixo em DUAS ETAPAS.
-
-=== ETAPA 1: MAPEIE TODOS OS ELEMENTOS ===
-Antes de montar o fluxo, identifique CADA elemento visivel na imagem.
-Para cada elemento, anote:
-- Tipo: INICIO / FIM / ATIVIDADE / DECISAO / ANOTACAO
-- Texto exato dentro do elemento
-- Posicao horizontal aproximada: ESQUERDA / CENTRO-ESQUERDA / CENTRO / CENTRO-DIREITA / DIREITA
-- Raia (swimlane) em que se encontra: nome da faixa horizontal
-
-=== ETAPA 2: MONTE O FLUXO SEGUINDO AS SETAS ===
-REGRA ABSOLUTA: O fluxo e determinado EXCLUSIVAMENTE pelas setas desenhadas.
-NAO use a posicao vertical dos elementos para determinar a ordem.
-NAO leia de cima para baixo.
-LEIA seguindo as setas da ESQUERDA para a DIREITA.
-
-COMO IDENTIFICAR O INICIO:
-- O evento de INICIO e o circulo simples (verde ou pequeno) que tem APENAS setas SAINDO e NENHUMA seta CHEGANDO.
-- Pode estar em QUALQUER raia — nao necessariamente na primeira raia do topo.
-- Comece SEMPRE por este elemento, independente de sua posicao vertical.
-
-COMO SEGUIR O FLUXO:
-- A partir do evento de inicio, siga cada seta na direcao que ela aponta.
-- Setas horizontais (→): avancam o processo para a proxima etapa.
-- Setas verticais (↓ ou ↑): conectam elementos em raias diferentes, mas o fluxo continua na direcao horizontal geral.
-- Losangos (gateways): indicam decisao. Liste TODOS os caminhos possiveis (Sim e Nao).
-- O processo termina no circulo com borda dupla ou preenchimento escuro (evento de FIM).
-
-ELEMENTOS:
-- Circulo simples/verde sem setas entrando = INICIO → type "evento", text "Inicio do processo"
-- Circulo com borda dupla/escura sem setas saindo = FIM → type "evento", text "Fim do processo"  
-- Retangulo arredondado colorido = ATIVIDADE → type "atividade"
-- Losango = DECISAO → type "decisao", inclua: "Sim: [proxima atividade] / Nao: [proxima atividade]"
-- Retangulo cinza/tracejado = ANOTACAO → type "observacao"
-- Nome na margem esquerda de cada faixa horizontal = nome da RAIA (ator/setor)
-
-FORMATO DE SAIDA — retorne APENAS o JSON abaixo, sem markdown, sem texto antes ou depois:
-[
-  {
-    "title": "Nome da Fase ou agrupamento logico",
-    "subtitle": "",
-    "responsible": "Nome da Fase",
-    "respClass": "resp-green",
-    "actions": [
-      {"type": "evento",     "text": "Inicio do processo",                                "actor": "Raia onde esta o circulo de inicio"},
-      {"type": "atividade",  "text": "Texto exato da atividade",                          "actor": "Raia"},
-      {"type": "decisao",    "text": "Texto da decisao? Sim: [acao] / Nao: [acao]",       "actor": "Raia"},
-      {"type": "observacao", "text": "Texto da anotacao",                                 "actor": ""},
-      {"type": "evento",     "text": "Fim do processo",                                   "actor": "Raia onde esta o circulo de fim"}
-    ],
-    "note": null
-  }
-]
-
-VERIFICACAO FINAL obrigatoria antes de responder:
-1. O primeiro elemento de actions e um evento de inicio (circulo sem setas entrando)?
-2. O ultimo elemento de actions e um evento de fim?
-3. A ordem segue as setas, nao a posicao vertical das raias?
-4. Cada atividade tem o nome exato como aparece no fluxograma?
-Se qualquer resposta for NAO, refaca antes de responder.`;
-
-    // Step 1: Ask Gemini to inventory all elements with positions
-    showToast('🔍 Etapa 1/2: identificando elementos do fluxograma...', 'success');
-    const inventoryPrompt = `Voce e um especialista em leitura de fluxogramas BPMN.
-Analise esta imagem e liste TODOS os elementos visiveis em formato JSON.
-Para cada elemento retorne:
-- id: numero sequencial
-- tipo: INICIO | FIM | ATIVIDADE | DECISAO | ANOTACAO
-- texto: texto exato dentro do elemento
-- raia: nome da faixa horizontal (swimlane) onde esta o elemento
-- posicao_x: posicao horizontal estimada em % da largura total da imagem (0=esquerda, 100=direita)
-- setas_para: lista de ids dos elementos para onde as setas deste elemento apontam
-
-Retorne APENAS JSON puro sem markdown:
-[{"id":1,"tipo":"INICIO","texto":"...","raia":"...","posicao_x":5,"setas_para":[2]}, ...]`;
-
-    const inventoryText = await callGeminiVision(inventoryPrompt, base64, mediaType);
-    let inventoryClean = inventoryText.trim();
-    const invMatch = inventoryClean.match(/\[[\s\S]*\]/);
-    if(invMatch) inventoryClean = invMatch[0];
-    else inventoryClean = inventoryClean.replace(/```json|```/g,'').trim();
-
-    // Step 2: Use inventory to build ordered flow
-    showToast('🔗 Etapa 2/2: montando fluxo seguindo as setas...', 'success');
-    const flowPrompt = `Voce e um especialista em modelagem de processos BPMN.
-Abaixo esta o inventario de elementos de um fluxograma BPMN com suas posicoes e conexoes:
-
-${inventoryClean}
-
-Com base EXCLUSIVAMENTE nas conexoes (campo setas_para) acima, monte o fluxo completo do processo.
-REGRAS:
-1. Comece pelo elemento com tipo INICIO (sem setas chegando nele).
-2. Siga as conexoes (setas_para) para determinar a ordem — NAO use posicao_x nem raia para ordenar.
-3. Agrupe elementos em fases logicas (ex: Receber, Analisar, Comunicar).
-4. Para DECISAO inclua: "Texto da decisao? Sim: [elemento destino Sim] / Nao: [elemento destino Nao]"
-5. Termine no elemento com tipo FIM.
-
-Retorne APENAS este JSON puro sem markdown:
-[
-  {
-    "title": "Nome da Fase",
-    "subtitle": "",
-    "responsible": "Nome da Fase",
-    "respClass": "resp-green",
-    "actions": [
-      {"type": "evento|atividade|decisao|observacao", "text": "texto exato", "actor": "nome da raia"}
-    ],
-    "note": null
-  }
-]`;
-
-    const text = await callGeminiVision(flowPrompt, base64, mediaType);
-    // Robust JSON extraction
-    let clean = text.trim();
-    const jsonMatch = clean.match(/\[[\s\S]*\]/);
-    if(jsonMatch) clean = jsonMatch[0];
-    else clean = clean.replace(/```json|```/g,'').trim();
-    const steps = JSON.parse(clean);
-
-    if(!Array.isArray(steps) || steps.length === 0) throw new Error('Nenhuma etapa identificada na imagem. Resposta: ' + text.slice(0,120));
-
-    // Replace steps in DATA
-    DATA[p].steps = steps.map((s, i) => ({
-      title:      s.title      || `Etapa ${i+1}`,
-      subtitle:   s.subtitle   || '',
-      responsible:s.responsible|| '',
-      respClass:  s.respClass  || 'resp-green',
-      actions:    (s.actions||[]).map(a => ({ type: a.type||'atividade', text: a.text||'', actor: a.actor||'' })),
-      note:       s.note       || null,
-      decision:   null
-    }));
-    DATA[p].currentStep = 0;
-
-    // Re-render tracker and first step
-    renderTracker(p);
-    renderStep(p, 0);
-
-    // Also update roles from extracted steps
-    const roleMap = {};
-    DATA[p].steps.forEach(s => {
-      if(s.responsible && !roleMap[s.responsible]) {
-        roleMap[s.responsible] = [];
-      }
-      if(s.responsible) {
-        s.actions.forEach(a => {
-          if(a.text && !roleMap[s.responsible].includes(a.text))
-            roleMap[s.responsible].push(a.text);
-        });
-      }
-    });
-    // Merge with existing roles (don't overwrite, just add missing)
-    Object.entries(roleMap).forEach(([name, duties]) => {
-      const existing = DATA[p].roles.find(r => r.name && r.name.trim().toLowerCase() === name.trim().toLowerCase());
-      if(existing) {
-        duties.forEach(d => { if(!existing.duties.includes(d)) existing.duties.push(d); });
-      }
-    });
-    renderRoles(p);
-    markChanged();
-    showToast(`✅ ${steps.length} etapas extraídas com sucesso!`, 'success');
-
-  } catch(e) {
-    console.error(e);
-    showToast('Erro ao extrair fluxo: ' + e.message, 'warn');
-  }
-
-  if(btn) { btn.disabled=false; btn.textContent='🤖 Extrair Fluxo com IA'; }
-}
+// extractFluxoFromImage descontinuada — use o Designer de Fluxo (aba Desenhar Fluxo)
 
 // ═══ EXPORT PPTX ══════════════════════════════════════════════════════════
 async function exportPptx() {
@@ -8202,33 +8106,14 @@ async function npopExtractWithGemini(file) {
     pbar.style.width = '30%';
     msg.textContent = 'Enviando para o Gemini...';
 
-    const prompt = `Você é um especialista em gestão de processos públicos. Analise este documento de Procedimento Operacional Padrão (POP) e extraia as informações no formato JSON abaixo. Seja fiel ao que está no documento. Retorne APENAS o JSON puro, sem markdown.
+    const prompt = document.getElementById('npop-prompt-text')?.textContent?.trim() ||
+`# PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
+Analise o documento de processo enviado e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS. Leia o documento inteiro antes de estruturar. Nunca invente informações. Retorne APENAS JSON puro.
 
-{
-  "nome": "Nome completo do processo",
-  "macro": "Macroprocesso ao qual pertence (ex: Controle, Auditoria, etc.)",
-  "processo": "Nome do processo pai",
-  "subprocesso": "Nome do subprocesso, se houver",
-  "objetivo": "Objetivo do processo conforme o documento",
-  "entradas": "Entradas/insumos do processo",
-  "saidas": "Saídas/entregas do processo",
-  "fornecedores": "Quem fornece as entradas",
-  "clientes": "Clientes/destinatários das saídas",
-  "responsavel": "Responsável ou gerente do processo",
-  "area": "Área/unidade responsável",
-  "elaborador": "Nome do elaborador, se mencionado",
-  "etapas": [
-    {
-      "title": "Nome da Fase",
-      "responsible": "Nome da Fase",
-      "respClass": "resp-green",
-      "actions": [
-        {"type": "evento|atividade|decisao|observacao", "text": "descrição da ação", "actor": "responsável pela ação"}
-      ],
-      "note": null
-    }
-  ]
-}`;
+CLASSIFICAÇÃO DAS AÇÕES: atividade=ação executável · decisao=ponto de escolha · evento=marco início/fim · observacao=comentário/OBS
+
+FORMATO FINAL:
+{"nome":"","macro":"","processo":"","subprocesso":"","area_responsavel":"","divisao":"","titulo":"","elaborado":"","revisado":"","aprovado":"","versao":"","data_emissao":"","desc":"","input":"","canais_entrada":[],"output":"","siglas":[{"sigla":"","descricao":""}],"executores":[{"name":"","title":"","duties":[]}],"normas":[{"icon":"📄","code":"","name":""}],"steps":[{"title":"","subtitle":"","responsible":"","actions":[{"type":"atividade|decisao|evento|observacao","text":"","actor":""}],"note":null}],"flow":[{"id":"","type":"start|task|decision|end","name":"","actor":"","next":[]}],"indicators":[{"icon":"📊","title":"","desc":"","tag":"perc|time","formula":"","fonte":"","periodicidade":"","responsavel":"","meta":""}],"faqs":[{"q":"","a":null,"pending":true}]}`;
 
     pbar.style.width = '60%';
     msg.textContent = 'Gemini analisando o documento...';
@@ -8251,17 +8136,17 @@ async function npopExtractWithGemini(file) {
     selectNpopMethod('manual');
 
     setTimeout(() => {
-      if(extracted.nome)        document.getElementById('nf-nome').value        = extracted.nome;
-      if(extracted.macro)       document.getElementById('nf-macro').value       = extracted.macro;
-      if(extracted.objetivo)    document.getElementById('nf-desc').value        = extracted.objetivo;
-      if(extracted.entradas)    document.getElementById('nf-input').value       = extracted.entradas;
-      if(extracted.saidas)      document.getElementById('nf-output').value      = extracted.saidas;
-      if(extracted.fornecedores)document.getElementById('nf-fornecedores').value= extracted.fornecedores;
-      if(extracted.clientes)    document.getElementById('nf-clientes').value    = extracted.clientes;
-      if(extracted.elaborador)  document.getElementById('nf-elaborado').value   = extracted.elaborador;
+      const nome = extracted.nome || extracted.titulo || '';
+      if(nome)                                    document.getElementById('nf-nome').value        = nome;
+      if(extracted.macro)                         document.getElementById('nf-macro').value       = extracted.macro;
+      if(extracted.desc || extracted.objetivo)    document.getElementById('nf-desc').value        = extracted.desc || extracted.objetivo;
+      if(extracted.input || extracted.entradas)   document.getElementById('nf-input').value       = extracted.input || extracted.entradas;
+      if(extracted.output || extracted.saidas)    document.getElementById('nf-output').value      = extracted.output || extracted.saidas;
+      if(extracted.elaborado || extracted.elaborador) document.getElementById('nf-elaborado').value = extracted.elaborado || extracted.elaborador;
 
-      // Store etapas for when POP is created
-      window._npopExtractedEtapas = extracted.etapas || [];
+      // Store extracted data for when POP is created
+      window._npopExtractedEtapas = extracted.steps || extracted.etapas || [];
+      window._npopExtractedFull   = extracted; // full payload for siglas, normas, etc.
       showToast('✅ Extração concluída! Revise os campos e clique em Criar Mapeamento.', 'success');
     }, 300);
 
@@ -8386,6 +8271,647 @@ function saveStatusModal() {
   markChanged();
   showToast('✅ Status atualizado!', 'success');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// FLOW DESIGNER — Desenho automático de fluxos estilo Bizagi
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+  // ── Constantes de layout ─────────────────────────────────────
+  const TW = 160, TH = 52;   // task width/height
+  const SR = 24;              // start/end radius
+  const DW = 130, DH = 64;   // decision diamond width/height
+  const HGAP = 90, VGAP = 56;
+  const PAD = 60;
+
+  // ── Estado global ─────────────────────────────────────────────
+  let _nodes = [], _edges = [];
+  let _sel   = null;   // selected node id
+  let _connFrom = null;
+  let _drag  = null;   // { id, ox, oy, origX, origY, sx, sy }
+  let _panD  = null;   // { startX, startY, origVbX, origVbY, sx, sy }
+  let _hist  = [], _histIdx = -1;
+
+  // ── Show/hide ─────────────────────────────────────────────────
+  window.showFlowDesigner = function(tab) {
+    hideBpmnIfNeeded();
+    hideHome();
+    document.querySelectorAll('.pop-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    if(tab) tab.classList.add('active');
+    ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) { el.style.display = 'none'; el.classList.remove('active'); }
+    });
+    document.getElementById('fd-module').style.display = 'block';
+    _fdLoad();
+  };
+
+  // ── Load / Save per-process ───────────────────────────────────
+  function _fdLoad() {
+    const p = popPrefix(currentPop);
+    const fd = DATA[p]?.flowDiagram;
+    if(fd?.nodes?.length) {
+      _nodes = JSON.parse(JSON.stringify(fd.nodes));
+      _edges = JSON.parse(JSON.stringify(fd.edges || []));
+    } else {
+      _nodes = []; _edges = [];
+    }
+    _histReset();
+    _render();
+    _showEmptyHint();
+  }
+
+  window.fdSave = function() {
+    const p = popPrefix(currentPop);
+    if(!DATA[p]) DATA[p] = {};
+    DATA[p].flowDiagram = { nodes: JSON.parse(JSON.stringify(_nodes)), edges: JSON.parse(JSON.stringify(_edges)) };
+    markChanged();
+    showToast('Fluxo salvo.', 'success');
+  };
+
+  // ── History ───────────────────────────────────────────────────
+  function _histReset() { _hist = [_snap()]; _histIdx = 0; }
+  function _snap()      { return JSON.stringify({ nodes: _nodes, edges: _edges }); }
+  function _push()      { _hist = _hist.slice(0, _histIdx + 1); _hist.push(_snap()); _histIdx = _hist.length - 1; }
+  function _restore(s)  { const d = JSON.parse(s); _nodes = d.nodes; _edges = d.edges; }
+
+  window.fdUndo = function() {
+    if(_histIdx <= 0) return;
+    _histIdx--;
+    _restore(_hist[_histIdx]);
+    _render();
+  };
+  window.fdRedo = function() {
+    if(_histIdx >= _hist.length - 1) return;
+    _histIdx++;
+    _restore(_hist[_histIdx]);
+    _render();
+  };
+
+  // ── Text parser ───────────────────────────────────────────────
+  function _parse(raw) {
+    const lines = raw.split('\n');
+    const nodes = [], edges = [];
+    let uid = 1;
+    const nid  = () => 'n' + (uid++);
+    const eid  = () => 'e' + (uid++);
+    const lmap = {}; // label.lower → nodeId  (for cross-references)
+
+    function ensureNode(label, forcedType) {
+      const key = label.trim().toLowerCase();
+      if(lmap[key]) return lmap[key];
+      const type = forcedType || _guessType(label);
+      const n = { id: nid(), type, label: label.trim(), actor: '', x: 0, y: 0 };
+      nodes.push(n);
+      lmap[key] = n.id;
+      return n.id;
+    }
+
+    let lastMainId = null;
+    let i = 0;
+    while(i < lines.length) {
+      const raw2  = lines[i]; i++;
+      const line  = raw2.trim();
+      if(!line) continue;
+      const indent = raw2.length - raw2.trimStart().length;
+
+      // Branch line (indented + starts with label:)
+      const branchM = line.match(/^([^:→\-\n]{1,20})\s*[:\-→]+\s*(.+)$/);
+      if(indent >= 2 && branchM && lastMainId) {
+        const brLabel = branchM[1].trim();
+        const chain   = branchM[2].split(/\s*->\s*/);
+        let prevId = lastMainId;
+        chain.forEach((piece, ci) => {
+          const p = piece.trim();
+          if(!p) return;
+          const toId = ensureNode(p);
+          if(!edges.find(e => e.from === prevId && e.to === toId))
+            edges.push({ id: eid(), from: prevId, to: toId, label: ci === 0 ? brLabel : '' });
+          prevId = toId;
+        });
+        continue;
+      }
+
+      // Main flow line
+      let label = line, actor = '';
+      const actM = line.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+      if(actM) { label = actM[1].trim(); actor = actM[2].trim(); }
+
+      const key = label.toLowerCase();
+      let node = nodes.find(n => n.label.toLowerCase() === key);
+      if(!node) {
+        const id = nid();
+        node = { id, type: _guessType(label), label: label.trim(), actor, x: 0, y: 0 };
+        nodes.push(node);
+        lmap[key] = id;
+      } else if(actor && !node.actor) {
+        node.actor = actor;
+      }
+
+      if(lastMainId && lastMainId !== node.id) {
+        const prev = nodes.find(n => n.id === lastMainId);
+        if(prev && prev.type !== 'decision') {
+          if(!edges.find(e => e.from === lastMainId && e.to === node.id))
+            edges.push({ id: eid(), from: lastMainId, to: node.id, label: '' });
+        }
+      }
+      lastMainId = node.id;
+    }
+    return { nodes, edges };
+  }
+
+  function _guessType(label) {
+    const l = label.trim().toLowerCase().replace(/\s+/g,'');
+    if(l === 'início' || l === 'inicio' || l === 'start' || l === '[início]' || l === '[inicio]') return 'start';
+    if(l === 'fim' || l === 'end' || l === '[fim]') return 'end';
+    if(label.trim().endsWith('?')) return 'decision';
+    return 'task';
+  }
+
+  // ── Auto-layout (BFS ranks, left-to-right) ────────────────────
+  function _layout(nodes, edges) {
+    if(!nodes.length) return;
+    const out = {}, inc = {};
+    nodes.forEach(n => { out[n.id] = []; inc[n.id] = 0; });
+    edges.forEach(e => { if(out[e.from]) out[e.from].push(e.to); if(inc[e.to] !== undefined) inc[e.to]++; });
+
+    let startId = nodes.find(n => n.type === 'start')?.id || nodes.find(n => inc[n.id] === 0)?.id || nodes[0].id;
+    const rank = {}; const vis = new Set([startId]);
+    const q = [startId]; rank[startId] = 0;
+    while(q.length) {
+      const cur = q.shift();
+      (out[cur] || []).forEach(nx => {
+        if(!vis.has(nx)) { vis.add(nx); rank[nx] = (rank[cur] || 0) + 1; q.push(nx); }
+      });
+    }
+    nodes.forEach(n => { if(rank[n.id] === undefined) rank[n.id] = 0; });
+
+    const byRank = {};
+    nodes.forEach(n => { const r = rank[n.id]; if(!byRank[r]) byRank[r] = []; byRank[r].push(n); });
+    const VSTEP = Math.max(TH, DH) + VGAP;
+    const HSTEP = TW + HGAP;
+
+    Object.entries(byRank).forEach(([r, grp]) => {
+      grp.forEach((n, i) => {
+        const totalH = grp.length * VSTEP;
+        n.x = PAD + parseInt(r) * HSTEP;
+        n.y = PAD + i * VSTEP - (totalH - VSTEP) / 2;
+      });
+    });
+    const minY = Math.min(...nodes.map(n => n.y));
+    if(minY < PAD) nodes.forEach(n => n.y += PAD - minY);
+  }
+
+  // ── SVG rendering ─────────────────────────────────────────────
+  function _render() {
+    const svg = document.getElementById('fd-canvas');
+    if(!svg) return;
+    if(!_nodes.length) {
+      svg.innerHTML = `<defs>${_defs()}</defs>
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+              fill="#94a3b8" font-size="14" font-family="DM Sans,sans-serif">
+          Cole o texto no painel e clique em "Gerar Fluxo"
+        </text>`;
+      return;
+    }
+    const maxX = Math.max(..._nodes.map(n => n.x + TW)) + PAD;
+    const maxY = Math.max(..._nodes.map(n => n.y + TH + 20)) + PAD;
+    const vb = svg.getAttribute('viewBox').split(' ');
+    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${Math.max(maxX, 200)} ${Math.max(maxY, 200)}`);
+
+    let h = `<defs>${_defs()}</defs>`;
+    h += '<g id="fd-eg">';
+    _edges.forEach(e => {
+      const from = _nodes.find(n => n.id === e.from);
+      const to   = _nodes.find(n => n.id === e.to);
+      if(from && to) h += _edgeSvg(from, to, e);
+    });
+    h += '</g><g id="fd-ng">';
+    _nodes.forEach(n => { h += _nodeSvg(n, n.id === _sel); });
+    h += '</g>';
+    svg.innerHTML = h;
+    _attachEvents();
+  }
+
+  function _defs() {
+    return `<marker id="fda" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#7c8fa8"/>
+    </marker>`;
+  }
+
+  function _nodeSvg(n, sel) {
+    const cx = n.x + TW / 2, cy = n.y + TH / 2;
+    const stroke = sel ? 'stroke:#3b82f6;stroke-width:2.5;' : '';
+    let shape = '';
+
+    if(n.type === 'start') {
+      const c = sel ? '#2563eb' : '#007a4d';
+      shape = `<circle cx="${cx}" cy="${cy}" r="${SR}" fill="#00a86b" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
+    } else if(n.type === 'end') {
+      const c = sel ? '#2563eb' : '#0a2540';
+      shape = `<circle cx="${cx}" cy="${cy}" r="${SR}" fill="#0a2540" stroke="${c}" stroke-width="${sel?2.5:2}"/>
+               <circle cx="${cx}" cy="${cy}" r="${SR+7}" fill="none" stroke="${c}" stroke-width="${sel?2.5:2}"/>`;
+    } else if(n.type === 'decision') {
+      const hw = DW/2, hh = DH/2;
+      const c = sel ? '#2563eb' : '#b8801a';
+      shape = `<polygon points="${cx},${cy-hh} ${cx+hw},${cy} ${cx},${cy+hh} ${cx-hw},${cy}"
+                 fill="#e8a020" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
+    } else {
+      const c = sel ? '#2563eb' : '#0a2f52';
+      shape = `<rect x="${n.x}" y="${n.y}" width="${TW}" height="${TH}" rx="9"
+                 fill="#1a4a7a" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
+    }
+
+    const textCol = n.type === 'decision' ? '#0a1929' : 'white';
+    const maxW    = n.type === 'decision' ? DW - 14 : TW - 14;
+    const wrapped = _wrap(n.label, maxW);
+    const lh = 14.5;
+    const ty0 = cy - (wrapped.length - 1) * lh / 2;
+    const textHtml = wrapped.map((ln, i) =>
+      `<text x="${cx}" y="${ty0 + i*lh}" text-anchor="middle" dominant-baseline="middle"
+             fill="${textCol}" font-size="11.5" font-family="DM Sans,sans-serif" font-weight="500"
+             pointer-events="none">${_esc(ln)}</text>`
+    ).join('');
+
+    const actorHtml = n.actor
+      ? `<text x="${cx}" y="${n.y + TH + 13}" text-anchor="middle" fill="#64748b"
+               font-size="10" font-family="DM Sans,sans-serif" pointer-events="none">[${_esc(n.actor)}]</text>`
+      : '';
+
+    return `<g id="fd-n-${n.id}" class="fd-node" data-id="${n.id}" style="cursor:pointer;">${shape}${textHtml}${actorHtml}</g>`;
+  }
+
+  function _wrap(text, maxW) {
+    const chars = Math.max(8, Math.floor(maxW / 6.5));
+    if(text.length <= chars) return [text];
+    const words = text.split(' ');
+    const lines = []; let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if(test.length <= chars) { cur = test; }
+      else { if(cur) lines.push(cur); cur = w; }
+    });
+    if(cur) lines.push(cur);
+    return lines.length ? lines : [text];
+  }
+
+  function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function _port(from, to) {
+    const fx = from.x + TW/2, fy = from.y + TH/2;
+    const tx = to.x   + TW/2, ty = to.y   + TH/2;
+    const dx = tx - fx, dy = ty - fy;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    if(from.type === 'start' || from.type === 'end') {
+      return { x: fx + dx/len*SR, y: fy + dy/len*SR };
+    }
+    if(from.type === 'decision') {
+      const hw = DW/2, hh = DH/2;
+      if(Math.abs(dx)*hh >= Math.abs(dy)*hw) {
+        const s = Math.sign(dx); return { x: fx + s*hw, y: fy + dy/(Math.abs(dx)||1)*hw*s };
+      } else {
+        const s = Math.sign(dy); return { x: fx + dx/(Math.abs(dy)||1)*hh*s, y: fy + s*hh };
+      }
+    }
+    // task
+    if(Math.abs(dx)*(TH/2) >= Math.abs(dy)*(TW/2)) {
+      const s = Math.sign(dx); return { x: fx + s*(TW/2), y: fy + dy/(Math.abs(dx)||1)*(TW/2)*s };
+    } else {
+      const s = Math.sign(dy); return { x: fx + dx/(Math.abs(dy)||1)*(TH/2)*s, y: fy + s*(TH/2) };
+    }
+  }
+
+  function _portTo(from, to) {
+    // Port on 'to' node facing 'from' (reverse direction)
+    const mock = { x: to.x, y: to.y, type: to.type };
+    const dir  = { x: to.x + (from.x - to.x), y: to.y + (from.y - to.y), type: 'task' };
+    return _port(mock, dir);
+  }
+
+  function _edgeSvg(from, to, edge) {
+    const p1 = _port(from, to);
+    const p2 = _portTo(from, to);
+    const back = from.x >= to.x - 10;
+    let d;
+    if(back) {
+      const cy1 = Math.min(p1.y, p2.y) - 55;
+      d = `M${p1.x} ${p1.y} C${p1.x} ${cy1},${p2.x} ${cy1},${p2.x} ${p2.y}`;
+    } else {
+      const cx1 = p1.x + (p2.x-p1.x)*0.45, cx2 = p1.x + (p2.x-p1.x)*0.55;
+      d = `M${p1.x} ${p1.y} C${cx1} ${p1.y},${cx2} ${p2.y},${p2.x} ${p2.y}`;
+    }
+    let lh = '';
+    if(edge.label) {
+      const lx = back ? (p1.x+p2.x)/2 : (p1.x+p2.x)/2;
+      const ly = back ? Math.min(p1.y,p2.y)-62 : (p1.y+p2.y)/2 - 8;
+      lh = `<rect x="${lx-20}" y="${ly-10}" width="40" height="14" rx="3" fill="white" fill-opacity=".85"/>
+            <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle"
+                  fill="#475569" font-size="10" font-family="DM Sans,sans-serif">${_esc(edge.label)}</text>`;
+    }
+    return `<g class="fd-edge" data-eid="${edge.id}">
+      <path d="${d}" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#fda)"/>
+      ${lh}
+    </g>`;
+  }
+
+  // ── Events ────────────────────────────────────────────────────
+  function _attachEvents() {
+    const svg = document.getElementById('fd-canvas');
+    if(!svg) return;
+
+    svg.querySelectorAll('.fd-node').forEach(el => {
+      const id = el.dataset.id;
+
+      el.addEventListener('mousedown', e => {
+        if(e.button !== 0) return;
+        e.stopPropagation();
+        if(_connFrom) {
+          if(_connFrom !== id) {
+            _edges.push({ id: 'e'+Date.now(), from: _connFrom, to: id, label: '' });
+            _push(); _render();
+          }
+          _connFrom = null;
+          svg.style.cursor = '';
+          showToast('Conexão criada!', 'success');
+          return;
+        }
+        _sel = id;
+        _showProps(id);
+        const n = _nodes.find(x => x.id === id);
+        const svgR = svg.getBoundingClientRect();
+        const vb   = svg.viewBox.baseVal;
+        _drag = { id, ox: e.clientX, oy: e.clientY, origX: n.x, origY: n.y,
+                  sx: vb.width/svgR.width, sy: vb.height/svgR.height };
+        e.preventDefault();
+      });
+
+      el.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        _editLabel(id);
+      });
+
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault(); e.stopPropagation();
+        _sel = id;
+        _showCtx(e.clientX, e.clientY, id);
+      });
+    });
+
+    // Background: pan
+    svg.addEventListener('mousedown', e => {
+      if(e.button !== 0) return;
+      if(_connFrom) { _connFrom = null; svg.style.cursor = ''; return; }
+      _sel = null;
+      _showEmptyHint();
+      const svgR = svg.getBoundingClientRect();
+      const vb   = svg.viewBox.baseVal;
+      _panD = { startX: e.clientX, startY: e.clientY,
+                origVbX: vb.x, origVbY: vb.y,
+                sx: vb.width/svgR.width, sy: vb.height/svgR.height };
+    });
+
+    // Wheel zoom
+    svg.addEventListener('wheel', e => {
+      e.preventDefault();
+      const vb = svg.viewBox.baseVal;
+      const f  = e.deltaY > 0 ? 1.1 : 0.909;
+      const svgR = svg.getBoundingClientRect();
+      const mx = (e.clientX - svgR.left)/svgR.width  * vb.width  + vb.x;
+      const my = (e.clientY - svgR.top) /svgR.height * vb.height + vb.y;
+      vb.width *= f; vb.height *= f;
+      vb.x = mx - (e.clientX - svgR.left)/svgR.width  * vb.width;
+      vb.y = my - (e.clientY - svgR.top) /svgR.height * vb.height;
+    }, { passive: false });
+  }
+
+  // Global mouse events
+  document.addEventListener('mousemove', e => {
+    if(_drag) {
+      const n = _nodes.find(x => x.id === _drag.id);
+      if(n) {
+        n.x = _drag.origX + (e.clientX - _drag.ox) * _drag.sx;
+        n.y = _drag.origY + (e.clientY - _drag.oy) * _drag.sy;
+        _render();
+      }
+    }
+    if(_panD) {
+      const svg = document.getElementById('fd-canvas');
+      if(svg) {
+        const vb = svg.viewBox.baseVal;
+        vb.x = _panD.origVbX - (e.clientX - _panD.startX) * _panD.sx;
+        vb.y = _panD.origVbY - (e.clientY - _panD.startY) * _panD.sy;
+      }
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(_drag) { _push(); _drag = null; }
+    _panD = null;
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    const fd = document.getElementById('fd-module');
+    if(!fd || fd.style.display === 'none') return;
+    if(e.ctrlKey && e.key === 'z') { e.preventDefault(); fdUndo(); }
+    if(e.ctrlKey && e.key === 'y') { e.preventDefault(); fdRedo(); }
+    if(e.ctrlKey && e.key === 's') { e.preventDefault(); fdSave(); }
+    if(e.key === 'Delete' && _sel && !e.target.matches('input,textarea,select')) {
+      window.fdDeleteNode(_sel);
+    }
+    if(e.key === 'Escape') {
+      _connFrom = null;
+      const svg = document.getElementById('fd-canvas');
+      if(svg) svg.style.cursor = '';
+      _hideCtx();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if(!e.target.closest('#fd-ctx-menu')) _hideCtx();
+  });
+
+  // ── Label edit ────────────────────────────────────────────────
+  function _editLabel(id) {
+    const n = _nodes.find(x => x.id === id);
+    if(!n) return;
+    const v = prompt('Texto do nó:', n.label);
+    if(v !== null && v.trim()) {
+      n.label = v.trim();
+      _push(); _render(); _showProps(id); markChanged();
+    }
+  }
+
+  // ── Properties panel ──────────────────────────────────────────
+  function _showProps(id) {
+    const n = _nodes.find(x => x.id === id);
+    const p = document.getElementById('fd-props');
+    if(!n || !p) return;
+    p.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--cage-blue);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Nó selecionado</div>
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Tipo</label>
+      <select onchange="fdChangePropType(this.value,'${id}')"
+        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:10px;background:white;">
+        <option value="start"    ${n.type==='start'   ?'selected':''}>○ Evento Início</option>
+        <option value="task"     ${n.type==='task'    ?'selected':''}>□ Atividade</option>
+        <option value="decision" ${n.type==='decision'?'selected':''}>◇ Decisão</option>
+        <option value="end"      ${n.type==='end'     ?'selected':''}>● Evento Fim</option>
+      </select>
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Texto</label>
+      <input value="${_esc(n.label)}" oninput="fdChangePropLabel(this.value,'${id}')"
+        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:10px;box-sizing:border-box;">
+      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Ator / Responsável</label>
+      <input value="${_esc(n.actor||'')}" oninput="fdChangePropActor(this.value,'${id}')"
+        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:12px;box-sizing:border-box;">
+      <button onclick="fdStartConnect('${id}')"
+        style="width:100%;padding:7px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;background:white;cursor:pointer;margin-bottom:6px;transition:background .1s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">→ Conectar a...</button>
+      <button onclick="fdDeleteNode('${id}')"
+        style="width:100%;padding:7px;border:1px solid #fca5a5;border-radius:6px;font-size:12px;color:#dc2626;background:#fef2f2;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">✕ Excluir nó</button>`;
+  }
+
+  function _showEmptyHint() {
+    const p = document.getElementById('fd-props');
+    if(p) p.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px 0;font-size:12px;line-height:1.7;">Clique em um nó<br>para editar</div>';
+  }
+
+  // ── Context menu ──────────────────────────────────────────────
+  function _showCtx(cx, cy, id) {
+    const m = document.getElementById('fd-ctx-menu');
+    if(!m) return;
+    m.style.display = 'block';
+    // Keep inside viewport
+    const vw = window.innerWidth, vh = window.innerHeight;
+    m.style.left = Math.min(cx, vw - 200) + 'px';
+    m.style.top  = Math.min(cy, vh - 220) + 'px';
+    m.dataset.nodeId = id;
+  }
+  function _hideCtx() {
+    const m = document.getElementById('fd-ctx-menu');
+    if(m) m.style.display = 'none';
+  }
+
+  // ── Exposed functions ─────────────────────────────────────────
+  window.fdGenerateFromText = function() {
+    const txt = document.getElementById('fd-text-input')?.value?.trim();
+    if(!txt) { showToast('Digite o fluxo no painel de texto.', 'warn'); return; }
+    const { nodes, edges } = _parse(txt);
+    if(!nodes.length) { showToast('Nenhum nó identificado.', 'warn'); return; }
+    _layout(nodes, edges);
+    _nodes = nodes; _edges = edges;
+    _push();
+    const svg = document.getElementById('fd-canvas');
+    if(svg) svg.setAttribute('viewBox', '0 0 800 500');
+    _render();
+    window.fdFit();
+    markChanged();
+    showToast(`✅ ${nodes.length} nós criados!`, 'success');
+  };
+
+  window.fdAddNode = function(type) {
+    const svg = document.getElementById('fd-canvas');
+    const vb  = svg?.viewBox.baseVal;
+    const x   = vb ? vb.x + vb.width/2  - TW/2 : 200;
+    const y   = vb ? vb.y + vb.height/2 - TH/2 : 200;
+    const labels = { start:'Início', end:'Fim', decision:'Decisão?', task:'Nova Atividade' };
+    _nodes.push({ id: 'n'+Date.now(), type, label: labels[type]||'Nó', actor: '', x, y });
+    _push(); _render(); markChanged();
+  };
+
+  window.fdFit = function() {
+    const svg = document.getElementById('fd-canvas');
+    if(!svg || !_nodes.length) return;
+    const minX = Math.min(..._nodes.map(n => n.x)) - PAD;
+    const minY = Math.min(..._nodes.map(n => n.y)) - PAD;
+    const maxX = Math.max(..._nodes.map(n => n.x + TW)) + PAD;
+    const maxY = Math.max(..._nodes.map(n => n.y + TH + 20)) + PAD;
+    svg.setAttribute('viewBox', `${minX} ${minY} ${maxX-minX} ${maxY-minY}`);
+  };
+
+  window.fdDeleteNode = function(id) {
+    if(!id) id = _sel;
+    if(!id) return;
+    if(!confirm('Excluir este nó e suas conexões?')) return;
+    _nodes = _nodes.filter(n => n.id !== id);
+    _edges = _edges.filter(e => e.from !== id && e.to !== id);
+    _sel = null; _push(); _render(); _showEmptyHint(); markChanged();
+  };
+
+  window.fdStartConnect = function(id) {
+    if(!id) { const m = document.getElementById('fd-ctx-menu'); id = m?.dataset.nodeId; }
+    _connFrom = id; _hideCtx();
+    const svg = document.getElementById('fd-canvas');
+    if(svg) svg.style.cursor = 'crosshair';
+    showToast('Clique no nó destino para criar a conexão.', 'success');
+  };
+
+  window.fdChangePropType  = (type, id) => { const n = _nodes.find(x=>x.id===id); if(n){n.type=type;_push();_render();_showProps(id);} };
+  window.fdChangePropLabel = (lbl, id)  => { const n = _nodes.find(x=>x.id===id); if(n){n.label=lbl;_render();} };
+  window.fdChangePropActor = (act, id)  => { const n = _nodes.find(x=>x.id===id); if(n){n.actor=act;_render();} };
+
+  window.fdCtxChangeType = (type) => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); if(id){const n=_nodes.find(x=>x.id===id);if(n){n.type=type;_push();_render();_showProps(id);}} };
+  window.fdCtxDelete     = ()     => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); window.fdDeleteNode(id); };
+  window.fdCtxConnect    = ()     => { const m=document.getElementById('fd-ctx-menu'); window.fdStartConnect(m?.dataset.nodeId); };
+  window.fdCtxEditLabel  = ()     => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); _editLabel(id); };
+
+  window.fdExportSVG = function() {
+    const svg = document.getElementById('fd-canvas');
+    if(!svg) return;
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fluxo-' + (DATA[popPrefix(currentPop)]?.meta?.name||'processo').replace(/\s+/g,'-') + '.svg';
+    a.click();
+  };
+
+  window.fdExportPNG = function() {
+    const svg = document.getElementById('fd-canvas');
+    if(!svg) return;
+    const vb = svg.viewBox.baseVal;
+    const W = Math.max(vb.width,400)*2, H = Math.max(vb.height,300)*2;
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${vb.x} ${vb.y} ${vb.width} ${vb.height}">${svg.innerHTML}</svg>`;
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white'; ctx.fillRect(0,0,W,H);
+      ctx.drawImage(img,0,0,W,H);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png'); a.download = 'fluxo.png'; a.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+  };
+
+  // Build diagram from flow[] JSON (used after POP extraction)
+  window.fdBuildFromFlowJSON = function(flowArr) {
+    if(!Array.isArray(flowArr) || !flowArr.length) return;
+    const nodes = [], edges = [];
+    let uid = 1;
+    const nid = () => 'n'+(uid++), eid = () => 'e'+(uid++);
+    const idMap = {};
+    flowArr.forEach(f => {
+      const type = f.type === 'start' ? 'start' : f.type === 'end' ? 'end' : f.type === 'decision' ? 'decision' : 'task';
+      const n = { id: nid(), type, label: f.name||f.label||'', actor: f.actor||'', x:0, y:0 };
+      nodes.push(n); idMap[f.id] = n.id;
+    });
+    flowArr.forEach(f => {
+      (f.next||[]).forEach(nx => {
+        if(idMap[f.id] && idMap[nx])
+          edges.push({ id: eid(), from: idMap[f.id], to: idMap[nx], label: '' });
+      });
+    });
+    _layout(nodes, edges);
+    _nodes = nodes; _edges = edges;
+    const p = popPrefix(currentPop);
+    if(!DATA[p]) DATA[p] = {};
+    DATA[p].flowDiagram = { nodes: JSON.parse(JSON.stringify(_nodes)), edges: JSON.parse(JSON.stringify(_edges)) };
+    _histReset();
+  };
+
+})(); // end Flow Designer IIFE
 
 </script>
 
