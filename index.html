@@ -4583,10 +4583,12 @@ async function checkEditorPermission() {
     isAdmin  = !!data.is_admin;
     isEditor = data.role !== 'viewer'; // viewer não é editor
     isViewer = data.role === 'viewer';
+    console.log('[checkEditorPermission] email='+currentUserEmail+' role='+data.role+' isEditor='+isEditor);
   } else {
     isEditor = false;
     isAdmin  = false;
     isViewer = false;
+    console.warn('[checkEditorPermission] email='+currentUserEmail+' NÃO encontrado em gestpop_editors → isEditor=false');
   }
 
   applyPermissions();
@@ -4846,10 +4848,10 @@ window.addEventListener('beforeunload', () => {
   } catch(e) { console.warn('[beforeunload] save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
-  console.log('[saveToCloud] attempt='+attempt+' user='+!!currentUser+' editor='+isEditor+' supaClient='+!!supaClient);
-  if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
-  if(!supaClient)  { showToast('⚠️ Supabase não inicializado. Recarregue a página.','warn'); return; }
-  if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
+  console.log('[saveToCloud] attempt='+attempt+' user='+!!currentUser+' editor='+isEditor+' supaClient='+!!supaClient+' email='+currentUserEmail);
+  if(!currentUser) { console.warn('[saveToCloud] BLOQUEADO: sem currentUser'); showToast('Faça login primeiro.','warn'); return; }
+  if(!supaClient)  { console.warn('[saveToCloud] BLOQUEADO: supaClient null'); showToast('⚠️ Supabase não inicializado. Recarregue a página.','warn'); return; }
+  if(!isEditor)    { console.warn('[saveToCloud] BLOQUEADO: isEditor=false (email='+currentUserEmail+')'); showToast('Sem permissão para salvar.','warn'); return; }
 
   // Se já está salvando, enfileirar apenas 1 chamada extra
   if(_saveInProgress && attempt === 1) {
@@ -4952,7 +4954,7 @@ async function saveToCloud(attempt=1) {
 }
 
 async function loadFromCloud() {
-  if(!currentUser) return;
+  if(!currentUser) { console.warn('[loadFromCloud] BLOQUEADO: currentUser é null'); return; }
   setSyncStatus('syncing');
   console.log('📥 loadFromCloud iniciando...');
 
@@ -5379,11 +5381,13 @@ async function initSupabase() {
   });
 
   // Verificar sessão existente imediatamente (sem esperar o evento)
-  const { data: { session: existingSession } } = await supaClient.auth.getSession();
+  const { data: { session: existingSession }, error: sessionErr } = await supaClient.auth.getSession();
+  console.log('[initSupabase] getSession:', existingSession ? 'sessão OK user='+existingSession.user?.email : 'sem sessão', sessionErr ? 'err='+sessionErr.message : '');
   if(existingSession?.access_token) currentAccessToken = existingSession.access_token;
   if(existingSession?.user) {
     await _handleSession(existingSession.user);
   } else {
+    console.warn('[initSupabase] Nenhuma sessão ativa — exibindo tela de login');
     document.getElementById('auth-overlay').style.display = 'flex';
   }
   } catch(e) {
