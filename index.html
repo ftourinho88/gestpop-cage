@@ -5322,6 +5322,22 @@ async function initSupabase() {
     document.getElementById('auth-overlay').style.display = 'flex';
     return;
   }
+  // Liberar qualquer Web Lock travado da sessão anterior antes de criar o cliente
+  // (reload/F5 pode deixar o lock "supabase-gotrue-token-refresh-gestpop_auth" preso,
+  //  causando getSession() e todas as queries ficarem suspensas indefinidamente)
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    try {
+      await navigator.locks.request(
+        'supabase-gotrue-token-refresh-gestpop_auth',
+        { steal: true },
+        async () => {} // adquire e libera imediatamente
+      );
+      console.log('[initSupabase] Web Lock liberado com sucesso');
+    } catch(e) {
+      console.warn('[initSupabase] Falha ao liberar Web Lock:', e?.message);
+    }
+  }
+
   try {
   supaClient = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
     auth: {
