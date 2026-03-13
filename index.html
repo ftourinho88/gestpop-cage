@@ -1127,6 +1127,22 @@
     <button class="pat-filter-btn" onclick="filterPatQuarter('q4',this)">4º Tri (Out–Dez)</button>
   </div>
 
+  <!-- Tipo Filters -->
+  <div class="pat-filter-row" id="pat-tipo-filters">
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);align-self:center;margin-right:4px;">TIPO:</span>
+    <button class="pat-filter-btn active" onclick="filterPatTipo('',this)">Todos</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Mapeamento de Processo',this)">Mapeamento</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Monitoramento de Indicadores',this)">Monit. Indicadores</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Acompanhamento de Implementação',this)">Acomp. Implementação</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Auditoria',this)">Auditoria</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Controle Interno',this)">Controle Interno</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Consultoria',this)">Consultoria</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Fiscalização',this)">Fiscalização</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Normatização',this)">Normatização</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Capacitação',this)">Capacitação</button>
+    <button class="pat-filter-btn" onclick="filterPatTipo('Outro',this)">Outro</button>
+  </div>
+
   <!-- Cards -->
   <div id="pat-cards"></div>
 </div>
@@ -1246,6 +1262,8 @@
           <select class="modal-input" id="pat-tipo">
             <option value="">Selecione...</option>
             <option>Mapeamento de Processo</option>
+            <option>Monitoramento de Indicadores</option>
+            <option>Acompanhamento de Implementação</option>
             <option>Auditoria</option>
             <option>Controle Interno</option>
             <option>Consultoria</option>
@@ -1295,6 +1313,19 @@
           <label class="gmod-label">% Progresso</label>
           <input class="modal-input" id="pat-progresso" type="number" min="0" max="100" placeholder="0–100">
         </div>
+      </div>
+      <div class="gmod-row">
+        <div>
+          <label class="gmod-label">Meta <span style="font-weight:400;color:var(--text-muted);">(facultativo)</span></label>
+          <input class="modal-input" id="pat-meta" type="number" min="0" placeholder="Ex: 10" oninput="patCalcProgresso()">
+        </div>
+        <div>
+          <label class="gmod-label">Quantidade realizada <span style="font-weight:400;color:var(--text-muted);">(facultativo)</span></label>
+          <input class="modal-input" id="pat-qtd" type="number" min="0" placeholder="Ex: 7" oninput="patCalcProgresso()">
+        </div>
+      </div>
+      <div id="pat-meta-preview" style="display:none;font-size:12px;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:6px 10px;margin-top:-6px;">
+        <!-- filled by patCalcProgresso -->
       </div>
       <div>
         <label class="gmod-label">POP Vinculado (opcional)</label>
@@ -4079,6 +4110,7 @@ if(!DATA.pat) DATA.pat = [];
 
 let _patFilter = 'todos';
 let _patQuarterFilter = 'todos';
+let _patTipoFilter = '';
 let _patEditIdx = null;
 
 function patCheckDeadlines() {
@@ -4196,6 +4228,13 @@ function filterPatQuarter(q, btn) {
   renderPat();
 }
 
+function filterPatTipo(tipo, btn) {
+  _patTipoFilter = tipo;
+  document.querySelectorAll('#pat-tipo-filters .pat-filter-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPat();
+}
+
 function _patItemQuarter(item) {
   const d = item.inicio || item.fim;
   if(!d) return null;
@@ -4215,7 +4254,8 @@ function renderPatKpis() {
   const el = document.getElementById('pat-kpis');
   if(!el) return;
   const allItems = DATA.pat || [];
-  const items = _patQuarterFilter === 'todos' ? allItems : allItems.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  let items = _patQuarterFilter === 'todos' ? allItems : allItems.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  if(_patTipoFilter) items = items.filter(i => i.tipo === _patTipoFilter);
   const total      = items.length;
   const planejado  = items.filter(i=>i.status==='planejado').length;
   const andamento  = items.filter(i=>i.status==='andamento').length;
@@ -4245,9 +4285,8 @@ function renderPatCards() {
   if(!el) return;
   const items = DATA.pat || [];
   let filtered = _patFilter === 'todos' ? items : items.filter(i => i.status === _patFilter);
-  if(_patQuarterFilter !== 'todos') {
-    filtered = filtered.filter(i => _patItemQuarter(i) === _patQuarterFilter);
-  }
+  if(_patQuarterFilter !== 'todos') filtered = filtered.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  if(_patTipoFilter)                filtered = filtered.filter(i => i.tipo === _patTipoFilter);
 
   if(!filtered.length) {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
@@ -4309,28 +4348,48 @@ function renderPatCards() {
         </div>
         <span class="pat-progress-label">${prog}%</span>
       </div>
+      ${(item.meta != null && item.qtdRealizada != null) ? `<div style="font-size:12px;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:5px 10px;margin-top:8px;">🎯 Meta: ${item.meta} &nbsp;|&nbsp; Realizado: ${item.qtdRealizada} &nbsp;|&nbsp; <strong>${Math.min(100,Math.round(item.qtdRealizada/item.meta*100))}%</strong></div>` : ''}
       ${item.obs ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;padding:8px;background:#f8fafc;border-radius:6px;">💬 ${item.obs}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+function patCalcProgresso() {
+  const meta = parseFloat(document.getElementById('pat-meta').value);
+  const qtd  = parseFloat(document.getElementById('pat-qtd').value);
+  const preview = document.getElementById('pat-meta-preview');
+  if(!isNaN(meta) && meta > 0 && !isNaN(qtd)) {
+    const pct = Math.min(100, Math.round(qtd / meta * 100));
+    document.getElementById('pat-progresso').value = pct;
+    preview.style.display = 'block';
+    preview.textContent = `📊 ${qtd} / ${meta} → ${pct}% realizado (progresso atualizado automaticamente)`;
+  } else {
+    preview.style.display = 'none';
+  }
 }
 
 function openPatModal(idx = null) {
   _patEditIdx = idx;
   const item = idx !== null ? DATA.pat[idx] : null;
   document.getElementById('pat-modal-title').textContent = item ? '✏️ Editar Atividade' : '📅 Nova Atividade';
-  document.getElementById('pat-titulo').value      = item?.titulo      || '';
-  document.getElementById('pat-unidade').value     = item?.unidade     || '';
-  document.getElementById('pat-tipo').value        = item?.tipo        || '';
-  document.getElementById('pat-desc').value        = item?.desc        || '';
-  document.getElementById('pat-responsavel').value = item?.responsavel || '';
-  document.getElementById('pat-equipe').value      = item?.equipe      || '';
-  document.getElementById('pat-inicio').value      = item?.inicio      || '';
-  document.getElementById('pat-fim').value         = item?.fim         || '';
-  document.getElementById('pat-status').value      = item?.status      || 'planejado';
-  document.getElementById('pat-progresso').value   = item?.progresso   ?? '';
-  document.getElementById('pat-obs').value         = item?.obs         || '';
+  document.getElementById('pat-titulo').value      = item?.titulo       || '';
+  document.getElementById('pat-unidade').value     = item?.unidade      || '';
+  document.getElementById('pat-tipo').value        = item?.tipo         || '';
+  document.getElementById('pat-desc').value        = item?.desc         || '';
+  document.getElementById('pat-responsavel').value = item?.responsavel  || '';
+  document.getElementById('pat-equipe').value      = item?.equipe       || '';
+  document.getElementById('pat-inicio').value      = item?.inicio       || '';
+  document.getElementById('pat-fim').value         = item?.fim          || '';
+  document.getElementById('pat-status').value      = item?.status       || 'planejado';
+  document.getElementById('pat-progresso').value   = item?.progresso    ?? '';
+  document.getElementById('pat-meta').value        = item?.meta         ?? '';
+  document.getElementById('pat-qtd').value         = item?.qtdRealizada ?? '';
+  document.getElementById('pat-obs').value         = item?.obs          || '';
+  const preview = document.getElementById('pat-meta-preview');
+  if(preview) preview.style.display = 'none';
   populatePatPopSelect();
-  document.getElementById('pat-pop-vinc').value    = item?.popVinc     || '';
+  document.getElementById('pat-pop-vinc').value    = item?.popVinc      || '';
+  if(item?.meta && item?.qtdRealizada != null) patCalcProgresso();
   openModal('pat-modal');
 }
 
@@ -4347,10 +4406,12 @@ function savePat() {
     equipe:       document.getElementById('pat-equipe').value.trim(),
     inicio:       document.getElementById('pat-inicio').value,
     fim:          document.getElementById('pat-fim').value,
-    status:       document.getElementById('pat-status').value,
-    progresso:    document.getElementById('pat-progresso').value,
-    popVinc:      document.getElementById('pat-pop-vinc').value,
-    obs:          document.getElementById('pat-obs').value.trim(),
+    status:        document.getElementById('pat-status').value,
+    progresso:     document.getElementById('pat-progresso').value,
+    meta:          document.getElementById('pat-meta').value !== '' ? parseFloat(document.getElementById('pat-meta').value) : null,
+    qtdRealizada:  document.getElementById('pat-qtd').value  !== '' ? parseFloat(document.getElementById('pat-qtd').value)  : null,
+    popVinc:       document.getElementById('pat-pop-vinc').value,
+    obs:           document.getElementById('pat-obs').value.trim(),
   };
   if(!DATA.pat) DATA.pat = [];
   if(_patEditIdx !== null) DATA.pat[_patEditIdx] = item;
