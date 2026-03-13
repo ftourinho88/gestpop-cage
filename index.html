@@ -10,6 +10,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1698,68 +1699,47 @@ Fim"></textarea>
       </div>
     </div>
 
-    <!-- CENTER: SVG canvas -->
+    <!-- CENTER: Mermaid canvas -->
     <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
       <!-- Toolbar -->
-      <div style="padding:7px 12px;border-bottom:1px solid var(--cage-border);display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:var(--cage-blue);">
-        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-right:2px;">Adicionar:</span>
-        <button onclick="fdAddNode('start')" title="Evento Início" style="padding:4px 9px;background:rgba(0,168,107,.35);color:#6ee7b7;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">○ Início</button>
-        <button onclick="fdAddNode('task')" title="Atividade" style="padding:4px 9px;background:rgba(96,165,250,.2);color:#93c5fd;border:1px solid rgba(96,165,250,.4);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">□ Atividade</button>
-        <button onclick="fdAddNode('decision')" title="Gateway de decisão" style="padding:4px 9px;background:rgba(232,160,32,.25);color:#fde068;border:1px solid rgba(232,160,32,.45);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">◇ Decisão</button>
-        <button onclick="fdAddNode('end')" title="Evento Fim" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">● Fim</button>
-        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 3px;"></div>
-        <button onclick="fdFit()" title="Encaixar na tela" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⛶ Fit</button>
-        <button onclick="fdUndo()" title="Desfazer Ctrl+Z" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">↩</button>
-        <button onclick="fdRedo()" title="Refazer Ctrl+Y" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">↪</button>
-        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 3px;"></div>
+      <div style="padding:7px 12px;border-bottom:1px solid var(--cage-border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--cage-blue);">
+        <button onclick="fdZoom(1.2)" title="Zoom +" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">＋</button>
+        <button onclick="fdZoom(0.83)" title="Zoom -" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">－</button>
+        <button onclick="fdZoomReset()" title="Zoom 100%" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;">100%</button>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
+        <label style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="checkbox" id="fd-lr-toggle" onchange="fdToggleDirection(this.checked)" checked style="cursor:pointer;">
+          Esquerda→Direita
+        </label>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
         <button onclick="fdExportSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ SVG</button>
         <button onclick="fdExportPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ PNG</button>
         <button onclick="fdSave()" title="Salvar (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.3);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;">☁️ Salvar</button>
       </div>
-      <!-- Canvas -->
-      <div style="flex:1;overflow:hidden;background:#f0f4f8;position:relative;" id="fd-canvas-wrap">
-        <svg id="fd-canvas" style="width:100%;height:100%;cursor:default;display:block;"
-             viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
-        </svg>
-      </div>
-    </div>
-
-    <!-- RIGHT: properties panel -->
-    <div style="width:210px;flex-shrink:0;border-left:1px solid var(--cage-border);display:flex;flex-direction:column;background:#f8fafc;">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
-        <div style="font-size:13px;font-weight:700;color:white;">Propriedades</div>
-      </div>
-      <div id="fd-props" style="padding:14px;flex:1;overflow-y:auto;font-size:12px;">
-        <div style="color:var(--text-muted);text-align:center;padding:20px 0;line-height:1.6;">Clique em um nó<br>para editar</div>
-      </div>
-      <div style="padding:10px 12px;border-top:1px solid var(--cage-border);">
-        <div style="font-size:10.5px;color:var(--text-muted);line-height:1.6;">
-          <strong style="color:var(--text-secondary);">Atalhos:</strong><br>
-          Clique → Selecionar<br>
-          Duplo-clique → Editar texto<br>
-          Clique direito → Menu<br>
-          Arrastar → Mover nó<br>
-          Del → Excluir selecionado<br>
-          Ctrl+Z/Y → Desfazer/Refazer<br>
-          Scroll → Zoom · Drag fundo → Pan
+      <!-- Mermaid output -->
+      <div id="fd-canvas-wrap" style="flex:1;overflow:auto;background:#f8fafc;display:flex;align-items:flex-start;justify-content:center;padding:20px 16px;">
+        <div id="fd-mermaid-out" style="transform-origin:top center;transition:transform .15s;">
+          <div style="color:#94a3b8;font-size:14px;padding:60px 20px;text-align:center;font-family:'DM Sans',sans-serif;">
+            Cole o texto no painel e clique em "Gerar Fluxo"
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Flow Designer — Context menu -->
-<div id="fd-ctx-menu" style="display:none;position:fixed;background:white;border:1px solid var(--cage-border);border-radius:8px;box-shadow:var(--shadow-lg);z-index:9999;min-width:180px;overflow:hidden;">
-  <div style="padding:4px 0;">
-    <div style="padding:5px 12px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Mudar tipo para</div>
-    <div onclick="fdCtxChangeType('start')" class="fd-ctx-item"><span style="color:#00a86b;">○</span> Evento Início</div>
-    <div onclick="fdCtxChangeType('task')" class="fd-ctx-item"><span style="color:#1a4a7a;">□</span> Atividade / Tarefa</div>
-    <div onclick="fdCtxChangeType('decision')" class="fd-ctx-item"><span style="color:#e8a020;">◇</span> Decisão (Gateway)</div>
-    <div onclick="fdCtxChangeType('end')" class="fd-ctx-item"><span style="color:#0a2540;">●</span> Evento Fim</div>
-    <hr style="border:none;border-top:1px solid var(--cage-border);margin:3px 0;">
-    <div onclick="fdCtxConnect()" class="fd-ctx-item">→ Conectar a...</div>
-    <div onclick="fdCtxEditLabel()" class="fd-ctx-item">✏️ Editar texto</div>
-    <div onclick="fdCtxDelete()" class="fd-ctx-item" style="color:#dc2626;">✕ Excluir nó</div>
+    <!-- RIGHT: Mermaid code panel -->
+    <div style="width:230px;flex-shrink:0;border-left:1px solid var(--cage-border);display:flex;flex-direction:column;background:#f8fafc;">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
+        <div style="font-size:12px;font-weight:700;color:white;">Código Mermaid</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;">Edite e clique em Renderizar</div>
+      </div>
+      <textarea id="fd-mermaid-code" spellcheck="false"
+        style="flex:1;border:none;outline:none;resize:none;padding:10px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.65;background:#f8fafc;color:var(--text-primary);"
+        placeholder="flowchart LR&#10;  subgraph Auditor&#10;    A([Início])&#10;    B[Registrar]&#10;  end&#10;  A --> B"></textarea>
+      <div style="padding:8px 10px;border-top:1px solid var(--cage-border);background:#f0f4f8;">
+        <button onclick="fdRenderCode()" style="width:100%;padding:7px;background:var(--cage-mid);color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">▶ Renderizar</button>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Mermaid.js · <a href="https://mermaid.js.org/syntax/flowchart.html" target="_blank" style="color:var(--cage-mid);">sintaxe</a></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2743,9 +2723,9 @@ function loadFromStorage() {
     }
     // Re-render existing pops
     renderStep('d', DATA.d.currentStep || 0);
-    renderRoles('d'); renderIndicators('d'); renderFaq('d'); renderNormas('d'); renderRevisions('d');
+    renderRoles('d'); renderIndicators('d'); renderFaq('d'); renderNormas('d'); renderRevisions('d'); renderSiglas('d');
     renderStep('r', DATA.r.currentStep || 0);
-    renderRoles('r'); renderIndicators('r'); renderFaq('r'); renderNormas('r'); renderRevisions('r');
+    renderRoles('r'); renderIndicators('r'); renderFaq('r'); renderNormas('r'); renderRevisions('r'); renderSiglas('r');
     return true;
   } catch(e) {
     console.warn('Erro ao carregar dados salvos:', e);
@@ -3437,9 +3417,25 @@ function addNorma(p){ _normaP=p; _normaIdx=null; openNormaModal(p,null); }
 function rmNorma(p,i){ DATA[p].normas.splice(i,1); renderNormas(p); markChanged(); }
 
 // ═══ LIST HELPERS ════════════════════════════
+function renderSiglas(p) {
+  const grid = document.getElementById(p + '-sigla-grid');
+  if(!grid) return;
+  const siglas = DATA[p]?.siglas || [];
+  if(!siglas.length) return;
+  const existing = grid.querySelectorAll('.sigla-item').length;
+  // only populate if grid is empty (don't overwrite manual edits)
+  if(existing > 0) return;
+  grid.innerHTML = siglas.map((s, i) => `
+    <div class="sigla-item">
+      <div class="sigla-abbr" contenteditable="${editMode?'true':'false'}" data-key="${p}:sig${i}a">${s.sigla||''}</div>
+      <div class="sigla-def" contenteditable="${editMode?'true':'false'}" data-key="${p}:sig${i}d" style="flex:1;">${s.descricao||s.desc||''}</div>
+      <button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button>
+    </div>`).join('');
+}
+
 function addSigla(gridId) {
   const grid = document.getElementById(gridId);
-  const p = gridId.startsWith('d') ? 'd' : 'r';
+  if(!grid) return;
   const div = document.createElement('div');
   div.className = 'sigla-item';
   div.innerHTML = `<div class="sigla-abbr" contenteditable="${editMode?'true':'false'}" data-key="">SIGLA</div><div class="sigla-def" contenteditable="${editMode?'true':'false'}" data-key="" style="flex:1;">Definição</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button>`;
@@ -4066,6 +4062,7 @@ function mountNewPopTab(key, label, silent=false) {
   try { renderFaq(key); }        catch(e) { console.warn('renderFaq',key,e); }
   try { renderNormas(key); }     catch(e) { console.warn('renderNormas',key,e); }
   try { renderRevisions(key); }  catch(e) { console.warn('renderRevisions',key,e); }
+  try { renderSiglas(key); }     catch(e) { console.warn('renderSiglas',key,e); }
 
   // 12. Switch and enable edit mode (skip when restoring from cloud)
   if(!silent) {
@@ -4130,10 +4127,10 @@ function applyIaResult(parsed) {
       output:    parsed.output    || '',
     },
     steps,
-    roles: (parsed.roles || []).map(r => ({
+    roles: (parsed.executores || parsed.roles || []).map(r => ({
       cls:'role-green', icon:'👤',
-      name: r.name||'Ator', title: r.title||'',
-      duties: r.duties||[]
+      name: r.name||'Ator', title: r.title||r.cargo||'',
+      duties: r.duties||r.responsabilidades||[]
     })),
     indicators: (parsed.indicators || []).map(ind => ({
       icon: ind.icon||'📊', title: ind.title||'', desc: ind.desc||'',
@@ -8273,25 +8270,22 @@ function saveStatusModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// FLOW DESIGNER — Desenho automático de fluxos estilo Bizagi
+// FLOW DESIGNER — Motor Mermaid.js
 // ═══════════════════════════════════════════════════════════════════
 (function() {
-  // ── Constantes de layout ─────────────────────────────────────
-  const TW = 160, TH = 52;   // task width/height
-  const SR = 24;              // start/end radius
-  const DW = 130, DH = 64;   // decision diamond width/height
-  const HGAP = 90, VGAP = 56;
-  const PAD = 60;
+  // Initialize Mermaid
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 20, useMaxWidth: false },
+    securityLevel: 'loose',
+  });
 
-  // ── Estado global ─────────────────────────────────────────────
-  let _nodes = [], _edges = [];
-  let _sel   = null;   // selected node id
-  let _connFrom = null;
-  let _drag  = null;   // { id, ox, oy, origX, origY, sx, sy }
-  let _panD  = null;   // { startX, startY, origVbX, origVbY, sx, sy }
-  let _hist  = [], _histIdx = -1;
+  let _direction = 'LR';  // LR or TD
+  let _zoom      = 1;
+  let _savedCode = '';     // last rendered Mermaid code
 
-  // ── Show/hide ─────────────────────────────────────────────────
+  // ── Show tab ─────────────────────────────────────────────────
   window.showFlowDesigner = function(tab) {
     hideBpmnIfNeeded();
     hideHome();
@@ -8307,609 +8301,303 @@ function saveStatusModal() {
     _fdLoad();
   };
 
-  // ── Load / Save per-process ───────────────────────────────────
+  // ── Load saved diagram ────────────────────────────────────────
   function _fdLoad() {
     const p = popPrefix(currentPop);
     const fd = DATA[p]?.flowDiagram;
-    if(fd?.nodes?.length) {
-      _nodes = JSON.parse(JSON.stringify(fd.nodes));
-      _edges = JSON.parse(JSON.stringify(fd.edges || []));
+    if(fd?.mermaid) {
+      _savedCode = fd.mermaid;
+      document.getElementById('fd-mermaid-code').value = _savedCode;
+      _render(_savedCode);
     } else {
-      _nodes = []; _edges = [];
+      document.getElementById('fd-mermaid-code').value = '';
+      document.getElementById('fd-mermaid-out').innerHTML =
+        '<div style="color:#94a3b8;font-size:14px;padding:60px 20px;text-align:center;font-family:\'DM Sans\',sans-serif;">Cole o texto no painel e clique em "Gerar Fluxo"</div>';
     }
-    _histReset();
-    _render();
-    _showEmptyHint();
   }
 
-  window.fdSave = function() {
-    const p = popPrefix(currentPop);
-    if(!DATA[p]) DATA[p] = {};
-    DATA[p].flowDiagram = { nodes: JSON.parse(JSON.stringify(_nodes)), edges: JSON.parse(JSON.stringify(_edges)) };
-    markChanged();
-    showToast('Fluxo salvo.', 'success');
-  };
+  // ── Render Mermaid code ───────────────────────────────────────
+  async function _render(code) {
+    const out = document.getElementById('fd-mermaid-out');
+    if(!code || !code.trim()) return;
+    try {
+      const id = 'mmd-' + Date.now();
+      const { svg } = await mermaid.render(id, code.trim());
+      out.innerHTML = svg;
+      out.style.transform = `scale(${_zoom})`;
+      // Make SVG responsive
+      const svgEl = out.querySelector('svg');
+      if(svgEl) {
+        svgEl.style.maxWidth = 'none';
+        svgEl.style.display  = 'block';
+      }
+    } catch(err) {
+      out.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:20px;color:#dc2626;font-size:13px;font-family:'DM Sans',sans-serif;">
+        <strong>Erro no diagrama:</strong><br><pre style="white-space:pre-wrap;font-size:11px;margin-top:8px;">${err.message||err}</pre></div>`;
+    }
+  }
 
-  // ── History ───────────────────────────────────────────────────
-  function _histReset() { _hist = [_snap()]; _histIdx = 0; }
-  function _snap()      { return JSON.stringify({ nodes: _nodes, edges: _edges }); }
-  function _push()      { _hist = _hist.slice(0, _histIdx + 1); _hist.push(_snap()); _histIdx = _hist.length - 1; }
-  function _restore(s)  { const d = JSON.parse(s); _nodes = d.nodes; _edges = d.edges; }
+  // ── DSL text → Mermaid syntax ─────────────────────────────────
+  function _dslToMermaid(raw) {
+    const lines  = raw.split('\n');
+    const nodes  = [];   // { id, label, type, actor }
+    const edges  = [];   // { from, to, label }
+    let uid = 0;
+    const nid = () => 'n' + (uid++);
+    const labelMap = {}; // label.lower → nodeId
 
-  window.fdUndo = function() {
-    if(_histIdx <= 0) return;
-    _histIdx--;
-    _restore(_hist[_histIdx]);
-    _render();
-  };
-  window.fdRedo = function() {
-    if(_histIdx >= _hist.length - 1) return;
-    _histIdx++;
-    _restore(_hist[_histIdx]);
-    _render();
-  };
-
-  // ── Text parser ───────────────────────────────────────────────
-  function _parse(raw) {
-    const lines = raw.split('\n');
-    const nodes = [], edges = [];
-    let uid = 1;
-    const nid  = () => 'n' + (uid++);
-    const eid  = () => 'e' + (uid++);
-    const lmap = {}; // label.lower → nodeId  (for cross-references)
-
-    function ensureNode(label, forcedType) {
+    function ensureNode(label, type) {
       const key = label.trim().toLowerCase();
-      if(lmap[key]) return lmap[key];
-      const type = forcedType || _guessType(label);
-      const n = { id: nid(), type, label: label.trim(), actor: '', x: 0, y: 0 };
-      nodes.push(n);
-      lmap[key] = n.id;
-      return n.id;
+      if(labelMap[key]) return labelMap[key];
+      const id = nid();
+      labelMap[key] = id;
+      nodes.push({ id, label: label.trim(), type: type || _guessType(label), actor: '' });
+      return id;
     }
 
-    let lastMainId = null;
-    let i = 0;
-    while(i < lines.length) {
-      const raw2  = lines[i]; i++;
+    let lastId = null;
+    for(let i = 0; i < lines.length; i++) {
+      const raw2  = lines[i];
       const line  = raw2.trim();
       if(!line) continue;
       const indent = raw2.length - raw2.trimStart().length;
 
-      // Branch line (indented + starts with label:)
-      const branchM = line.match(/^([^:→\-\n]{1,20})\s*[:\-→]+\s*(.+)$/);
-      if(indent >= 2 && branchM && lastMainId) {
-        const brLabel = branchM[1].trim();
-        const chain   = branchM[2].split(/\s*->\s*/);
-        let prevId = lastMainId;
-        chain.forEach((piece, ci) => {
-          const p = piece.trim();
-          if(!p) return;
-          const toId = ensureNode(p);
-          if(!edges.find(e => e.from === prevId && e.to === toId))
-            edges.push({ id: eid(), from: prevId, to: toId, label: ci === 0 ? brLabel : '' });
-          prevId = toId;
-        });
-        continue;
-      }
-
-      // Main flow line
-      let label = line, actor = '';
-      const actM = line.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
-      if(actM) { label = actM[1].trim(); actor = actM[2].trim(); }
-
-      const key = label.toLowerCase();
-      let node = nodes.find(n => n.label.toLowerCase() === key);
-      if(!node) {
-        const id = nid();
-        node = { id, type: _guessType(label), label: label.trim(), actor, x: 0, y: 0 };
-        nodes.push(node);
-        lmap[key] = id;
-      } else if(actor && !node.actor) {
-        node.actor = actor;
-      }
-
-      if(lastMainId && lastMainId !== node.id) {
-        const prev = nodes.find(n => n.id === lastMainId);
-        if(prev && prev.type !== 'decision') {
-          if(!edges.find(e => e.from === lastMainId && e.to === node.id))
-            edges.push({ id: eid(), from: lastMainId, to: node.id, label: '' });
+      // Indented branch: "Sim: A -> B -> C" or "Não: X"
+      if(indent >= 2 && lastId) {
+        const bm = line.match(/^([^:]{1,20})\s*:\s*(.+)$/);
+        if(bm) {
+          const brLabel = bm[1].trim();
+          const chain   = bm[2].split(/\s*->\s*/);
+          let prev = lastId;
+          chain.forEach((piece, ci) => {
+            const p = piece.trim();
+            if(!p) return;
+            const to = ensureNode(p);
+            edges.push({ from: prev, to, label: ci === 0 ? brLabel : '' });
+            prev = to;
+          });
+          continue;
         }
       }
-      lastMainId = node.id;
+
+      // Main line
+      let label = line, actor = '';
+      const am = line.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+      if(am) { label = am[1].trim(); actor = am[2].trim(); }
+
+      const type = _guessType(label);
+      const key  = label.toLowerCase();
+      let id = labelMap[key];
+      if(!id) {
+        id = nid();
+        labelMap[key] = id;
+        nodes.push({ id, label: label.trim(), type, actor });
+      } else {
+        const n = nodes.find(x => x.id === id);
+        if(n && actor && !n.actor) n.actor = actor;
+      }
+
+      if(lastId && lastId !== id) {
+        const prev = nodes.find(x => x.id === lastId);
+        if(prev?.type !== 'decision')
+          edges.push({ from: lastId, to: id, label: '' });
+      }
+      lastId = id;
     }
-    return { nodes, edges };
+
+    return _buildMermaid(nodes, edges);
   }
 
   function _guessType(label) {
     const l = label.trim().toLowerCase().replace(/\s+/g,'');
-    if(l === 'início' || l === 'inicio' || l === 'start' || l === '[início]' || l === '[inicio]') return 'start';
-    if(l === 'fim' || l === 'end' || l === '[fim]') return 'end';
-    if(label.trim().endsWith('?')) return 'decision';
+    if(['início','inicio','start'].includes(l)) return 'start';
+    if(['fim','end'].includes(l))                return 'end';
+    if(label.trim().endsWith('?'))               return 'decision';
     return 'task';
   }
 
-  // ── Auto-layout (BFS ranks, left-to-right) ────────────────────
-  function _layout(nodes, edges) {
-    if(!nodes.length) return;
-    const out = {}, inc = {};
-    nodes.forEach(n => { out[n.id] = []; inc[n.id] = 0; });
-    edges.forEach(e => { if(out[e.from]) out[e.from].push(e.to); if(inc[e.to] !== undefined) inc[e.to]++; });
+  // ── Build Mermaid code from nodes + edges ─────────────────────
+  function _buildMermaid(nodes, edges) {
+    const dir = _direction;
+    // Group nodes by actor
+    const actors  = [...new Set(nodes.map(n => n.actor||''))];
+    const hasLanes = actors.some(a => a !== '');
 
-    let startId = nodes.find(n => n.type === 'start')?.id || nodes.find(n => inc[n.id] === 0)?.id || nodes[0].id;
-    const rank = {}; const vis = new Set([startId]);
-    const q = [startId]; rank[startId] = 0;
-    while(q.length) {
-      const cur = q.shift();
-      (out[cur] || []).forEach(nx => {
-        if(!vis.has(nx)) { vis.add(nx); rank[nx] = (rank[cur] || 0) + 1; q.push(nx); }
-      });
-    }
-    nodes.forEach(n => { if(rank[n.id] === undefined) rank[n.id] = 0; });
+    let code = `flowchart ${dir}\n`;
 
-    const byRank = {};
-    nodes.forEach(n => { const r = rank[n.id]; if(!byRank[r]) byRank[r] = []; byRank[r].push(n); });
-    const VSTEP = Math.max(TH, DH) + VGAP;
-    const HSTEP = TW + HGAP;
+    // Node shape helpers
+    const shape = n => {
+      const lbl = n.label.replace(/"/g,"'");
+      if(n.type === 'start')    return `${n.id}(["${lbl}"])`;
+      if(n.type === 'end')      return `${n.id}(["${lbl}"]):::endStyle`;
+      if(n.type === 'decision') return `${n.id}{"${lbl}"}`;
+      return `${n.id}["${lbl}"]`;
+    };
 
-    Object.entries(byRank).forEach(([r, grp]) => {
-      grp.forEach((n, i) => {
-        const totalH = grp.length * VSTEP;
-        n.x = PAD + parseInt(r) * HSTEP;
-        n.y = PAD + i * VSTEP - (totalH - VSTEP) / 2;
-      });
-    });
-    const minY = Math.min(...nodes.map(n => n.y));
-    if(minY < PAD) nodes.forEach(n => n.y += PAD - minY);
-  }
-
-  // ── SVG rendering ─────────────────────────────────────────────
-  function _render() {
-    const svg = document.getElementById('fd-canvas');
-    if(!svg) return;
-    if(!_nodes.length) {
-      svg.innerHTML = `<defs>${_defs()}</defs>
-        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
-              fill="#94a3b8" font-size="14" font-family="DM Sans,sans-serif">
-          Cole o texto no painel e clique em "Gerar Fluxo"
-        </text>`;
-      return;
-    }
-    const maxX = Math.max(..._nodes.map(n => n.x + TW)) + PAD;
-    const maxY = Math.max(..._nodes.map(n => n.y + TH + 20)) + PAD;
-    const vb = svg.getAttribute('viewBox').split(' ');
-    svg.setAttribute('viewBox', `${vb[0]} ${vb[1]} ${Math.max(maxX, 200)} ${Math.max(maxY, 200)}`);
-
-    let h = `<defs>${_defs()}</defs>`;
-    h += '<g id="fd-eg">';
-    _edges.forEach(e => {
-      const from = _nodes.find(n => n.id === e.from);
-      const to   = _nodes.find(n => n.id === e.to);
-      if(from && to) h += _edgeSvg(from, to, e);
-    });
-    h += '</g><g id="fd-ng">';
-    _nodes.forEach(n => { h += _nodeSvg(n, n.id === _sel); });
-    h += '</g>';
-    svg.innerHTML = h;
-    _attachEvents();
-  }
-
-  function _defs() {
-    return `<marker id="fda" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
-      <polygon points="0 0,9 3.5,0 7" fill="#7c8fa8"/>
-    </marker>`;
-  }
-
-  function _nodeSvg(n, sel) {
-    const cx = n.x + TW / 2, cy = n.y + TH / 2;
-    const stroke = sel ? 'stroke:#3b82f6;stroke-width:2.5;' : '';
-    let shape = '';
-
-    if(n.type === 'start') {
-      const c = sel ? '#2563eb' : '#007a4d';
-      shape = `<circle cx="${cx}" cy="${cy}" r="${SR}" fill="#00a86b" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
-    } else if(n.type === 'end') {
-      const c = sel ? '#2563eb' : '#0a2540';
-      shape = `<circle cx="${cx}" cy="${cy}" r="${SR}" fill="#0a2540" stroke="${c}" stroke-width="${sel?2.5:2}"/>
-               <circle cx="${cx}" cy="${cy}" r="${SR+7}" fill="none" stroke="${c}" stroke-width="${sel?2.5:2}"/>`;
-    } else if(n.type === 'decision') {
-      const hw = DW/2, hh = DH/2;
-      const c = sel ? '#2563eb' : '#b8801a';
-      shape = `<polygon points="${cx},${cy-hh} ${cx+hw},${cy} ${cx},${cy+hh} ${cx-hw},${cy}"
-                 fill="#e8a020" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
-    } else {
-      const c = sel ? '#2563eb' : '#0a2f52';
-      shape = `<rect x="${n.x}" y="${n.y}" width="${TW}" height="${TH}" rx="9"
-                 fill="#1a4a7a" stroke="${c}" stroke-width="${sel?2.5:1.5}"/>`;
-    }
-
-    const textCol = n.type === 'decision' ? '#0a1929' : 'white';
-    const maxW    = n.type === 'decision' ? DW - 14 : TW - 14;
-    const wrapped = _wrap(n.label, maxW);
-    const lh = 14.5;
-    const ty0 = cy - (wrapped.length - 1) * lh / 2;
-    const textHtml = wrapped.map((ln, i) =>
-      `<text x="${cx}" y="${ty0 + i*lh}" text-anchor="middle" dominant-baseline="middle"
-             fill="${textCol}" font-size="11.5" font-family="DM Sans,sans-serif" font-weight="500"
-             pointer-events="none">${_esc(ln)}</text>`
-    ).join('');
-
-    const actorHtml = n.actor
-      ? `<text x="${cx}" y="${n.y + TH + 13}" text-anchor="middle" fill="#64748b"
-               font-size="10" font-family="DM Sans,sans-serif" pointer-events="none">[${_esc(n.actor)}]</text>`
-      : '';
-
-    return `<g id="fd-n-${n.id}" class="fd-node" data-id="${n.id}" style="cursor:pointer;">${shape}${textHtml}${actorHtml}</g>`;
-  }
-
-  function _wrap(text, maxW) {
-    const chars = Math.max(8, Math.floor(maxW / 6.5));
-    if(text.length <= chars) return [text];
-    const words = text.split(' ');
-    const lines = []; let cur = '';
-    words.forEach(w => {
-      const test = cur ? cur + ' ' + w : w;
-      if(test.length <= chars) { cur = test; }
-      else { if(cur) lines.push(cur); cur = w; }
-    });
-    if(cur) lines.push(cur);
-    return lines.length ? lines : [text];
-  }
-
-  function _esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function _port(from, to) {
-    const fx = from.x + TW/2, fy = from.y + TH/2;
-    const tx = to.x   + TW/2, ty = to.y   + TH/2;
-    const dx = tx - fx, dy = ty - fy;
-    const len = Math.sqrt(dx*dx + dy*dy) || 1;
-    if(from.type === 'start' || from.type === 'end') {
-      return { x: fx + dx/len*SR, y: fy + dy/len*SR };
-    }
-    if(from.type === 'decision') {
-      const hw = DW/2, hh = DH/2;
-      if(Math.abs(dx)*hh >= Math.abs(dy)*hw) {
-        const s = Math.sign(dx); return { x: fx + s*hw, y: fy + dy/(Math.abs(dx)||1)*hw*s };
-      } else {
-        const s = Math.sign(dy); return { x: fx + dx/(Math.abs(dy)||1)*hh*s, y: fy + s*hh };
-      }
-    }
-    // task
-    if(Math.abs(dx)*(TH/2) >= Math.abs(dy)*(TW/2)) {
-      const s = Math.sign(dx); return { x: fx + s*(TW/2), y: fy + dy/(Math.abs(dx)||1)*(TW/2)*s };
-    } else {
-      const s = Math.sign(dy); return { x: fx + dx/(Math.abs(dy)||1)*(TH/2)*s, y: fy + s*(TH/2) };
-    }
-  }
-
-  function _portTo(from, to) {
-    // Port on 'to' node facing 'from' (reverse direction)
-    const mock = { x: to.x, y: to.y, type: to.type };
-    const dir  = { x: to.x + (from.x - to.x), y: to.y + (from.y - to.y), type: 'task' };
-    return _port(mock, dir);
-  }
-
-  function _edgeSvg(from, to, edge) {
-    const p1 = _port(from, to);
-    const p2 = _portTo(from, to);
-    const back = from.x >= to.x - 10;
-    let d;
-    if(back) {
-      const cy1 = Math.min(p1.y, p2.y) - 55;
-      d = `M${p1.x} ${p1.y} C${p1.x} ${cy1},${p2.x} ${cy1},${p2.x} ${p2.y}`;
-    } else {
-      const cx1 = p1.x + (p2.x-p1.x)*0.45, cx2 = p1.x + (p2.x-p1.x)*0.55;
-      d = `M${p1.x} ${p1.y} C${cx1} ${p1.y},${cx2} ${p2.y},${p2.x} ${p2.y}`;
-    }
-    let lh = '';
-    if(edge.label) {
-      const lx = back ? (p1.x+p2.x)/2 : (p1.x+p2.x)/2;
-      const ly = back ? Math.min(p1.y,p2.y)-62 : (p1.y+p2.y)/2 - 8;
-      lh = `<rect x="${lx-20}" y="${ly-10}" width="40" height="14" rx="3" fill="white" fill-opacity=".85"/>
-            <text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle"
-                  fill="#475569" font-size="10" font-family="DM Sans,sans-serif">${_esc(edge.label)}</text>`;
-    }
-    return `<g class="fd-edge" data-eid="${edge.id}">
-      <path d="${d}" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#fda)"/>
-      ${lh}
-    </g>`;
-  }
-
-  // ── Events ────────────────────────────────────────────────────
-  function _attachEvents() {
-    const svg = document.getElementById('fd-canvas');
-    if(!svg) return;
-
-    svg.querySelectorAll('.fd-node').forEach(el => {
-      const id = el.dataset.id;
-
-      el.addEventListener('mousedown', e => {
-        if(e.button !== 0) return;
-        e.stopPropagation();
-        if(_connFrom) {
-          if(_connFrom !== id) {
-            _edges.push({ id: 'e'+Date.now(), from: _connFrom, to: id, label: '' });
-            _push(); _render();
-          }
-          _connFrom = null;
-          svg.style.cursor = '';
-          showToast('Conexão criada!', 'success');
-          return;
+    if(hasLanes) {
+      actors.forEach(actor => {
+        const grp = nodes.filter(n => (n.actor||'') === actor);
+        if(!grp.length) return;
+        if(actor) {
+          code += `  subgraph ${JSON.stringify(actor)}\n`;
+          grp.forEach(n => { code += `    ${shape(n)}\n`; });
+          code += `  end\n`;
+        } else {
+          grp.forEach(n => { code += `  ${shape(n)}\n`; });
         }
-        _sel = id;
-        _showProps(id);
-        const n = _nodes.find(x => x.id === id);
-        const svgR = svg.getBoundingClientRect();
-        const vb   = svg.viewBox.baseVal;
-        _drag = { id, ox: e.clientX, oy: e.clientY, origX: n.x, origY: n.y,
-                  sx: vb.width/svgR.width, sy: vb.height/svgR.height };
-        e.preventDefault();
       });
+    } else {
+      nodes.forEach(n => { code += `  ${shape(n)}\n`; });
+    }
 
-      el.addEventListener('dblclick', e => {
-        e.stopPropagation();
-        _editLabel(id);
+    edges.forEach(e => {
+      if(e.label)
+        code += `  ${e.from} -- "${e.label}" --> ${e.to}\n`;
+      else
+        code += `  ${e.from} --> ${e.to}\n`;
+    });
+
+    code += `  classDef endStyle fill:#0a2540,color:#fff,stroke:#0a2540\n`;
+    return code;
+  }
+
+  // ── flow[] JSON → Mermaid ─────────────────────────────────────
+  function _flowJsonToMermaid(flowArr) {
+    if(!Array.isArray(flowArr) || !flowArr.length) return '';
+    const dir = _direction;
+    const actors = [...new Set(flowArr.map(n => n.actor||''))];
+    const hasLanes = actors.some(a => a !== '');
+
+    let code = `flowchart ${dir}\n`;
+
+    const shape = n => {
+      const lbl = (n.name||n.label||'').replace(/"/g,"'");
+      const id  = 'n' + n.id.replace(/[^a-zA-Z0-9]/g,'_');
+      if(n.type === 'start')    return { id, str: `${id}(["${lbl}"])` };
+      if(n.type === 'end')      return { id, str: `${id}(["${lbl}"]):::endStyle` };
+      if(n.type === 'decision') return { id, str: `${id}{"${lbl}"}` };
+      return { id, str: `${id}["${lbl}"]` };
+    };
+
+    const idMap = {};
+    flowArr.forEach(n => { idMap[n.id] = 'n' + n.id.replace(/[^a-zA-Z0-9]/g,'_'); });
+
+    if(hasLanes) {
+      actors.forEach(actor => {
+        const grp = flowArr.filter(n => (n.actor||'') === actor);
+        if(!grp.length) return;
+        if(actor) {
+          code += `  subgraph ${JSON.stringify(actor)}\n`;
+          grp.forEach(n => { code += `    ${shape(n).str}\n`; });
+          code += `  end\n`;
+        } else {
+          grp.forEach(n => { code += `  ${shape(n).str}\n`; });
+        }
       });
+    } else {
+      flowArr.forEach(n => { code += `  ${shape(n).str}\n`; });
+    }
 
-      el.addEventListener('contextmenu', e => {
-        e.preventDefault(); e.stopPropagation();
-        _sel = id;
-        _showCtx(e.clientX, e.clientY, id);
+    flowArr.forEach(n => {
+      (n.next || []).forEach(nxt => {
+        if(idMap[n.id] && idMap[nxt])
+          code += `  ${idMap[n.id]} --> ${idMap[nxt]}\n`;
       });
     });
 
-    // Background: pan
-    svg.addEventListener('mousedown', e => {
-      if(e.button !== 0) return;
-      if(_connFrom) { _connFrom = null; svg.style.cursor = ''; return; }
-      _sel = null;
-      _showEmptyHint();
-      const svgR = svg.getBoundingClientRect();
-      const vb   = svg.viewBox.baseVal;
-      _panD = { startX: e.clientX, startY: e.clientY,
-                origVbX: vb.x, origVbY: vb.y,
-                sx: vb.width/svgR.width, sy: vb.height/svgR.height };
-    });
-
-    // Wheel zoom
-    svg.addEventListener('wheel', e => {
-      e.preventDefault();
-      const vb = svg.viewBox.baseVal;
-      const f  = e.deltaY > 0 ? 1.1 : 0.909;
-      const svgR = svg.getBoundingClientRect();
-      const mx = (e.clientX - svgR.left)/svgR.width  * vb.width  + vb.x;
-      const my = (e.clientY - svgR.top) /svgR.height * vb.height + vb.y;
-      vb.width *= f; vb.height *= f;
-      vb.x = mx - (e.clientX - svgR.left)/svgR.width  * vb.width;
-      vb.y = my - (e.clientY - svgR.top) /svgR.height * vb.height;
-    }, { passive: false });
+    code += `  classDef endStyle fill:#0a2540,color:#fff,stroke:#0a2540\n`;
+    return code;
   }
 
-  // Global mouse events
-  document.addEventListener('mousemove', e => {
-    if(_drag) {
-      const n = _nodes.find(x => x.id === _drag.id);
-      if(n) {
-        n.x = _drag.origX + (e.clientX - _drag.ox) * _drag.sx;
-        n.y = _drag.origY + (e.clientY - _drag.oy) * _drag.sy;
-        _render();
-      }
-    }
-    if(_panD) {
-      const svg = document.getElementById('fd-canvas');
-      if(svg) {
-        const vb = svg.viewBox.baseVal;
-        vb.x = _panD.origVbX - (e.clientX - _panD.startX) * _panD.sx;
-        vb.y = _panD.origVbY - (e.clientY - _panD.startY) * _panD.sy;
-      }
-    }
-  });
+  // ── Save ──────────────────────────────────────────────────────
+  window.fdSave = function() {
+    const p    = popPrefix(currentPop);
+    const code = document.getElementById('fd-mermaid-code').value.trim();
+    if(!DATA[p]) DATA[p] = {};
+    DATA[p].flowDiagram = { mermaid: code };
+    markChanged();
+    showToast('Fluxo salvo.', 'success');
+  };
 
-  document.addEventListener('mouseup', () => {
-    if(_drag) { _push(); _drag = null; }
-    _panD = null;
-  });
-
-  // Keyboard
-  document.addEventListener('keydown', e => {
-    const fd = document.getElementById('fd-module');
-    if(!fd || fd.style.display === 'none') return;
-    if(e.ctrlKey && e.key === 'z') { e.preventDefault(); fdUndo(); }
-    if(e.ctrlKey && e.key === 'y') { e.preventDefault(); fdRedo(); }
-    if(e.ctrlKey && e.key === 's') { e.preventDefault(); fdSave(); }
-    if(e.key === 'Delete' && _sel && !e.target.matches('input,textarea,select')) {
-      window.fdDeleteNode(_sel);
-    }
-    if(e.key === 'Escape') {
-      _connFrom = null;
-      const svg = document.getElementById('fd-canvas');
-      if(svg) svg.style.cursor = '';
-      _hideCtx();
-    }
-  });
-
-  document.addEventListener('click', e => {
-    if(!e.target.closest('#fd-ctx-menu')) _hideCtx();
-  });
-
-  // ── Label edit ────────────────────────────────────────────────
-  function _editLabel(id) {
-    const n = _nodes.find(x => x.id === id);
-    if(!n) return;
-    const v = prompt('Texto do nó:', n.label);
-    if(v !== null && v.trim()) {
-      n.label = v.trim();
-      _push(); _render(); _showProps(id); markChanged();
-    }
-  }
-
-  // ── Properties panel ──────────────────────────────────────────
-  function _showProps(id) {
-    const n = _nodes.find(x => x.id === id);
-    const p = document.getElementById('fd-props');
-    if(!n || !p) return;
-    p.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:var(--cage-blue);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Nó selecionado</div>
-      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Tipo</label>
-      <select onchange="fdChangePropType(this.value,'${id}')"
-        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:10px;background:white;">
-        <option value="start"    ${n.type==='start'   ?'selected':''}>○ Evento Início</option>
-        <option value="task"     ${n.type==='task'    ?'selected':''}>□ Atividade</option>
-        <option value="decision" ${n.type==='decision'?'selected':''}>◇ Decisão</option>
-        <option value="end"      ${n.type==='end'     ?'selected':''}>● Evento Fim</option>
-      </select>
-      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Texto</label>
-      <input value="${_esc(n.label)}" oninput="fdChangePropLabel(this.value,'${id}')"
-        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:10px;box-sizing:border-box;">
-      <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;">Ator / Responsável</label>
-      <input value="${_esc(n.actor||'')}" oninput="fdChangePropActor(this.value,'${id}')"
-        style="width:100%;padding:6px 8px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;margin-bottom:12px;box-sizing:border-box;">
-      <button onclick="fdStartConnect('${id}')"
-        style="width:100%;padding:7px;border:1px solid var(--cage-border);border-radius:6px;font-size:12px;background:white;cursor:pointer;margin-bottom:6px;transition:background .1s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">→ Conectar a...</button>
-      <button onclick="fdDeleteNode('${id}')"
-        style="width:100%;padding:7px;border:1px solid #fca5a5;border-radius:6px;font-size:12px;color:#dc2626;background:#fef2f2;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">✕ Excluir nó</button>`;
-  }
-
-  function _showEmptyHint() {
-    const p = document.getElementById('fd-props');
-    if(p) p.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px 0;font-size:12px;line-height:1.7;">Clique em um nó<br>para editar</div>';
-  }
-
-  // ── Context menu ──────────────────────────────────────────────
-  function _showCtx(cx, cy, id) {
-    const m = document.getElementById('fd-ctx-menu');
-    if(!m) return;
-    m.style.display = 'block';
-    // Keep inside viewport
-    const vw = window.innerWidth, vh = window.innerHeight;
-    m.style.left = Math.min(cx, vw - 200) + 'px';
-    m.style.top  = Math.min(cy, vh - 220) + 'px';
-    m.dataset.nodeId = id;
-  }
-  function _hideCtx() {
-    const m = document.getElementById('fd-ctx-menu');
-    if(m) m.style.display = 'none';
-  }
-
-  // ── Exposed functions ─────────────────────────────────────────
+  // ── Generate from DSL text ────────────────────────────────────
   window.fdGenerateFromText = function() {
     const txt = document.getElementById('fd-text-input')?.value?.trim();
     if(!txt) { showToast('Digite o fluxo no painel de texto.', 'warn'); return; }
-    const { nodes, edges } = _parse(txt);
-    if(!nodes.length) { showToast('Nenhum nó identificado.', 'warn'); return; }
-    _layout(nodes, edges);
-    _nodes = nodes; _edges = edges;
-    _push();
-    const svg = document.getElementById('fd-canvas');
-    if(svg) svg.setAttribute('viewBox', '0 0 800 500');
-    _render();
-    window.fdFit();
+    const code = _dslToMermaid(txt);
+    document.getElementById('fd-mermaid-code').value = code;
+    _render(code);
     markChanged();
-    showToast(`✅ ${nodes.length} nós criados!`, 'success');
+    showToast('Fluxo gerado!', 'success');
   };
 
-  window.fdAddNode = function(type) {
-    const svg = document.getElementById('fd-canvas');
-    const vb  = svg?.viewBox.baseVal;
-    const x   = vb ? vb.x + vb.width/2  - TW/2 : 200;
-    const y   = vb ? vb.y + vb.height/2 - TH/2 : 200;
-    const labels = { start:'Início', end:'Fim', decision:'Decisão?', task:'Nova Atividade' };
-    _nodes.push({ id: 'n'+Date.now(), type, label: labels[type]||'Nó', actor: '', x, y });
-    _push(); _render(); markChanged();
+  // ── Render raw Mermaid code from right panel ──────────────────
+  window.fdRenderCode = function() {
+    const code = document.getElementById('fd-mermaid-code').value.trim();
+    if(!code) { showToast('Escreva o código Mermaid no painel direito.', 'warn'); return; }
+    _render(code);
   };
 
-  window.fdFit = function() {
-    const svg = document.getElementById('fd-canvas');
-    if(!svg || !_nodes.length) return;
-    const minX = Math.min(..._nodes.map(n => n.x)) - PAD;
-    const minY = Math.min(..._nodes.map(n => n.y)) - PAD;
-    const maxX = Math.max(..._nodes.map(n => n.x + TW)) + PAD;
-    const maxY = Math.max(..._nodes.map(n => n.y + TH + 20)) + PAD;
-    svg.setAttribute('viewBox', `${minX} ${minY} ${maxX-minX} ${maxY-minY}`);
+  // ── Zoom ──────────────────────────────────────────────────────
+  window.fdZoom = function(factor) {
+    _zoom = Math.min(Math.max(_zoom * factor, 0.3), 3);
+    document.getElementById('fd-mermaid-out').style.transform = `scale(${_zoom})`;
+  };
+  window.fdZoomReset = function() {
+    _zoom = 1;
+    document.getElementById('fd-mermaid-out').style.transform = 'scale(1)';
+  };
+  window.fdToggleDirection = function(isLR) {
+    _direction = isLR ? 'LR' : 'TD';
+    const code = document.getElementById('fd-mermaid-code').value.trim();
+    if(code) {
+      const updated = code.replace(/^flowchart (LR|TD)/m, `flowchart ${_direction}`);
+      document.getElementById('fd-mermaid-code').value = updated;
+      _render(updated);
+    }
   };
 
-  window.fdDeleteNode = function(id) {
-    if(!id) id = _sel;
-    if(!id) return;
-    if(!confirm('Excluir este nó e suas conexões?')) return;
-    _nodes = _nodes.filter(n => n.id !== id);
-    _edges = _edges.filter(e => e.from !== id && e.to !== id);
-    _sel = null; _push(); _render(); _showEmptyHint(); markChanged();
-  };
-
-  window.fdStartConnect = function(id) {
-    if(!id) { const m = document.getElementById('fd-ctx-menu'); id = m?.dataset.nodeId; }
-    _connFrom = id; _hideCtx();
-    const svg = document.getElementById('fd-canvas');
-    if(svg) svg.style.cursor = 'crosshair';
-    showToast('Clique no nó destino para criar a conexão.', 'success');
-  };
-
-  window.fdChangePropType  = (type, id) => { const n = _nodes.find(x=>x.id===id); if(n){n.type=type;_push();_render();_showProps(id);} };
-  window.fdChangePropLabel = (lbl, id)  => { const n = _nodes.find(x=>x.id===id); if(n){n.label=lbl;_render();} };
-  window.fdChangePropActor = (act, id)  => { const n = _nodes.find(x=>x.id===id); if(n){n.actor=act;_render();} };
-
-  window.fdCtxChangeType = (type) => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); if(id){const n=_nodes.find(x=>x.id===id);if(n){n.type=type;_push();_render();_showProps(id);}} };
-  window.fdCtxDelete     = ()     => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); window.fdDeleteNode(id); };
-  window.fdCtxConnect    = ()     => { const m=document.getElementById('fd-ctx-menu'); window.fdStartConnect(m?.dataset.nodeId); };
-  window.fdCtxEditLabel  = ()     => { const m=document.getElementById('fd-ctx-menu'); const id=m?.dataset.nodeId; _hideCtx(); _editLabel(id); };
-
+  // ── Export ────────────────────────────────────────────────────
   window.fdExportSVG = function() {
-    const svg = document.getElementById('fd-canvas');
-    if(!svg) return;
+    const svg = document.querySelector('#fd-mermaid-out svg');
+    if(!svg) { showToast('Gere o fluxo antes de exportar.', 'warn'); return; }
     const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type:'image/svg+xml' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'fluxo-' + (DATA[popPrefix(currentPop)]?.meta?.name||'processo').replace(/\s+/g,'-') + '.svg';
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'fluxo.svg'; a.click();
   };
-
   window.fdExportPNG = function() {
-    const svg = document.getElementById('fd-canvas');
-    if(!svg) return;
-    const vb = svg.viewBox.baseVal;
-    const W = Math.max(vb.width,400)*2, H = Math.max(vb.height,300)*2;
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${vb.x} ${vb.y} ${vb.width} ${vb.height}">${svg.innerHTML}</svg>`;
+    const svg = document.querySelector('#fd-mermaid-out svg');
+    if(!svg) { showToast('Gere o fluxo antes de exportar.', 'warn'); return; }
+    const box  = svg.getBoundingClientRect();
+    const W = box.width * 2 || 1200, H = box.height * 2 || 800;
+    const svgStr = new XMLSerializer().serializeToString(svg);
     const img = new Image();
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     img.onload = () => {
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'white'; ctx.fillRect(0,0,W,H);
-      ctx.drawImage(img,0,0,W,H);
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png'); a.download = 'fluxo.png'; a.click();
+      ctx.drawImage(img, 0, 0, W, H);
+      const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
+      a.download = 'fluxo.png'; a.click();
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
   };
 
-  // Build diagram from flow[] JSON (used after POP extraction)
+  // ── Build from flow[] JSON (called after POP import) ──────────
   window.fdBuildFromFlowJSON = function(flowArr) {
     if(!Array.isArray(flowArr) || !flowArr.length) return;
-    const nodes = [], edges = [];
-    let uid = 1;
-    const nid = () => 'n'+(uid++), eid = () => 'e'+(uid++);
-    const idMap = {};
-    flowArr.forEach(f => {
-      const type = f.type === 'start' ? 'start' : f.type === 'end' ? 'end' : f.type === 'decision' ? 'decision' : 'task';
-      const n = { id: nid(), type, label: f.name||f.label||'', actor: f.actor||'', x:0, y:0 };
-      nodes.push(n); idMap[f.id] = n.id;
-    });
-    flowArr.forEach(f => {
-      (f.next||[]).forEach(nx => {
-        if(idMap[f.id] && idMap[nx])
-          edges.push({ id: eid(), from: idMap[f.id], to: idMap[nx], label: '' });
-      });
-    });
-    _layout(nodes, edges);
-    _nodes = nodes; _edges = edges;
-    const p = popPrefix(currentPop);
+    const code = _flowJsonToMermaid(flowArr);
+    const p    = popPrefix(currentPop);
     if(!DATA[p]) DATA[p] = {};
-    DATA[p].flowDiagram = { nodes: JSON.parse(JSON.stringify(_nodes)), edges: JSON.parse(JSON.stringify(_edges)) };
-    _histReset();
+    DATA[p].flowDiagram = { mermaid: code };
   };
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    const fd = document.getElementById('fd-module');
+    if(!fd || fd.style.display === 'none') return;
+    if(e.ctrlKey && e.key === 's') { e.preventDefault(); fdSave(); }
+  });
 
 })(); // end Flow Designer IIFE
 
