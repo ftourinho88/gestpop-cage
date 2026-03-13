@@ -191,6 +191,7 @@
   .role-blue .role-card-head{background:#f0f5ff;}.role-blue .role-avatar{background:rgba(26,74,122,.12);}
   .role-gold .role-card-head{background:#fffbf0;}.role-gold .role-avatar{background:rgba(232,160,32,.15);}
   .role-purple .role-card-head{background:#faf0ff;}.role-purple .role-avatar{background:rgba(147,51,234,.12);}
+  .role-red .role-card-head{background:#fff5f5;}.role-red .role-avatar{background:rgba(220,38,38,.12);}
 
   /* INDICATORS */
   .indicator-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
@@ -3121,20 +3122,75 @@ function navStep(p,dir){ const n=DATA[p].currentStep+dir; if(n>=0&&n<DATA[p].ste
 
 // ═══ ROLES ════════════════════════════════════
 function renderRoles(p) {
-  document.getElementById(p+'-role-grid').innerHTML = DATA[p].roles.map((r,ri)=>`
-    <div class="card role-card ${r.cls}">
+  const roles  = DATA[p].roles || [];
+  const steps  = DATA[p].steps || [];
+  const colors = ['role-green','role-blue','role-gold','role-red','role-purple'];
+
+  // Derived: for each role collect actions from steps where action.actor matches (case-insensitive)
+  function actionsForRole(roleName) {
+    const key = roleName.trim().toLowerCase();
+    const result = []; // [{stepTitle, actions:[]}]
+    steps.forEach(s => {
+      const matched = (s.actions||[]).filter(a =>
+        (a.actor||'').trim().toLowerCase() === key && a.type !== 'observacao'
+      );
+      if(matched.length) result.push({ stepTitle: s.title||'', actions: matched });
+    });
+    return result;
+  }
+
+  document.getElementById(p+'-role-grid').innerHTML = roles.map((r,ri) => {
+    const cls      = r.cls || colors[ri % colors.length];
+    const derived  = actionsForRole(r.name);
+    const hasDerived = derived.length > 0;
+
+    // Activity rows: derived from steps (grouped by step) OR fallback to duties
+    let bodyHtml = '';
+    if(hasDerived) {
+      bodyHtml = derived.map(({ stepTitle, actions }) => `
+        <div style="margin:0 20px 10px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">${stepTitle}</div>
+          <ul class="role-duties" style="margin:0;">
+            ${actions.map(a => {
+              const icon = a.type==='decisao' ? '◇' : a.type==='evento' ? '○' : '▸';
+              return `<li style="align-items:flex-start;gap:6px;">
+                <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">${icon}</span>
+                <span style="flex:1;font-size:12px;">${a.text||''}</span>
+              </li>`;
+            }).join('')}
+          </ul>
+        </div>`).join('');
+    } else {
+      // Fallback to manually-written duties
+      bodyHtml = `
+        <ul class="role-duties">
+          ${(r.duties||[]).map((d,di)=>`<li><span contenteditable="false" data-key="${p}:r${ri}d${di}" style="flex:1;">${d}</span><button class="edit-rm-btn" onclick="rmRoleDuty('${p}',${ri},${di})">✕</button></li>`).join('')}
+        </ul>
+        <div style="padding:0 20px 16px;"><button class="edit-add-btn" onclick="addRoleDuty('${p}',${ri})">+ Atribuição</button></div>`;
+    }
+
+    // Count badge
+    const total = hasDerived ? derived.reduce((s,g) => s + g.actions.length, 0) : (r.duties||[]).length;
+    const badge = total ? `<span style="display:inline-block;background:rgba(0,0,0,.12);color:inherit;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:6px;">${total} atividade${total!==1?'s':''}</span>` : '';
+
+    return `
+    <div class="card role-card ${cls}">
       <div class="role-card-head">
-        <div class="role-avatar">${r.icon}</div>
-        <div>
-          <div class="role-name" contenteditable="false" data-key="${p}:r${ri}n">${r.name}</div>
-          <div class="role-title" contenteditable="false" data-key="${p}:r${ri}t">${r.title}</div>
+        <div class="role-avatar">${r.icon||'👤'}</div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;">
+            <div class="role-name" contenteditable="false" data-key="${p}:r${ri}n">${r.name}</div>
+            ${badge}
+          </div>
+          <div class="role-title" contenteditable="false" data-key="${p}:r${ri}t">${r.title||''}</div>
         </div>
       </div>
-      <ul class="role-duties">
-        ${r.duties.map((d,di)=>`<li><span contenteditable="false" data-key="${p}:r${ri}d${di}" style="flex:1;">${d}</span><button class="edit-rm-btn" onclick="rmRoleDuty('${p}',${ri},${di})">✕</button></li>`).join('')}
-      </ul>
-      <div style="padding:0 20px 16px;"><button class="edit-add-btn" onclick="addRoleDuty('${p}',${ri})">+ Atribuição</button></div>
-    </div>`).join('');
+      ${hasDerived
+        ? `<div style="padding:4px 0 6px;font-size:10px;color:var(--text-muted);text-align:center;border-top:1px solid rgba(0,0,0,.06);margin:0 20px 4px;padding-top:8px;">Atividades no processo</div>`
+        : ''}
+      ${bodyHtml}
+    </div>`;
+  }).join('');
   if(editMode) enableEditables(true);
 }
 function addRoleDuty(p,ri){ DATA[p].roles[ri].duties.push('Nova atribuição'); renderRoles(p); markChanged(); }
