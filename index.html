@@ -2753,16 +2753,20 @@ function showSection(id, tab, silent) {
 }
 
 // ═══ EDIT MODE ════════════════════════════════
-function toggleEditMode() {
-  editMode = !editMode;
+function toggleEditMode(forceState) {
+  editMode = forceState !== undefined ? forceState : !editMode;
   document.body.classList.toggle('edit-mode', editMode);
   document.getElementById('edit-toggle').textContent = editMode ? '👁 Visualização' : '✏️ Modo Edição';
   enableEditables(editMode);
   document.querySelectorAll('[id$="-add-faq"]').forEach(el => {
     el.style.display = editMode ? 'inline-flex' : 'none';
   });
-  if(editMode) showToast('✏️ Modo Edição ativo — clique em qualquer campo para editar','warn');
-  else showToast('Modo visualização ativo');
+  // Persistir estado do modo edição entre recarregamentos
+  try { localStorage.setItem('gestpop_editMode', editMode ? '1' : '0'); } catch(e) {}
+  if(forceState === undefined) {
+    if(editMode) showToast('✏️ Modo Edição ativo — clique em qualquer campo para editar','warn');
+    else showToast('Modo visualização ativo');
+  }
 }
 
 function enableEditables(on) {
@@ -3940,8 +3944,8 @@ function addRole(p) {
 
 // ── Show edit-add-btn for addStep in edit mode ─
 const _origToggleEdit = toggleEditMode;
-toggleEditMode = function() {
-  _origToggleEdit();
+toggleEditMode = function(forceState) {
+  _origToggleEdit(forceState);
   document.querySelectorAll('[id$="-add-step-btn"]').forEach(btn => {
     btn.style.display = editMode ? 'inline-flex' : 'none';
   });
@@ -4960,6 +4964,9 @@ async function loadFromCloud() {
       });
       const homePage = document.getElementById('home-page');
       if(homePage && homePage.style.display !== 'none') homeRefresh();
+      try {
+        if(isEditor && localStorage.getItem('gestpop_editMode') === '1' && !editMode) toggleEditMode(true);
+      } catch(e) {}
       return;
     }
 
@@ -5013,6 +5020,12 @@ async function loadFromCloud() {
     updateLastSaveChip(data);
     showToast('☁️ Conteúdo carregado!', 'success');
     console.log('loadFromCloud: OK');
+    // Restaurar modo edição se o usuário era editor e estava em modo edição antes do reload
+    try {
+      if(isEditor && localStorage.getItem('gestpop_editMode') === '1' && !editMode) {
+        toggleEditMode(true);
+      }
+    } catch(e) {}
 
   } catch(e) {
     setSyncStatus('error');
