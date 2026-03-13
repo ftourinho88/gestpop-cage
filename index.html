@@ -1127,20 +1127,23 @@
     <button class="pat-filter-btn" onclick="filterPatQuarter('q4',this)">4º Tri (Out–Dez)</button>
   </div>
 
-  <!-- Tipo Filters -->
-  <div class="pat-filter-row" id="pat-tipo-filters">
-    <span style="font-size:11px;font-weight:700;color:var(--text-muted);align-self:center;margin-right:4px;">TIPO:</span>
-    <button class="pat-filter-btn active" onclick="filterPatTipo('',this)">Todos</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Mapeamento de Processo',this)">Mapeamento</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Monitoramento de Indicadores',this)">Monit. Indicadores</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Acompanhamento de Implementação',this)">Acomp. Implementação</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Auditoria',this)">Auditoria</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Controle Interno',this)">Controle Interno</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Consultoria',this)">Consultoria</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Fiscalização',this)">Fiscalização</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Normatização',this)">Normatização</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Capacitação',this)">Capacitação</button>
-    <button class="pat-filter-btn" onclick="filterPatTipo('Outro',this)">Outro</button>
+  <!-- Tipo Filter (dropdown) -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);white-space:nowrap;">TIPO:</span>
+    <select id="pat-tipo-select" onchange="filterPatTipo(this.value)"
+      style="padding:5px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid var(--cage-border);background:white;cursor:pointer;color:var(--text-secondary);">
+      <option value="">Todos os tipos</option>
+      <option>Mapeamento de Processo</option>
+      <option>Monitoramento de Indicadores</option>
+      <option>Acompanhamento de Implementação</option>
+      <option>Auditoria</option>
+      <option>Controle Interno</option>
+      <option>Consultoria</option>
+      <option>Fiscalização</option>
+      <option>Normatização</option>
+      <option>Capacitação</option>
+      <option>Outro</option>
+    </select>
   </div>
 
   <!-- Cards -->
@@ -4228,10 +4231,8 @@ function filterPatQuarter(q, btn) {
   renderPat();
 }
 
-function filterPatTipo(tipo, btn) {
+function filterPatTipo(tipo) {
   _patTipoFilter = tipo;
-  document.querySelectorAll('#pat-tipo-filters .pat-filter-btn').forEach(b => b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
   renderPat();
 }
 
@@ -4695,7 +4696,7 @@ window.addEventListener('beforeunload', () => {
   // Montar payload — limite keepalive do Chrome é 64KB (65536 bytes)
   // Incluir repoDocs e drops apenas se couberem no orçamento
   const KEEPALIVE_LIMIT = 63000; // margem de segurança abaixo de 64KB
-  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops']);
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
 
   // Payload essencial (POPs, PAT, arquitetura)
@@ -4772,7 +4773,7 @@ async function saveToCloud(attempt=1) {
 
   try { harvestEditables(); } catch(e) { console.warn('harvestEditables:', e); }
 
-  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops']);
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
   const payload = {
     pat:          DATA.pat || [],
@@ -4932,7 +4933,9 @@ async function loadFromCloud() {
     }
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
-        if(!pd) return;
+        // Only process real POP objects (key must start with pop_ and pd must be a plain object)
+        if(!pd || typeof pd !== 'object' || Array.isArray(pd)) return;
+        if(!key.startsWith('pop_')) return;
         DATA[key] = pd;
         sanitizePop(key); // garante estrutura completa antes de montar
         if(!document.getElementById('pop-' + key)) {
@@ -5925,6 +5928,8 @@ function importBackup() {
     if(payload.pat) DATA.pat = payload.pat;
     if(payload.newPops && payload.newPops.length > 0) {
       payload.newPops.forEach(({ key, data: pd }) => {
+        if(!pd || typeof pd !== 'object' || Array.isArray(pd)) return;
+        if(!key.startsWith('pop_')) return;
         DATA[key] = pd;
         mountNewPopTab(key, pd.meta?.name || 'POP');
       });
