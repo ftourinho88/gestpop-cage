@@ -4846,7 +4846,9 @@ window.addEventListener('beforeunload', () => {
   } catch(e) { console.warn('[beforeunload] save failed:', e); }
 });
 async function saveToCloud(attempt=1) {
+  console.log('[saveToCloud] attempt='+attempt+' user='+!!currentUser+' editor='+isEditor+' supaClient='+!!supaClient);
   if(!currentUser) { showToast('Faça login primeiro.','warn'); return; }
+  if(!supaClient)  { showToast('⚠️ Supabase não inicializado. Recarregue a página.','warn'); return; }
   if(!isEditor)    { showToast('Sem permissão para salvar.','warn'); return; }
 
   // Se já está salvando, enfileirar apenas 1 chamada extra
@@ -5308,6 +5310,13 @@ let supaClient = null;
 let currentUser = null;
 
 async function initSupabase() {
+  if(!window.supabase) {
+    console.error('[initSupabase] window.supabase não disponível — CDN falhou ao carregar.');
+    document.getElementById('auth-status').textContent = '⚠️ Falha ao carregar biblioteca. Recarregue a página.';
+    document.getElementById('auth-overlay').style.display = 'flex';
+    return;
+  }
+  try {
   supaClient = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
     auth: {
       persistSession: true,
@@ -5372,6 +5381,11 @@ async function initSupabase() {
   if(existingSession?.user) {
     await _handleSession(existingSession.user);
   } else {
+    document.getElementById('auth-overlay').style.display = 'flex';
+  }
+  } catch(e) {
+    console.error('[initSupabase] Erro fatal na inicialização:', e);
+    document.getElementById('auth-status').textContent = '⚠️ Erro ao inicializar: ' + e.message;
     document.getElementById('auth-overlay').style.display = 'flex';
   }
 }
@@ -5458,7 +5472,15 @@ function setSyncStatus(status) {
 // saveToStorage já chama saveToCloud internamente
 
 // Init on load
-document.addEventListener('DOMContentLoaded', initSupabase);
+document.addEventListener('DOMContentLoaded', () => {
+  initSupabase().catch(e => {
+    console.error('[DOMContentLoaded] initSupabase rejeitou:', e);
+    try {
+      document.getElementById('auth-status').textContent = '⚠️ Erro ao inicializar: ' + e.message;
+      document.getElementById('auth-overlay').style.display = 'flex';
+    } catch(_) {}
+  });
+});
 
 document.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key==='s'){ e.preventDefault(); saveToStorage(); } });
 
