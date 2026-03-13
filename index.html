@@ -774,76 +774,68 @@
   .toast { bottom: 12px; right: 12px; left: 12px; text-align: center; }
 }
 
-@media (max-width: 480px) {
-  .nav-tab { font-size: 10px; padding: 8px 6px; }
-  .btn { font-size: 11px; padding: 6px 10px; }
-  .home-card-title { font-size: 13px !important; }
-  .pat-kpi-row { grid-template-columns: 1fr !important; }
-  .header-title strong { font-size: 12px; }
-  #home-stats > div { flex: 1 1 100% !important; }
-  .step-dot-label { display: none; }
-  .header-inner { height: 52px; }
-
-  /* Edit bar e sidebar — ajustar para header 52px */
-  .edit-bar { top: 52px; }
-  .sidebar { top: 52px; height: calc(100vh - 52px); }
-}
-  /* --- RESET E TRANSFORMAÇÃO PARA BARRA INFERIOR --- */
+/* --- RESET TOTAL E BARRA INFERIOR MOBILE --- */
 @media (max-width: 768px) {
-    /* 1. Esconde o botão de 3 linhas (hambúrguer) que não funciona */
-    .menu-toggle, #sidebarCollapse, .toggle-btn, .hamburger {
+    
+    /* 1. MATAR O BOTÃO DE 3 LINHAS (HAMBÚRGUER) */
+    /* Isso remove as linhas verdes que não funcionam */
+    .menu-toggle, #sidebarCollapse, .hamburger, .toggle-sidebar {
         display: none !important;
     }
 
-    /* 2. Força a Sidebar a ficar visível e no rodapé */
+    /* 2. FORÇAR A SIDEBAR PARA O RODAPÉ */
     .sidebar {
         display: flex !important;
         visibility: visible !important;
-        transform: none !important; /* Anula qualquer animação de "esconder" */
         position: fixed !important;
         bottom: 0 !important;
         top: auto !important;
         left: 0 !important;
         width: 100% !important;
-        height: 65px !important;
-        flex-direction: row !important;
+        height: 70px !important;
+        flex-direction: row !important; /* Ícones lado a lado */
         justify-content: space-around !important;
         align-items: center !important;
         background-color: #ffffff !important;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
-        z-index: 9999 !important;
+        box-shadow: 0 -3px 15px rgba(0,0,0,0.1) !important;
+        z-index: 99999 !important;
+        transform: none !important; /* Anula qualquer animação de esconder */
         padding: 0 !important;
         margin: 0 !important;
+        border-right: none !important;
+        border-top: 1px solid #eee !important;
     }
 
-    /* 3. Ajusta os links para o formato de "App" */
+    /* 3. AJUSTAR OS LINKS (ÍCONE EM CIMA, TEXTO EMBAIXO) */
     .sidebar a {
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 5px 0 !important;
-        color: #2e7d32 !important; /* Cor verde padrão do seu app */
         font-size: 10px !important;
-        text-decoration: none !important;
+        color: #2e7d32 !important; /* Verde do seu tema */
+        height: 100% !important;
+        padding: 5px 0 !important;
     }
 
-    /* 4. Ícones maiores e centralizados */
     .sidebar a i {
-        font-size: 20px !important;
-        margin: 0 0 4px 0 !important;
+        font-size: 22px !important;
+        margin-bottom: 4px !important;
+        margin-right: 0 !important;
     }
 
-    /* 5. Ajuste do conteúdo principal para não ser coberto */
-    main, .content, #app-container, .main-panel {
+    /* 4. LIBERAR O CONTEÚDO PRINCIPAL */
+    /* Removemos a margem da esquerda e damos espaço no fundo */
+    main, .content, .main-content, #app {
         margin-left: 0 !important;
-        margin-bottom: 70px !important; /* Espaço para a barra não cobrir o texto */
         width: 100% !important;
+        padding: 15px !important;
+        margin-bottom: 80px !important; /* Espaço para não cobrir o último item */
     }
 
-    /* 6. Esconde textos e logos que poluem a barra inferior */
-    .sidebar-header, .logo-img, .user-section, .sidebar span:not(.icon-text) {
+    /* 5. LIMPEZA DE ELEMENTOS DESNECESSÁRIOS */
+    .sidebar-header, .logo, .user-profile, .sidebar span:not(.icon-text) {
         display: none !important;
     }
 }
