@@ -7389,11 +7389,11 @@ function arqSyncFromPops() {
 }
 
 function arqSaveToCloud() {
-  if(currentUser) {
-    saveToCloud();
-  } else {
-    showToast('⚠️ Faça login para salvar as alterações na nuvem.', 'warn');
-  }
+  if(!currentUser) { showToast('⚠️ Faça login para salvar as alterações na nuvem.', 'warn'); return; }
+  // Não salvar antes do app inicializar — as mudanças em DATA._arqOverrides já estão
+  // na memória e serão incluídas no próximo saveToCloud() após _appInitialized = true
+  if(!window._appInitialized) return;
+  saveToCloud();
 }
 
 
