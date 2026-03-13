@@ -2693,7 +2693,8 @@ function switchPop(pop, tabEl) {
   // Close BI / PAT modules when switching pops
   const _biMod = document.getElementById('bi-module');
   if(_biMod) _biMod.style.display = 'none';
-  document.getElementById('pat-module').classList.remove('active'); document.getElementById('pat-module').style.display = 'none';
+  const _patMod = document.getElementById('pat-module');
+  if(_patMod) { _patMod.classList.remove('active'); _patMod.style.display = 'none'; }
   if(typeof renderSidebar === 'function') renderSidebar();
 
   const labelEl = document.getElementById('current-pop-label');
@@ -2969,9 +2970,12 @@ function renderStep(p, i) {
     });
   });
   renderTracker(p);
-  document.getElementById(p+'-step-pos').textContent = `Etapa ${i+1} de ${DATA[p].steps.length}`;
-  document.getElementById(p+'-btn-prev').disabled = i===0;
-  document.getElementById(p+'-btn-next').textContent = i===DATA[p].steps.length-1 ? '✅ Concluído' : 'Próximo →';
+  const _stepPos  = document.getElementById(p+'-step-pos');
+  const _btnPrev  = document.getElementById(p+'-btn-prev');
+  const _btnNext  = document.getElementById(p+'-btn-next');
+  if(_stepPos) _stepPos.textContent = `Etapa ${i+1} de ${DATA[p].steps.length}`;
+  if(_btnPrev) _btnPrev.disabled = i===0;
+  if(_btnNext) _btnNext.textContent = i===DATA[p].steps.length-1 ? '✅ Concluído' : 'Próximo →';
 }
 
 function addStepAction(p,si){
@@ -3348,6 +3352,7 @@ function showBpmnImage(dataUrl) {
     document.getElementById('bpmn-loading').style.display = 'none';
     // Calculate fit-to-screen zoom based on natural image size
     const canvasWrap = document.querySelector('.bpmn-canvas-wrap');
+    if(!canvasWrap) return;
     const cw = canvasWrap.clientWidth  || window.innerWidth;
     const ch = canvasWrap.clientHeight || 560;
     const iw = img.naturalWidth  || img.width  || 800;
@@ -6854,7 +6859,7 @@ function saveMeet() {
 function renderMeetings(p) {
   const el = document.getElementById(p + '-meet-list');
   if(!el) return;
-  const items = (DATA[p].meetings || []).slice().sort((a,b) => b.date.localeCompare(a.date));
+  const items = (DATA[p].meetings || []).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
   if(!items.length) {
     el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">Nenhuma reunião registrada.</div>';
     return;
