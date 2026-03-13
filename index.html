@@ -1016,20 +1016,13 @@
       <div style="font-size:15px;color:#64748b;margin-top:8px;">Gestão de Processos CAGE-RS — selecione um módulo para começar</div>
     </div>
     <!-- EPP Logo -->
-    <div style="display:flex;align-items:center;gap:14px;background:white;border-radius:14px;padding:14px 20px;box-shadow:0 2px 12px rgba(0,0,0,.07);flex-shrink:0;">
-      <svg width="56" height="46" viewBox="0 0 56 46" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="24" height="24" rx="4" fill="#0a2540"/>
-        <rect x="28" y="0" width="28" height="12" rx="3" fill="#00a86b"/>
-        <rect x="28" y="16" width="28" height="8" rx="3" fill="#00c97a"/>
-        <rect x="0" y="28" width="40" height="10" rx="3" fill="#1a3a5c"/>
-        <rect x="0" y="40" width="28" height="6" rx="3" fill="#00a86b"/>
-        <rect x="32" y="40" width="14" height="6" rx="3" fill="#0a2540"/>
-      </svg>
-      <div>
-        <div style="font-size:13px;font-weight:800;color:#0a2540;letter-spacing:.01em;line-height:1.2;">Escritório de Projetos</div>
-        <div style="font-size:13px;font-weight:800;color:#00a86b;line-height:1.2;">e Processos</div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:2px;letter-spacing:.05em;">EPP · CAGE-RS</div>
+    <div id="epp-logo-block" style="display:flex;align-items:center;background:white;border-radius:14px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,.07);flex-shrink:0;cursor:pointer;position:relative;" title="Clique para configurar o logo" onclick="eppLogoClick()">
+      <img id="epp-logo-img" src="" alt="Logo EPP" style="max-height:60px;max-width:220px;object-fit:contain;display:none;">
+      <div id="epp-logo-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 8px;color:#94a3b8;font-size:12px;text-align:center;gap:4px;">
+        <span style="font-size:22px;">🖼</span>
+        <span>Logo EPP<br><span style="font-size:10px;">(clique para configurar)</span></span>
       </div>
+      <div id="epp-logo-editor-hint" style="display:none;position:absolute;top:4px;right:6px;font-size:10px;color:#94a3b8;">✎</div>
     </div>
   </div>
   <div id="home-stats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:36px;"></div>
@@ -1105,13 +1098,16 @@
       <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:var(--cage-blue);margin:0 0 4px;">📅 Plano de Trabalho do Escritório de Processos</h2>
       <div style="font-size:13px;color:var(--text-muted);">Escritório de Processos — Visível apenas para editores</div>
     </div>
-    <button class="btn btn-primary" onclick="openPatModal()" style="font-size:13px;">＋ Nova Atividade</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="openPatModal()" style="font-size:13px;">＋ Nova Atividade</button>
+      <button class="btn btn-outline" onclick="showPatModule(false)" style="font-size:13px;">✕ Fechar</button>
+    </div>
   </div>
 
   <!-- KPIs -->
   <div class="pat-kpi-row" id="pat-kpis"></div>
 
-  <!-- Filters -->
+  <!-- Status Filters -->
   <div class="pat-filter-row" id="pat-filters">
     <button class="pat-filter-btn active" onclick="filterPat('todos',this)">Todos</button>
     <button class="pat-filter-btn" onclick="filterPat('planejado',this)">Planejado</button>
@@ -1119,6 +1115,16 @@
     <button class="pat-filter-btn" onclick="filterPat('concluido',this)">Concluído</button>
     <button class="pat-filter-btn" onclick="filterPat('atrasado',this)">Atrasado</button>
     <button class="pat-filter-btn" onclick="filterPat('cancelado',this)">Cancelado</button>
+  </div>
+
+  <!-- Quarter Filters -->
+  <div class="pat-filter-row" id="pat-quarter-filters">
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);align-self:center;margin-right:4px;">TRIMESTRE:</span>
+    <button class="pat-filter-btn active" onclick="filterPatQuarter('todos',this)">Todos</button>
+    <button class="pat-filter-btn" onclick="filterPatQuarter('q1',this)">1º Tri (Jan–Mar)</button>
+    <button class="pat-filter-btn" onclick="filterPatQuarter('q2',this)">2º Tri (Abr–Jun)</button>
+    <button class="pat-filter-btn" onclick="filterPatQuarter('q3',this)">3º Tri (Jul–Set)</button>
+    <button class="pat-filter-btn" onclick="filterPatQuarter('q4',this)">4º Tri (Out–Dez)</button>
   </div>
 
   <!-- Cards -->
@@ -4061,9 +4067,10 @@ function renderSidebar() {
 
 // ═══ BI MODULE ══════════════════════════════════════════════
 function showBiModule(show=true) {
+  if(!show) { showHome(); return; }
   hideHome();
   hideAllModules();
-  if(show) document.getElementById('bi-module').style.display = 'block';
+  document.getElementById('bi-module').style.display = 'block';
 }
 
 // ═══ PAT MODULE ════════════════════════════════════════
@@ -4071,6 +4078,7 @@ function showBiModule(show=true) {
 if(!DATA.pat) DATA.pat = [];
 
 let _patFilter = 'todos';
+let _patQuarterFilter = 'todos';
 let _patEditIdx = null;
 
 function patCheckDeadlines() {
@@ -4161,10 +4169,7 @@ function showPatModule(show = true) {
   } else {
     pat.style.display = 'none';
     pat.classList.remove('active');
-    if(navTabs) navTabs.style.display = '';
-    if(popSwitcher) popSwitcher.style.display = '';
-    const activePopEl = document.getElementById('pop-' + popDomId(currentPop));
-    if(activePopEl) activePopEl.classList.add('active');
+    showHome();
   }
 }
 
@@ -4179,9 +4184,26 @@ function populatePatPopSelect() {
 
 function filterPat(filter, btn) {
   _patFilter = filter;
-  document.querySelectorAll('.pat-filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#pat-filters .pat-filter-btn').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
   renderPat();
+}
+
+function filterPatQuarter(q, btn) {
+  _patQuarterFilter = q;
+  document.querySelectorAll('#pat-quarter-filters .pat-filter-btn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPat();
+}
+
+function _patItemQuarter(item) {
+  const d = item.inicio || item.fim;
+  if(!d) return null;
+  const m = new Date(d + 'T12:00').getMonth(); // 0-11
+  if(m <= 2) return 'q1';
+  if(m <= 5) return 'q2';
+  if(m <= 8) return 'q3';
+  return 'q4';
 }
 
 function renderPat() {
@@ -4192,7 +4214,8 @@ function renderPat() {
 function renderPatKpis() {
   const el = document.getElementById('pat-kpis');
   if(!el) return;
-  const items = DATA.pat || [];
+  const allItems = DATA.pat || [];
+  const items = _patQuarterFilter === 'todos' ? allItems : allItems.filter(i => _patItemQuarter(i) === _patQuarterFilter);
   const total      = items.length;
   const planejado  = items.filter(i=>i.status==='planejado').length;
   const andamento  = items.filter(i=>i.status==='andamento').length;
@@ -4221,7 +4244,10 @@ function renderPatCards() {
   const el = document.getElementById('pat-cards');
   if(!el) return;
   const items = DATA.pat || [];
-  const filtered = _patFilter === 'todos' ? items : items.filter(i => i.status === _patFilter);
+  let filtered = _patFilter === 'todos' ? items : items.filter(i => i.status === _patFilter);
+  if(_patQuarterFilter !== 'todos') {
+    filtered = filtered.filter(i => _patItemQuarter(i) === _patQuarterFilter);
+  }
 
   if(!filtered.length) {
     el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">
@@ -4617,6 +4643,7 @@ window.addEventListener('beforeunload', () => {
     r:            DATA.r,
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
+    logoUrl:      DATA._logoUrl || null,
     newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
     repoDocs:     [],
     drops:        []
@@ -4689,6 +4716,7 @@ async function saveToCloud(attempt=1) {
   const payload = {
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
+    logoUrl:      DATA._logoUrl || null,
     newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
     repoDocs:     REPO_DOCS || [],
     drops:        DROPS     || []
@@ -4834,6 +4862,7 @@ async function loadFromCloud() {
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
     if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : [];
+    if(payload.logoUrl) DATA._logoUrl = payload.logoUrl;
     if(Array.isArray(payload.repoDocs)) { REPO_DOCS = payload.repoDocs; }
     if(Array.isArray(payload.drops))    { DROPS     = payload.drops; dropsRender(); }
     if(payload.arqOverrides) {
@@ -5376,12 +5405,11 @@ const ACTOR_COLORS = ['#0a2540','#15803d','#1d4ed8','#9333ea','#c2410c'];
 
 // ── Module show/hide ─────────────────────────────────────────
 function showQuadroModule(show=true) {
+  if(!show) { showHome(); return; }
   hideHome();
   hideAllModules();
-  if(show) {
-    document.getElementById('quadro-module').style.display = 'block';
-    initQuadro();
-  }
+  document.getElementById('quadro-module').style.display = 'block';
+  initQuadro();
 }
 
 // ── Init (once) ──────────────────────────────────────────────
@@ -6703,12 +6731,11 @@ function arqGetData() {
 }
 
 function showArqModule(show = true) {
+  if(!show) { showHome(); return; }
   hideHome();
   hideAllModules();
-  if(show) {
-    document.getElementById('arq-module').style.display = 'block';
-    arqInit();
-  }
+  document.getElementById('arq-module').style.display = 'block';
+  arqInit();
 }
 
 function arqInit() {
@@ -7007,6 +7034,32 @@ function arqSaveToCloud() {
 // HOME PAGE
 // ══════════════════════════════════════════════════════════════
 
+// ═══ EPP LOGO ══════════════════════════════════════
+function eppLogoRefresh() {
+  const img = document.getElementById('epp-logo-img');
+  const ph  = document.getElementById('epp-logo-placeholder');
+  if(!img || !ph) return;
+  const url = DATA._logoUrl || '';
+  if(url) {
+    img.src = url;
+    img.style.display = 'block';
+    ph.style.display  = 'none';
+  } else {
+    img.style.display = 'none';
+    ph.style.display  = 'flex';
+  }
+}
+
+function eppLogoClick() {
+  if(!isEditor) return;
+  const cur = DATA._logoUrl || '';
+  const url = prompt('URL da imagem do logo EPP (deixe em branco para remover):', cur);
+  if(url === null) return; // cancelled
+  DATA._logoUrl = url.trim();
+  eppLogoRefresh();
+  markChanged();
+}
+
 function showHome() {
   const home = document.getElementById('home-page');
   const pat  = document.getElementById('pat-module');
@@ -7187,6 +7240,7 @@ function renderPopsGrid() {
 
 function homeRefresh() {
   checkAllAutoStatus();
+  eppLogoRefresh();
   const data = arqGetData();
 
   // Stats
@@ -7434,10 +7488,11 @@ let repoEditingId = null;
 let repoPendingFile = null;
 
 function showRepoModule(show=true) {
+  if(!show) { showHome(); return; }
   hideHome();
   hideAllModules();
-  document.getElementById('repo-module').style.display = show ? 'block' : 'none';
-  if(show) repoRender();
+  document.getElementById('repo-module').style.display = 'block';
+  repoRender();
 }
 
 function repoGetFileIcon(type) {
@@ -7632,10 +7687,11 @@ let DROPS = [];   // {id, title, edicao, tag, resumo, link, coverUrl, publishedA
 let dropsEditingId = null;
 
 function showDropsModule(show=true) {
+  if(!show) { showHome(); return; }
   hideHome();
   hideAllModules();
-  document.getElementById('drops-module').style.display = show ? 'block' : 'none';
-  if(show) dropsRender();
+  document.getElementById('drops-module').style.display = 'block';
+  dropsRender();
 }
 
 function dropsRender() {
