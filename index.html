@@ -1173,10 +1173,6 @@
       <div class="home-card-footer">Formulário Microsoft Forms</div>
     </div>
   </div>
-  <div style="margin-bottom:32px;">
-    <div style="font-size:16px;font-weight:700;color:#0a2540;margin-bottom:16px;">📋 Procedimentos Disponíveis</div>
-    <div id="home-pops-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
-  </div>
 </div>
 
 
@@ -8910,8 +8906,8 @@ function arqRenderTable(filtered, all) {
     const toggleLabel = mapped ? '✅ Sim'  : '○ Não';
     return `<tr onclick="arqShowProcessDetail(${realIdx})" style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;${mapped ? 'border-left:3px solid #00a86b;' : ''}cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='${rowColor?'#f8fafc':'white'}'">
       <td style="padding:10px 16px;font-weight:600;color:#0a2540;font-size:12px;">${r.macroprocesso}</td>
-      <td style="padding:10px 16px;color:#1e293b;font-size:13px;">${r.processo}</td>
-      <td style="padding:10px 16px;color:#475569;font-size:12px;">${r.subprocesso || '<span style="color:#cbd5e1;">—</span>'}</td>
+      <td style="padding:10px 16px;color:#1e293b;font-size:13px;text-decoration:underline;text-underline-offset:2px;">${r.processo}</td>
+      <td style="padding:10px 16px;color:#475569;font-size:12px;text-decoration:underline;text-underline-offset:2px;">${r.subprocesso || '<span style="color:#cbd5e1;text-decoration:none;">—</span>'}</td>
       <td style="padding:10px 16px;">
         <span style="background:${nat.bg};color:${nat.color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;">${r.natureza||''}</span>
       </td>
@@ -9125,16 +9121,25 @@ function arqShowProcessDetail(idx) {
       </div>`;
     }).join('') : '<div style="color:#94a3b8;font-size:12px;">Nenhum risco cadastrado</div>';
 
-    const normasHtml = normas.length ? normas.map(n =>
-      `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;"><strong>${n.titulo||n.referencia||'—'}</strong>${n.referencia?' · <span style="color:#64748b;">'+n.referencia+'</span>':''}${n.link?` <a href="${n.link}" target="_blank" style="color:#3b82f6;font-size:11px;">[↗]</a>`:''}</div>`
-    ).join('') : '<div style="color:#94a3b8;font-size:12px;">Nenhuma norma cadastrada</div>';
+    const normasHtml = normas.length ? normas.map(n => {
+      const title = n.name || n.titulo || n.code || n.referencia || '—';
+      const code  = n.code  || n.referencia || '';
+      const url   = n.url   || n.link       || '';
+      return `<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #f1f5f9;">
+        <strong style="color:#1e293b;">${code || title}</strong>
+        ${code && n.name ? `<span style="color:#64748b;"> · ${n.name}</span>` : ''}
+        ${url ? ` <a href="${url}" target="_blank" style="color:#3b82f6;font-size:11px;text-decoration:none;">[↗]</a>` : ''}
+      </div>`;
+    }).join('') : '<div style="color:#94a3b8;font-size:12px;">Nenhuma norma cadastrada</div>';
 
     // Flowchart preview (mermaid code or image)
     const flowDiag = popData.flowDiagram;
     let fluxoSection = '';
     if(fluxoUrl) {
-      fluxoSection = `<div style="margin-top:4px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:180px;text-align:center;background:#f8fafc;">
+      fluxoSection = `<div style="margin-top:4px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:180px;text-align:center;background:#f8fafc;cursor:zoom-in;position:relative;"
+          onclick="arqOpenFluxoLightbox('${fluxoUrl}')" title="Clique para ampliar">
         <img src="${fluxoUrl}" style="max-width:100%;max-height:180px;object-fit:contain;" alt="Fluxograma">
+        <div style="position:absolute;bottom:4px;right:6px;font-size:10px;background:rgba(0,0,0,.45);color:white;border-radius:4px;padding:2px 6px;">🔍 ampliar</div>
       </div>`;
     } else if(flowDiag?.mermaid) {
       fluxoSection = `<div id="arq-det-mermaid" style="font-size:11px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;max-height:180px;overflow:auto;"></div>`;
@@ -9153,8 +9158,7 @@ function arqShowProcessDetail(idx) {
         ${row('Sistemas', meta.sistemas)}
         ${row('Elaborado por', meta.elaborado)}
         ${row('Equipe', meta.equipe)}
-        ${row('Início previsto', meta.dataInicio ? new Date(meta.dataInicio+'T12:00:00Z').toLocaleDateString('pt-BR') : '')}
-        ${row('Conclusão prevista', meta.dataPrevista ? new Date(meta.dataPrevista+'T12:00:00Z').toLocaleDateString('pt-BR') : '')}
+        ${row('Conclusão efetiva', meta.dataEfetiva ? new Date(meta.dataEfetiva+'T12:00:00Z').toLocaleDateString('pt-BR') : '')}
         ${steps.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
           ${pill(steps.length+' etapas','#dbeafe','#1e40af')}
           ${(popData.roles||[]).length ? pill((popData.roles||[]).length+' funções','#ede9fe','#5b21b6') : ''}
@@ -9238,6 +9242,21 @@ function arqShowProcessDetail(idx) {
 function arqCloseDetail() {
   const modal = document.getElementById('arq-detail-modal');
   if(modal) modal.classList.remove('open');
+}
+
+function arqOpenFluxoLightbox(url) {
+  let lb = document.getElementById('arq-fluxo-lightbox');
+  if(!lb) {
+    lb = document.createElement('div');
+    lb.id = 'arq-fluxo-lightbox';
+    lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+    lb.innerHTML = `<img id="arq-fluxo-lb-img" style="max-width:94vw;max-height:92vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);">
+      <button onclick="document.getElementById('arq-fluxo-lightbox').style.display='none'" style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:white;font-size:24px;cursor:pointer;border-radius:50%;width:40px;height:40px;line-height:40px;text-align:center;">✕</button>`;
+    lb.addEventListener('click', e => { if(e.target === lb) lb.style.display='none'; });
+    document.body.appendChild(lb);
+  }
+  document.getElementById('arq-fluxo-lb-img').src = url;
+  lb.style.display = 'flex';
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -9355,13 +9374,25 @@ function showPopGallery() {
         const name = meta.name || 'POP';
         const area = meta.area || meta.gerente || '';
         const steps = DATA[k]?.steps?.length || 0;
-        return `<div onclick="switchPop('${k}')" style="background:white;border:1.5px solid #e2e8f0;border-top:4px solid #00a86b;border-radius:12px;padding:20px;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.05);"
+        const macro = meta.macro || '';
+        const processo = meta.processo || '';
+        const subprocesso = meta.subprocesso || '';
+        const canDelete = (typeof isAdmin !== 'undefined' && isAdmin) || (typeof isEditor !== 'undefined' && isEditor);
+        return `<div style="background:white;border:1.5px solid #e2e8f0;border-top:4px solid #00a86b;border-radius:12px;padding:20px;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.05);position:relative;"
           onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
           onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.05)'">
-          <div style="font-size:28px;margin-bottom:10px;">📄</div>
-          <div style="font-size:14px;font-weight:700;color:#0a2540;margin-bottom:6px;">${name}</div>
-          ${area ? `<div style="font-size:11px;color:#64748b;margin-bottom:8px;">${area}</div>` : ''}
-          <div style="font-size:11px;color:#94a3b8;">${steps} etapa${steps !== 1 ? 's' : ''}</div>
+          ${canDelete ? `<button onclick="event.stopPropagation();popDeleteWork('${k}')"
+            style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;color:#cbd5e1;line-height:1;padding:2px 5px;border-radius:4px;"
+            onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'" title="Excluir mapeamento">✕</button>` : ''}
+          <div onclick="switchPop('${k}')">
+            <div style="font-size:28px;margin-bottom:10px;">📄</div>
+            <div style="font-size:14px;font-weight:700;color:#0a2540;margin-bottom:6px;">${name}</div>
+            ${macro ? `<div style="font-size:11px;color:#94a3b8;margin-bottom:2px;"><span style="font-weight:600;color:#64748b;">Macro:</span> ${macro}</div>` : ''}
+            ${processo ? `<div style="font-size:11px;color:#94a3b8;margin-bottom:2px;"><span style="font-weight:600;color:#64748b;">Processo:</span> ${processo}</div>` : ''}
+            ${subprocesso ? `<div style="font-size:11px;color:#94a3b8;margin-bottom:2px;"><span style="font-weight:600;color:#64748b;">Subprocesso:</span> ${subprocesso}</div>` : ''}
+            ${area && !processo && !macro ? `<div style="font-size:11px;color:#64748b;margin-bottom:8px;">${area}</div>` : ''}
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">${steps} etapa${steps !== 1 ? 's' : ''}</div>
+          </div>
         </div>`;
       }).join('') : '<div style="color:#94a3b8;font-size:14px;padding:40px 0;text-align:center;">Nenhum processo cadastrado. Clique em ＋ Novo Processo para começar.</div>'}
     </div>`;
@@ -9429,17 +9460,26 @@ function renderPopsGrid() {
           const tipo = meta.tipo || '';
           const equipe = meta.equipe || '';
           const steps = DATA[p.key]?.steps?.length || 0;
-          return `<div onclick="hideHome();switchPop('${p.key}')"
-            style="background:white;border-radius:12px;padding:16px 18px;cursor:pointer;
+          const macroMeta = meta.macro || p.macro || '';
+          const processoMeta = meta.processo || p.processo || '';
+          const subprocessoMeta = meta.subprocesso || '';
+          const canDelete = (typeof isAdmin !== 'undefined' && isAdmin) || (typeof isEditor !== 'undefined' && isEditor);
+          return `<div style="background:white;border-radius:12px;padding:16px 18px;cursor:pointer;
             box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid ${p.color};
-            transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;gap:5px;"
+            transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;gap:5px;position:relative;"
             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'"
             onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(0,0,0,.06)'">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-              <div style="font-size:14px;font-weight:700;color:#0a2540;line-height:1.3;">${p.subprocesso || p.label}</div>
+            ${canDelete ? `<button onclick="event.stopPropagation();popDeleteWork('${p.key}')"
+              style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;color:#cbd5e1;line-height:1;padding:2px 4px;border-radius:4px;z-index:1;"
+              onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'" title="Excluir mapeamento">✕</button>` : ''}
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-right:${canDelete?'20px':'0'};">
+              <div style="font-size:14px;font-weight:700;color:#0a2540;line-height:1.3;" onclick="hideHome();switchPop('${p.key}')">${meta.name || p.label}</div>
               ${sc ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border};white-space:nowrap;flex-shrink:0;">${stLabel}</span>` : ''}
             </div>
-            ${p.processo ? `<div style="font-size:11px;color:#64748b;">🔗 ${p.processo}</div>` : ''}
+            <div onclick="hideHome();switchPop('${p.key}')" style="display:flex;flex-direction:column;gap:4px;">
+            ${macroMeta ? `<div style="font-size:11px;color:#94a3b8;"><span style="font-weight:600;color:#64748b;">Macro:</span> ${macroMeta}</div>` : ''}
+            ${processoMeta ? `<div style="font-size:11px;color:#94a3b8;"><span style="font-weight:600;color:#64748b;">Processo:</span> ${processoMeta}</div>` : ''}
+            ${subprocessoMeta ? `<div style="font-size:11px;color:#94a3b8;"><span style="font-weight:600;color:#64748b;">Subprocesso:</span> ${subprocessoMeta}</div>` : ''}
             ${tipo ? `<div style="font-size:11px;color:#64748b;font-weight:600;">📌 ${tipo}</div>` : ''}
             ${equipe ? `<div style="font-size:11px;color:#64748b;">👥 ${equipe}</div>` : ''}
             <div style="display:flex;gap:12px;margin-top:2px;flex-wrap:wrap;">
@@ -9447,12 +9487,23 @@ function renderPopsGrid() {
               ${efetiva  ? `<div style="font-size:10px;color:#15803d;font-weight:600;">✅ Entregue: ${efetiva}</div>` : ''}
             </div>
             <div style="font-size:10px;color:#cbd5e1;margin-top:2px;">${steps} etapa${steps!==1?'s':''}</div>
+            </div>
           </div>`;
         }).join('')}
       </div>
     </div>`;
   });
   body.innerHTML = html;
+}
+
+function popDeleteWork(key) {
+  if(!confirm('Excluir este mapeamento? Esta ação não pode ser desfeita.')) return;
+  delete DATA[key];
+  saveToCloud();
+  showToast('Mapeamento excluído.', 'success');
+  // If the POP module is currently showing this key, go back to home
+  if(typeof currentPop !== 'undefined' && currentPop === key) showHome();
+  homeRefresh();
 }
 
 function homeRefresh() {
@@ -9511,50 +9562,6 @@ function homeRefresh() {
       el.style.display = isEditor ? '' : 'none';
     }
   });
-
-  // POPs grid — agrupado por macroprocesso com filtros
-  const grid = document.getElementById('home-pops-grid');
-  if(!grid) return;
-
-  const popDefs = [
-    ...Object.keys(DATA).filter(k => k.startsWith('pop_')).map(k => ({
-      key: k,
-      label:      DATA[k]?.meta?.name     || 'Novo Processo',
-      macro:      DATA[k]?.meta?.macro    || '— Sem Macroprocesso',
-      processo:   DATA[k]?.meta?.processo || '',
-      subprocesso:DATA[k]?.meta?.name     || '',
-      color: '#f59e0b'
-    }))
-  ];
-
-  // Render filtros e grid
-  const filterHtml = `
-    <div id="pops-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
-      <input type="text" id="pops-search" placeholder="🔍 Buscar mapeamento..." oninput="renderPopsGrid()"
-        style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;flex:1;min-width:200px;outline:none;">
-      <select id="pops-filter-macro" onchange="renderPopsGrid()"
-        style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;color:#374151;min-width:180px;">
-        <option value="">Todos os macroprocessos</option>
-        ${[...new Set(popDefs.map(p=>p.macro).filter(Boolean))].sort().map(m=>`<option value="${m}">${m}</option>`).join('')}
-      </select>
-      <select id="pops-filter-status" onchange="renderPopsGrid()"
-        style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;color:#374151;">
-        <option value="">Todos os status</option>
-        <option value="planejado">📋 Planejado</option>
-        <option value="em_andamento">🔄 Em Andamento</option>
-        <option value="concluido">✅ Concluído</option>
-        <option value="atrasado">⚠️ Atrasado</option>
-        <option value="suspenso">⏸ Suspenso</option>
-      </select>
-    </div>
-    <div id="pops-grid-body"></div>`;
-
-  grid.innerHTML = filterHtml;
-
-  // Guardar defs globalmente para renderPopsGrid() acessar
-  window._popDefs = popDefs;
-  renderPopsGrid();
-
 
 }
 
