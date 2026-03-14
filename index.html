@@ -10144,29 +10144,24 @@ function homeRefresh() {
   const procs  = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
   const popKeys = Object.keys(DATA).filter(k => k.startsWith('pop_'));
 
-  const mappedN = data.filter(r => r.mapeado).length;
-  const totalN  = data.length;
-  const pct     = totalN ? Math.round(mappedN / totalN * 100) : 0;
-  const pctColor = pct === 100 ? '#16a34a' : pct >= 50 ? '#f59e0b' : '#e11d48';
+  const allPopKeys   = ['d', 'r', ...popKeys];
+  const subprocN     = data.filter(r => r.subprocesso && r.subprocesso.trim()).length;
+  const faqN         = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.faqs?.length  || 0), 0);
+  const riscosN      = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.risks?.length || 0), 0);
+  const indicadoresN = DATA.indicadoresCage?.indicadores?.length || 0;
 
   document.getElementById('home-stats').innerHTML = [
     { label: 'POPs cadastrados',   val: popKeys.length, color: '#00a86b' },
     { label: 'Macroprocessos',     val: macros,         color: '#0a2540' },
     { label: 'Processos',          val: procs,          color: '#8b5cf6' },
+    { label: 'Subprocessos',       val: subprocN,       color: '#0369a1' },
+    { label: 'FAQs cadastradas',   val: faqN,           color: '#d97706' },
+    { label: 'Riscos mapeados',    val: riscosN,        color: '#dc2626' },
+    { label: 'Indicadores',        val: indicadoresN,   color: '#7c3aed' },
   ].map(s => `<div style="background:white;border-radius:10px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
     <div style="font-size:12px;color:#64748b;">${s.label}</div>
-  </div>`).join('') +
-  `<div style="background:white;border-radius:10px;padding:14px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex:1;min-width:200px;">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-      <div style="font-size:12px;font-weight:700;color:#0a2540;">Cobertura de Mapeamento</div>
-      <div style="font-size:22px;font-weight:800;color:${pctColor};">${pct}%</div>
-    </div>
-    <div style="background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;">
-      <div style="height:100%;border-radius:20px;background:${pctColor};width:${pct}%;transition:width .6s ease;"></div>
-    </div>
-    <div style="font-size:11px;color:#64748b;margin-top:5px;">${mappedN} de ${totalN} processos mapeados</div>
-  </div>`;
+  </div>`).join('');
 
   // Count labels
   const pcEl = document.getElementById('home-pops-count');
