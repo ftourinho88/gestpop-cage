@@ -1021,6 +1021,24 @@
   .indcage-table tbody td { padding:9px 12px; border-bottom:1px solid var(--cage-border); vertical-align:middle; }
   .indcage-table tbody tr:hover { background:#f0f9ff; }
   .indcage-pct-pill { display:inline-block; padding:2px 8px; border-radius:10px; font-weight:700; font-size:11px; font-family:'JetBrains Mono',monospace; }
+  /* Override panel */
+  .indcage-cfg-panel { background:#fafbff; border:1.5px solid #c7d7f5; border-radius:10px; margin-bottom:14px; overflow:hidden; }
+  .indcage-cfg-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; cursor:pointer; user-select:none; background:#eef3fc; }
+  .indcage-cfg-header:hover { background:#e2eaf9; }
+  .indcage-cfg-title { font-size:12px; font-weight:700; color:#1e3a7a; text-transform:uppercase; letter-spacing:.5px; }
+  .indcage-cfg-body { padding:14px 16px; display:none; border-top:1.5px solid #c7d7f5; }
+  .indcage-cfg-body.open { display:block; }
+  .indcage-cfg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px 20px; }
+  .indcage-cfg-field { display:flex; flex-direction:column; gap:4px; }
+  .indcage-cfg-label { font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+  .indcage-cfg-input { padding:6px 10px; border:1.5px solid #d1d9f0; border-radius:7px; font-size:13px; color:#0a2540; background:white; outline:none; }
+  .indcage-cfg-input:focus { border-color:#3b7ddd; }
+  .indcage-cfg-radio-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .indcage-cfg-radio { display:flex; align-items:center; gap:5px; font-size:12px; color:#334155; cursor:pointer; }
+  .indcage-cfg-radio input { cursor:pointer; }
+  .indcage-cfg-badge { display:inline-block; padding:1px 7px; border-radius:8px; font-size:10px; font-weight:700; }
+  .indcage-cfg-save-row { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid #d1d9f0; }
+  .indcage-cfg-saved-msg { font-size:11px; color:#16a34a; font-weight:600; display:none; }
   .pct-verde { background:#dcfce7; color:#15803d; }
   .pct-amarelo { background:#fef9c3; color:#a16207; }
   .pct-vermelho { background:#fee2e2; color:#b91c1c; }
@@ -3668,6 +3686,78 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
     <div id="indcage-ind-info" style="display:none;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin-bottom:14px;">
       <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">☑️ Dados do Indicador Selecionado</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 20px;" id="indcage-ind-info-body"></div>
+    </div>
+
+    <!-- Painel de configurações do indicador (override manual) -->
+    <div id="indcage-cfg-panel" class="indcage-cfg-panel" style="display:none;">
+      <div class="indcage-cfg-header" onclick="indcageCfgToggle()">
+        <span class="indcage-cfg-title">⚙️ Configurações do Indicador</span>
+        <span id="indcage-cfg-chevron" style="font-size:12px;color:#1e3a7a;transition:transform .2s;">▼</span>
+      </div>
+      <div class="indcage-cfg-body" id="indcage-cfg-body">
+        <div class="indcage-cfg-grid">
+          <!-- Sentido -->
+          <div class="indcage-cfg-field" style="grid-column:1/-1;">
+            <div class="indcage-cfg-label">📐 Sentido do indicador</div>
+            <div class="indcage-cfg-radio-row">
+              <label class="indcage-cfg-radio"><input type="radio" name="cfg-sentido" id="cfg-sentido-maior" value="maior"> ↑ Quanto <strong>maior</strong>, melhor</label>
+              <label class="indcage-cfg-radio"><input type="radio" name="cfg-sentido" id="cfg-sentido-menor" value="menor"> ↓ Quanto <strong>menor</strong>, melhor</label>
+            </div>
+          </div>
+          <!-- Tipo -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-tipo">📊 Tipo de indicador</label>
+            <select class="indcage-cfg-input" id="cfg-tipo">
+              <option value="auto">Automático (detectar)</option>
+              <option value="percentual">Percentual (%)</option>
+              <option value="prazo">Prazo / Tempo</option>
+              <option value="numero">Número absoluto</option>
+              <option value="moeda">Valor monetário (R$)</option>
+            </select>
+          </div>
+          <!-- Unidade -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-unidade">🏷️ Unidade de medida</label>
+            <input class="indcage-cfg-input" id="cfg-unidade" type="text" placeholder="Ex: %, dias, R$, unidades…">
+          </div>
+          <!-- Casas decimais -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-decimais">🔢 Casas decimais</label>
+            <select class="indcage-cfg-input" id="cfg-decimais">
+              <option value="0">0 — Inteiro (ex: 42)</option>
+              <option value="1">1 — Ex: 42,5</option>
+              <option value="2">2 — Ex: 42,50</option>
+            </select>
+          </div>
+          <!-- Faixa verde -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-faixa-verde">🟢 Limite para verde (%)</label>
+            <input class="indcage-cfg-input" id="cfg-faixa-verde" type="number" step="1" placeholder="Ex: 100">
+            <div style="font-size:10px;color:#94a3b8;margin-top:2px;" id="cfg-faixa-verde-hint">Para "maior melhor": ≥ este valor = verde</div>
+          </div>
+          <!-- Faixa amarela -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-faixa-amarelo">🟡 Limite para amarelo (%)</label>
+            <input class="indcage-cfg-input" id="cfg-faixa-amarelo" type="number" step="1" placeholder="Ex: 80">
+            <div style="font-size:10px;color:#94a3b8;margin-top:2px;" id="cfg-faixa-amarelo-hint">Para "maior melhor": ≥ este valor e &lt; verde = amarelo</div>
+          </div>
+          <!-- Meta de referência -->
+          <div class="indcage-cfg-field">
+            <label class="indcage-cfg-label" for="cfg-meta-ref">🎯 Meta de referência (override)</label>
+            <input class="indcage-cfg-input" id="cfg-meta-ref" type="number" step="any" placeholder="Deixe vazio para usar dados importados">
+          </div>
+          <!-- Comentário -->
+          <div class="indcage-cfg-field" style="grid-column:1/-1;">
+            <label class="indcage-cfg-label" for="cfg-comentario">📝 Observações / justificativa da configuração</label>
+            <textarea class="indcage-cfg-input" id="cfg-comentario" rows="2" placeholder="Por que você ajustou essas configurações…" style="resize:vertical;font-size:12px;"></textarea>
+          </div>
+        </div>
+        <div class="indcage-cfg-save-row">
+          <span class="indcage-cfg-saved-msg" id="cfg-saved-msg">✔ Configuração salva!</span>
+          <button class="btn btn-outline" style="font-size:12px;padding:6px 14px;" onclick="indcageResetOverride()">↺ Restaurar padrão</button>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 16px;" onclick="indcageSaveOverride()">💾 Salvar configuração</button>
+        </div>
+      </div>
     </div>
 
     <!-- KPIs do período selecionado -->
@@ -6745,7 +6835,8 @@ async function loadFromCloud() {
     if(payload.indicadoresCage && typeof payload.indicadoresCage === 'object') {
       DATA.indicadoresCage = {
         indicadores: Array.isArray(payload.indicadoresCage.indicadores) ? payload.indicadoresCage.indicadores : [],
-        resultados:  Array.isArray(payload.indicadoresCage.resultados)  ? payload.indicadoresCage.resultados  : []
+        resultados:  Array.isArray(payload.indicadoresCage.resultados)  ? payload.indicadoresCage.resultados  : [],
+        overrides:   (payload.indicadoresCage.overrides && typeof payload.indicadoresCage.overrides === 'object') ? payload.indicadoresCage.overrides : {}
       };
     }
     if(payload.newPops?.length) {
@@ -12219,9 +12310,10 @@ function saveStatusModal() {
 
   // ─── Data init ────────────────────────────────────────────────────
   function ensureData() {
-    if(!DATA.indicadoresCage) DATA.indicadoresCage = { indicadores: [], resultados: [] };
+    if(!DATA.indicadoresCage) DATA.indicadoresCage = { indicadores: [], resultados: [], overrides: {} };
     if(!Array.isArray(DATA.indicadoresCage.indicadores)) DATA.indicadoresCage.indicadores = [];
     if(!Array.isArray(DATA.indicadoresCage.resultados))  DATA.indicadoresCage.resultados  = [];
+    if(!DATA.indicadoresCage.overrides || typeof DATA.indicadoresCage.overrides !== 'object') DATA.indicadoresCage.overrides = {};
   }
 
   // ─── Module show/hide ─────────────────────────────────────────────
@@ -12717,6 +12809,9 @@ function saveStatusModal() {
       infoPanel.style.display = 'none';
     }
 
+    // Painel de configurações do indicador
+    _renderCfgPanel(selInd);
+
     // Sort by periodo desc
     filtered = filtered.slice().sort((a,b) => (b.periodo||'').localeCompare(a.periodo||''));
 
@@ -12754,20 +12849,23 @@ function saveStatusModal() {
       return;
     }
     tbody.innerHTML = filtered.map(r => {
-      const isPrazo = _isPrazoInd(r.codigo);
+      const cfg = _getOverride(r.codigo);
       const pct = r.pctRealizado;
-      const pctClass = pct === null ? 'pct-cinza' : isPrazo ? (pct <= 100 ? 'pct-verde' : pct <= 120 ? 'pct-amarelo' : 'pct-vermelho') : (pct >= 100 ? 'pct-verde' : pct >= 80 ? 'pct-amarelo' : 'pct-vermelho');
-      const pctAcClass = r.pctRealizAcum === null ? 'pct-cinza' : isPrazo ? (r.pctRealizAcum <= 100 ? 'pct-verde' : r.pctRealizAcum <= 120 ? 'pct-amarelo' : 'pct-vermelho') : (r.pctRealizAcum >= 100 ? 'pct-verde' : r.pctRealizAcum >= 80 ? 'pct-amarelo' : 'pct-vermelho');
+      const pctClass   = _pctClass(pct, cfg);
+      const pctAcClass = _pctClass(r.pctRealizAcum, cfg);
+      const unidade = cfg.unidade ? cfg.unidade : '%';
+      const isPerc = cfg.tipo === 'percentual' || cfg.tipo === 'prazo' || cfg.tipo === 'auto';
+      const fmtVal = v => v !== null && v !== undefined ? _fmtNumDec(v, cfg.casasDecimais) : '—';
       return `<tr>
         <td style="white-space:nowrap;font-weight:600;">${_periodoLabel(r.periodo)}</td>
         <td>${r.divisao || '—'}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${r.codigo || '—'}</td>
         <td style="max-width:220px;">${r.enunciado || '—'}</td>
-        <td style="text-align:right;">${r.meta !== null ? _fmtNum(r.meta) : '—'}</td>
-        <td style="text-align:right;">${r.realizado !== null ? _fmtNum(r.realizado) : '—'}</td>
+        <td style="text-align:right;">${fmtVal(r.meta)}${r.meta !== null ? ' <span style="font-size:9px;color:#94a3b8;">'+unidade+'</span>' : ''}</td>
+        <td style="text-align:right;">${fmtVal(r.realizado)}${r.realizado !== null ? ' <span style="font-size:9px;color:#94a3b8;">'+unidade+'</span>' : ''}</td>
         <td style="text-align:center;">${pct !== null ? `<span class="indcage-pct-pill ${pctClass}">${_fmtNum(pct)}%</span>` : '—'}</td>
         <td style="text-align:center;">${r.pctIndice !== null ? `<span class="indcage-pct-pill pct-cinza">${_fmtNum(r.pctIndice)}%</span>` : '—'}</td>
-        <td style="text-align:right;">${r.realizadoAcum !== null ? _fmtNum(r.realizadoAcum) : '—'}</td>
+        <td style="text-align:right;">${fmtVal(r.realizadoAcum)}${r.realizadoAcum !== null ? ' <span style="font-size:9px;color:#94a3b8;">'+unidade+'</span>' : ''}</td>
         <td style="text-align:center;">${r.pctRealizAcum !== null ? `<span class="indcage-pct-pill ${pctAcClass}">${_fmtNum(r.pctRealizAcum)}%</span>` : '—'}</td>
         <td style="max-width:180px;font-size:11px;color:#475569;">${r.analise || '—'}</td>
       </tr>`;
@@ -12801,22 +12899,62 @@ function saveStatusModal() {
     const realizadoTotal = filtered.reduce((s,r) => s + (r.realizado||0), 0);
     const metaTotal = filtered.reduce((s,r) => s + (r.meta||0), 0);
 
-    const isPrazo = selInd ? _isPrazoInd(selInd) : false;
-    function kpiClass(v) { if(v===null) return ''; return isPrazo ? (v<=100?'verde':v<=120?'amarelo':'vermelho') : (v>=100?'verde':v>=80?'amarelo':'vermelho'); }
+    const cfg = selInd ? _getOverride(selInd) : null;
+    function kpiClass(v) {
+      if(v===null || !cfg) return '';
+      return _pctClass(v, cfg).replace('pct-', '');
+    }
     const periodo = selPer ? _periodoLabel(selPer) : (filtered[0]?.periodo ? _periodoLabel(filtered[0].periodo) : '—');
+    const unidade = cfg?.unidade || '';
+    const sentidoLabel = cfg ? (cfg.sentido === 'menor' ? '↓ menor melhor' : '↑ maior melhor') : '';
 
     kpiRow.innerHTML = `
       <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctReal)}">${pctReal!==null?_fmtNum(pctReal)+'%':'—'}</div><div class="indcage-kpi-label">% Realizado (média)</div><div class="indcage-kpi-sub">${periodo}</div></div>
       <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctInd)}">${pctInd!==null?_fmtNum(pctInd)+'%':'—'}</div><div class="indcage-kpi-label">% Índice (média)</div><div class="indcage-kpi-sub">${periodo}</div></div>
       <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctAcum)}">${pctAcum!==null?_fmtNum(pctAcum)+'%':'—'}</div><div class="indcage-kpi-label">% Realiz. Acumulado</div><div class="indcage-kpi-sub">${periodo}</div></div>
-      <div class="indcage-kpi"><div class="indcage-kpi-value" style="font-size:22px;">${_fmtNum(realizadoTotal)}</div><div class="indcage-kpi-label">Total Realizado</div><div class="indcage-kpi-sub">vs Meta: ${_fmtNum(metaTotal)}</div></div>
+      <div class="indcage-kpi"><div class="indcage-kpi-value" style="font-size:22px;">${_fmtNum(realizadoTotal)}${unidade?' <span style="font-size:14px;color:#94a3b8;">'+unidade+'</span>':''}</div><div class="indcage-kpi-label">Total Realizado</div><div class="indcage-kpi-sub">vs Meta: ${_fmtNum(metaTotal)}${unidade?' '+unidade:''}${sentidoLabel?' · '+sentidoLabel:''}</div></div>
     `;
+  }
+
+  // ─── Configuração / override por indicador ────────────────────────
+  function _getOverride(codigo) {
+    ensureData();
+    const saved = DATA.indicadoresCage.overrides[codigo] || {};
+    const ind = getAllIndicators().find(i => i.codigo === codigo);
+    const enunciadoPrazo = /^(prazo|tempo)\b/i.test(ind?.enunciado || '');
+    let tipo = (saved.tipo && saved.tipo !== 'auto') ? saved.tipo : (enunciadoPrazo ? 'prazo' : 'percentual');
+    const isPrazoTipo = tipo === 'prazo';
+    const defaultSentido = isPrazoTipo ? 'menor' : 'maior';
+    const sentido = saved.sentido || defaultSentido;
+    const menorMelhor = sentido === 'menor';
+    // Thresholds
+    const defaultVerde   = menorMelhor ? 100 : 100;
+    const defaultAmarelo = menorMelhor ? 120 : 80;
+    return {
+      tipo,
+      sentido,
+      unidade:       saved.unidade       !== undefined ? saved.unidade       : (isPrazoTipo ? 'dias' : tipo === 'moeda' ? 'R$' : tipo === 'percentual' ? '%' : ''),
+      casasDecimais: saved.casasDecimais !== undefined ? saved.casasDecimais : 1,
+      faixaVerde:    saved.faixaVerde    !== undefined ? Number(saved.faixaVerde)    : defaultVerde,
+      faixaAmarelo:  saved.faixaAmarelo  !== undefined ? Number(saved.faixaAmarelo)  : defaultAmarelo,
+      metaRef:       saved.metaRef       !== undefined && saved.metaRef !== null && saved.metaRef !== '' ? Number(saved.metaRef) : null,
+      comentario:    saved.comentario    || '',
+    };
+  }
+
+  function _pctClass(pct, cfg) {
+    if(pct === null || pct === undefined) return 'pct-cinza';
+    if(cfg.sentido === 'menor') {
+      return pct <= cfg.faixaVerde ? 'pct-verde' : pct <= cfg.faixaAmarelo ? 'pct-amarelo' : 'pct-vermelho';
+    } else {
+      return pct >= cfg.faixaVerde ? 'pct-verde' : pct >= cfg.faixaAmarelo ? 'pct-amarelo' : 'pct-vermelho';
+    }
   }
 
   // ─── Charts ───────────────────────────────────────────────────────
   function _isPrazoInd(codigo) {
-    const ind = getAllIndicators().find(i => i.codigo === codigo);
-    return /^(prazo|tempo)\b/i.test(ind?.enunciado || '');
+    const cfg = _getOverride(codigo);
+    return cfg.sentido === 'menor';
   }
 
   function _destroyCharts() {
@@ -12828,7 +12966,8 @@ function saveStatusModal() {
   function _renderCharts(codigo, divisao) {
     ensureData();
     _destroyCharts();
-    const isPrazo = _isPrazoInd(codigo);
+    const cfg = _getOverride(codigo);
+    const isPrazo = cfg.sentido === 'menor';
     const all = DATA.indicadoresCage.resultados
       .filter(r => r.codigo === codigo && (!divisao || r.divisao === divisao))
       .sort((a,b) => (a.periodo||'').localeCompare(b.periodo||''));
@@ -12836,7 +12975,8 @@ function saveStatusModal() {
     if(all.length === 0) return;
 
     // Detectar se o indicador possui dados percentuais (0% em todos os períodos = sem dados percentuais)
-    const hasPercentage = all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined && r.pctRealizado !== 0);
+    const hasPercentage = cfg.tipo !== 'numero' && cfg.tipo !== 'moeda' &&
+      all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined && r.pctRealizado !== 0);
 
     const cardEvo = document.getElementById('indcage-chart-card-evo');
     const cardYoy = document.getElementById('indcage-chart-card-yoy');
@@ -12861,7 +13001,7 @@ function saveStatusModal() {
           data: {
             labels,
             datasets: [
-              { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':isPrazo?(v<=100?'rgba(22,163,74,.7)':v<=120?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'):(v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)')), borderRadius:4, order:2 },
+              { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => { if(v===null) return '#cbd5e1'; const cls=_pctClass(v,cfg); return cls==='pct-verde'?'rgba(22,163,74,.7)':cls==='pct-amarelo'?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'; }), borderRadius:4, order:2 },
               { label:'% Índice (meta)', data: pctIndice, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
             ]
           },
@@ -12931,13 +13071,19 @@ function saveStatusModal() {
         }
       }
 
+      // metaRef override: se usuário definiu meta manual, usá-la
+      if(cfg.metaRef !== null) {
+        metaAbs = last18.map(() => cfg.metaRef);
+        metaLabel = 'Meta (configurada)';
+      }
+
       const bgColors = realizadoAbs.map((v, i) => {
         if(v === null) return '#cbd5e1';
         const m = metaAbs[i];
         if(m === null || m === 0) return 'rgba(10,37,64,.7)';
         const ratio = v / m * 100;
-        if(isPrazo) return ratio <= 100 ? 'rgba(22,163,74,.7)' : ratio <= 120 ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
-        return ratio >= 100 ? 'rgba(22,163,74,.7)' : ratio >= 80 ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
+        const cls = _pctClass(ratio, cfg);
+        return cls === 'pct-verde' ? 'rgba(22,163,74,.7)' : cls === 'pct-amarelo' ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
       });
 
       const ctxAbs = document.getElementById('indcage-chart-absoluto');
@@ -12961,6 +13107,135 @@ function saveStatusModal() {
     }
   }
 
+  // ─── Painel de configurações do indicador ─────────────────────────
+  let _cfgCurrentCodigo = null;
+
+  function _renderCfgPanel(codigo) {
+    const panel = document.getElementById('indcage-cfg-panel');
+    if(!panel) return;
+    if(!codigo) { panel.style.display = 'none'; _cfgCurrentCodigo = null; return; }
+    _cfgCurrentCodigo = codigo;
+    panel.style.display = '';
+
+    const cfg = _getOverride(codigo);
+
+    // Sentido
+    const rMaior = document.getElementById('cfg-sentido-maior');
+    const rMenor = document.getElementById('cfg-sentido-menor');
+    if(rMaior) rMaior.checked = cfg.sentido === 'maior';
+    if(rMenor) rMenor.checked = cfg.sentido === 'menor';
+
+    // Tipo
+    const selTipo = document.getElementById('cfg-tipo');
+    if(selTipo) {
+      const saved = (DATA.indicadoresCage.overrides[codigo] || {}).tipo;
+      selTipo.value = saved || 'auto';
+    }
+
+    // Unidade
+    const inpUnidade = document.getElementById('cfg-unidade');
+    if(inpUnidade) inpUnidade.value = cfg.unidade;
+
+    // Casas decimais
+    const selDec = document.getElementById('cfg-decimais');
+    if(selDec) selDec.value = String(cfg.casasDecimais);
+
+    // Faixas
+    const inpVerde = document.getElementById('cfg-faixa-verde');
+    const inpAmarelo = document.getElementById('cfg-faixa-amarelo');
+    if(inpVerde) inpVerde.value = cfg.faixaVerde;
+    if(inpAmarelo) inpAmarelo.value = cfg.faixaAmarelo;
+
+    // Hints dos limites
+    _updateFaixaHints(cfg.sentido);
+
+    // Meta ref
+    const inpMetaRef = document.getElementById('cfg-meta-ref');
+    if(inpMetaRef) inpMetaRef.value = cfg.metaRef !== null ? cfg.metaRef : '';
+
+    // Comentário
+    const ta = document.getElementById('cfg-comentario');
+    if(ta) ta.value = cfg.comentario;
+
+    // Indicar se há override salvo
+    const saved = DATA.indicadoresCage.overrides[codigo];
+    const chevron = document.getElementById('indcage-cfg-chevron');
+    const titleEl = panel.querySelector('.indcage-cfg-title');
+    if(titleEl) {
+      titleEl.textContent = saved
+        ? '⚙️ Configurações do Indicador ✔ (personalizadas)'
+        : '⚙️ Configurações do Indicador';
+    }
+
+    // Listener para sentido → atualiza hints
+    document.querySelectorAll('input[name="cfg-sentido"]').forEach(el => {
+      el.onchange = () => _updateFaixaHints(el.value);
+    });
+  }
+
+  function _updateFaixaHints(sentido) {
+    const hVerde = document.getElementById('cfg-faixa-verde-hint');
+    const hAmarelo = document.getElementById('cfg-faixa-amarelo-hint');
+    if(sentido === 'menor') {
+      if(hVerde)   hVerde.textContent   = 'Para "menor melhor": ≤ este valor = verde';
+      if(hAmarelo) hAmarelo.textContent = 'Para "menor melhor": ≤ este valor e > verde = amarelo';
+    } else {
+      if(hVerde)   hVerde.textContent   = 'Para "maior melhor": ≥ este valor = verde';
+      if(hAmarelo) hAmarelo.textContent = 'Para "maior melhor": ≥ este valor e < verde = amarelo';
+    }
+  }
+
+  window.indcageCfgToggle = function() {
+    const body = document.getElementById('indcage-cfg-body');
+    const chevron = document.getElementById('indcage-cfg-chevron');
+    if(!body) return;
+    const open = body.classList.toggle('open');
+    if(chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+  };
+
+  window.indcageSaveOverride = function() {
+    if(!_cfgCurrentCodigo) return;
+    ensureData();
+
+    const sentido = document.querySelector('input[name="cfg-sentido"]:checked')?.value || 'maior';
+    const tipo    = document.getElementById('cfg-tipo')?.value || 'auto';
+    const unidade = document.getElementById('cfg-unidade')?.value.trim() || '';
+    const decimais = Number(document.getElementById('cfg-decimais')?.value || 1);
+    const fVerde   = document.getElementById('cfg-faixa-verde')?.value;
+    const fAmarelo = document.getElementById('cfg-faixa-amarelo')?.value;
+    const metaRef  = document.getElementById('cfg-meta-ref')?.value;
+    const comentario = document.getElementById('cfg-comentario')?.value.trim() || '';
+
+    DATA.indicadoresCage.overrides[_cfgCurrentCodigo] = {
+      sentido,
+      tipo,
+      unidade,
+      casasDecimais: decimais,
+      faixaVerde:    fVerde !== '' && fVerde !== undefined ? Number(fVerde) : undefined,
+      faixaAmarelo:  fAmarelo !== '' && fAmarelo !== undefined ? Number(fAmarelo) : undefined,
+      metaRef:       metaRef !== '' && metaRef !== undefined ? Number(metaRef) : null,
+      comentario,
+      _savedAt: new Date().toISOString()
+    };
+
+    if(typeof markChanged === 'function') markChanged();
+
+    const msg = document.getElementById('cfg-saved-msg');
+    if(msg) { msg.style.display = 'inline'; setTimeout(() => { msg.style.display = 'none'; }, 2500); }
+
+    // Re-renderizar resultados para aplicar imediatamente
+    indcageRenderResultados();
+  };
+
+  window.indcageResetOverride = function() {
+    if(!_cfgCurrentCodigo) return;
+    if(!confirm('Restaurar configurações padrão para este indicador?')) return;
+    ensureData();
+    delete DATA.indicadoresCage.overrides[_cfgCurrentCodigo];
+    if(typeof markChanged === 'function') markChanged();
+    indcageRenderResultados();
+  };
+
   // ─── Formatters ───────────────────────────────────────────────────
   const _meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   function _periodoLabel(p) {
@@ -12973,6 +13248,11 @@ function saveStatusModal() {
     if(v === null || v === undefined) return '—';
     if(Number.isInteger(v)) return v.toLocaleString('pt-BR');
     return Number(v).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:2 });
+  }
+  function _fmtNumDec(v, decimais) {
+    if(v === null || v === undefined) return '—';
+    const d = Number(decimais) || 0;
+    return Number(v).toLocaleString('pt-BR', { minimumFractionDigits:d, maximumFractionDigits:d });
   }
 })(); // end Indicadores CAGE IIFE
 
