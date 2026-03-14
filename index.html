@@ -2597,6 +2597,7 @@ function discardChanges() {
 // ═══ STEPS ════════════════════════════════════
 function renderTracker(p) {
   const el = document.getElementById(p + '-step-tracker');
+  if(!el) return;
   const cur = DATA[p].currentStep;
   el.innerHTML = '';
   DATA[p].steps.forEach((s,i) => {
@@ -2708,6 +2709,7 @@ function renderStep(p, i) {
       <span ${ce} data-sp="${p}" data-si="${i}" data-sf="note">${s.note}</span>
     </div>` : '';
   const container = document.getElementById(p+'-step-panel');
+  if(!container) { console.warn('renderStep: no DOM element for', p+'-step-panel'); return; }
   container.innerHTML = `
     <div class="step-panel">
       <div class="step-panel-head">
@@ -3725,73 +3727,62 @@ function mountNewPopTab(key, label, silent=false) {
   // (tab element kept for legacy switchPop calls but not inserted into DOM)
   // renderSidebar will pick it up via DATA keys
 
-  // 2. Clone pop-denuncias structure (correct HTML skeleton)
-  const src = document.getElementById('pop-denuncias');
-  const div = src.cloneNode(true);
-  div.id = 'pop-' + key;
-  div.classList.remove('active');
-
-  // 3. Remap all IDs: d-xxx → key-xxx
-  div.querySelectorAll('[id]').forEach(el => {
-    if(el.id.startsWith('d-')) el.id = key + '-' + el.id.slice(2);
-  });
-
-  // 4. Remap all data-key: d:xxx → key:xxx
-  div.querySelectorAll('[data-key]').forEach(el => {
-    if(el.dataset.key.startsWith('d:')) el.dataset.key = key + ':' + el.dataset.key.slice(2);
-  });
-
-  // 5. Remap all inline onclicks: 'd' → 'key'
-  div.querySelectorAll('[onclick]').forEach(el => {
-    let oc = el.getAttribute('onclick');
-    // Replace all occurrences of 'd' as a JS string argument
-    oc = oc.replace(/'d'/g, "'" + key + "'");
-    el.setAttribute('onclick', oc);
-  });
-
-  // 6. Remap data-sp attributes
-  div.querySelectorAll('[data-sp]').forEach(el => { el.dataset.sp = key; });
-
-  // 7. Clear dynamic content areas (render functions will fill them)
-  ['step-tracker','step-panel','role-grid','indicator-grid','faq-container','norm-list','rev-body','sigla-grid'].forEach(s => {
-    const el = div.querySelector('#' + key + '-' + s);
-    if(el) el.innerHTML = '';
-  });
-
-  // 8. Update banner and meta fields from DATA
-  const m = DATA[key].meta || {};
+  // 2. Build full pop-content HTML from scratch (pop-denuncias is an empty div — never clone it)
+  const m = DATA[key]?.meta || {};
   const today = new Date().toLocaleDateString('pt-BR');
-  const setTxt = (sel, val) => { const el = div.querySelector(sel); if(el) el.textContent = val; };
-  setTxt('.pop-banner-title', label);
-  setTxt('.pop-banner-sub', [m.macro, m.processo, m.name].filter(Boolean).join(' · '));
-  setTxt('[data-key="' + key + ':obj"]', m.desc || 'Descreva o objetivo deste POP.');
-  setTxt('[data-key="' + key + ':entrada_resumo"]', m.input  || 'A definir');
-  setTxt('[data-key="' + key + ':saida_resumo"]',   m.output || 'A definir');
-  setTxt('[data-key="' + key + ':el_nome"]',    m.elaborado || 'A definir');
-  setTxt('[data-key="' + key + ':el_func"]',    '');
-  setTxt('[data-key="' + key + ':el_data"]',    today);
-  setTxt('[data-key="' + key + ':ger_nome"]',   m.elaborado || 'A definir');
-  setTxt('[data-key="' + key + ':ger_desc"]',   'Responsável pelo gerenciamento e monitoramento do subprocesso');
-  // Update rev badge
-  const badge = div.querySelector('[id$="-rev-badge"]');
-  if(badge) badge.textContent = 'Rev. 0 · ' + today;
-  // Update metric card IDs: remap from d- to key-
-  ['metric-vol-pre','metric-vol-pos','metric-ciclo-pre','metric-ciclo-pos','metric-horas'].forEach(mid => {
-    const el = div.querySelector('#d-' + mid);
-    if(el) {
-      el.id = key + '-' + mid;
-      // Update oninput attribute to use the new key
-      const oi = el.getAttribute('oninput');
-      if(oi) el.setAttribute('oninput', oi.replace(/'d'/g, "'" + key + "'"));
-    }
-  });
+  const div = document.createElement('div');
+  div.id = 'pop-' + key;
+  div.className = 'pop-content';
+  div.innerHTML = `
+    <div id="${key}-visao-geral" class="section active">
+      <div class="pop-banner novo" style="--pop-color:#f59e0b;background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.04));border:1.5px solid rgba(245,158,11,.25);">
+        <div class="pop-banner-icon">📝</div>
+        <div>
+          <div class="pop-banner-title">${label}</div>
+          <div class="pop-banner-sub">${[m.macro, m.processo, m.name].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div class="pop-banner-meta">
+          <span class="rev-badge" id="${key}-rev-badge">Rev. 0 · ${today}</span>
+        </div>
+      </div>
+      <div id="${key}-ficha-card"><div id="${key}-ficha-body"></div></div>
+      <span id="${key}-metric-vol-pre"   style="display:none;"></span>
+      <span id="${key}-metric-vol-pos"   style="display:none;"></span>
+      <span id="${key}-metric-ciclo-pre" style="display:none;"></span>
+      <span id="${key}-metric-ciclo-pos" style="display:none;"></span>
+      <span id="${key}-metric-horas"     style="display:none;"></span>
+    </div>
+    <div id="${key}-fluxo" class="section">
+      <div id="${key}-step-tracker" class="step-tracker"></div>
+      <div id="${key}-step-panel"></div>
+      <button id="${key}-add-step-btn" class="edit-add-btn" style="display:none;" onclick="addStep('${key}')">+ Etapa</button>
+    </div>
+    <div id="${key}-responsabilidades" class="section">
+      <div id="${key}-role-grid" class="role-grid"></div>
+    </div>
+    <div id="${key}-indicadores" class="section">
+      <div id="${key}-indicator-grid" class="indicator-grid"></div>
+    </div>
+    <div id="${key}-faq" class="section">
+      <div id="${key}-faq-container"></div>
+      <button id="${key}-add-faq" class="edit-add-btn" style="display:none;" onclick="addFaq('${key}')">+ FAQ</button>
+    </div>
+    <div id="${key}-normas" class="section">
+      <div id="${key}-norm-list" class="norm-list"></div>
+      <div id="${key}-sigla-grid" class="sigla-grid"></div>
+      <table><tbody id="${key}-rev-body"></tbody></table>
+    </div>
+    <div id="${key}-riscos" class="section">
+      <div id="${key}-risk-grid"></div>
+    </div>
+    <div id="${key}-plano-acao" class="section">
+      <table><tbody id="${key}-pa-tbody"></tbody></table>
+    </div>
+    <div id="${key}-reunioes" class="section">
+      <div id="${key}-meet-list"></div>
+    </div>`;
 
-  // 9. Only show visao-geral
-  div.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  const vg = div.querySelector('#' + key + '-visao-geral');
-  if(vg) vg.classList.add('active');
-
-  // 10. Insert into DOM
+  // Insert into DOM
   document.querySelector('main').insertBefore(div, document.getElementById('bpmn-module'));
 
   // 11. Render all dynamic sections
@@ -7191,7 +7182,8 @@ function showPopGallery() {
     gallery.classList.add('active');
   }
 
-  const keys = Object.keys(DATA).filter(k => k !== '_arqOverrides' && k !== 'pat' && k !== 'd' && k !== 'r');
+  const _GALLERY_SKIP = new Set(['_arqOverrides','pat','d','r','_logoUrl','_repoDocs','_drops']);
+  const keys = Object.keys(DATA).filter(k => !_GALLERY_SKIP.has(k) && k.startsWith('pop_'));
 
   gallery.innerHTML = `
     <div style="margin-bottom:28px;">
