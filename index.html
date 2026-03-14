@@ -5255,7 +5255,16 @@ async function saveToCloud(attempt=1) {
 
   const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
+  // Strip session-only transient fields (prefixed with _) before persisting
+  function _stripTransient(obj) {
+    if(!obj || typeof obj !== 'object') return obj;
+    const out = {};
+    for(const k of Object.keys(obj)) { if(!k.startsWith('_')) out[k] = obj[k]; }
+    return out;
+  }
   const payload = {
+    d:            _stripTransient(DATA.d),
+    r:            _stripTransient(DATA.r),
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
     logoUrl:      DATA._logoUrl || null,
@@ -5403,6 +5412,8 @@ async function loadFromCloud() {
     const payload = data.data;
     console.log('loadFromCloud: payload recebido, tamanho', JSON.stringify(payload).length, 'bytes');
 
+    if(payload.d && typeof payload.d === 'object') Object.assign(DATA.d, payload.d);
+    if(payload.r && typeof payload.r === 'object') Object.assign(DATA.r, payload.r);
     if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : [];
     if(payload.logoUrl) DATA._logoUrl = payload.logoUrl;
     if(Array.isArray(payload.repoDocs)) { REPO_DOCS = payload.repoDocs; }
