@@ -10142,7 +10142,7 @@ function homeRefresh() {
   // Stats
   const macros = new Set(data.map(r => r.macroprocesso)).size;
   const procs  = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
-  const popKeys = Object.keys(DATA).filter(k => k !== '_arqOverrides' && k !== 'pat' && k !== 'd' && k !== 'r');
+  const popKeys = Object.keys(DATA).filter(k => k.startsWith('pop_'));
 
   const mappedN = data.filter(r => r.mapeado).length;
   const totalN  = data.length;
