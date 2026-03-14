@@ -3593,7 +3593,10 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
         <div style="font-size:15px;font-weight:700;color:#0a2540;">Todos os Indicadores</div>
         <div style="font-size:12px;color:#64748b;margin-top:2px;">Indicadores dos mapeamentos + indicadores autônomos cadastrados</div>
       </div>
-      <button class="btn btn-success" onclick="indcageOpenModal(null)" style="font-size:13px;">+ Novo Indicador</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="indcageClearImportados()" style="font-size:12px;padding:7px 13px;color:#b91c1c;border-color:#fecaca;background:#fff7f7;" title="Remove todos os indicadores criados automaticamente pela importação SISPLAN">🗑 Limpar Importados SISPLAN</button>
+        <button class="btn btn-success" onclick="indcageOpenModal(null)" style="font-size:13px;">+ Novo Indicador</button>
+      </div>
     </div>
     <!-- Filter bar -->
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
@@ -12418,6 +12421,25 @@ function saveStatusModal() {
     indcageRenderIndicadores();
     markChanged();
     showToast('Indicador removido.', 'success');
+  };
+
+  window.indcageClearImportados = function() {
+    ensureData();
+    const importados = DATA.indicadoresCage.indicadores.filter(i =>
+      (i.fonte || '').toLowerCase().includes('importado sisplan')
+    );
+    if(importados.length === 0) {
+      showToast('Nenhum indicador importado do SISPLAN encontrado.', 'warn');
+      return;
+    }
+    if(!confirm(`Remover ${importados.length} indicador(es) com fonte "Importado SISPLAN"?\n\nIndicadores cadastrados manualmente e vinculados a mapeamentos NÃO serão afetados.`)) return;
+    DATA.indicadoresCage.indicadores = DATA.indicadoresCage.indicadores.filter(i =>
+      !(i.fonte || '').toLowerCase().includes('importado sisplan')
+    );
+    indcageRenderIndicadores();
+    markChanged();
+    saveToCloud();
+    showToast(`🗑 ${importados.length} indicador(es) SISPLAN removidos.`, 'success');
   };
 
   window.indcageGoToPop = function(popKey) {
