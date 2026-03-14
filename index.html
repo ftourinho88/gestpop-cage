@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1047,6 +1048,22 @@
   /* Indicator CAGE modal */
   #indcage-modal .gmod-body { display:flex; flex-direction:column; gap:14px; }
   .indcage-nivel-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* ── Relatório Word tab ───────────────────────── */
+  .indrel-config-bar { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; background:#f8fafc; border:1.5px solid var(--cage-border); border-radius:var(--radius); padding:16px 18px; margin-bottom:24px; }
+  .indrel-config-field { display:flex; flex-direction:column; gap:5px; }
+  .indrel-list { display:flex; flex-direction:column; gap:8px; }
+  .indrel-item { display:flex; align-items:center; gap:14px; background:white; border:1.5px solid var(--cage-border); border-radius:var(--radius-sm); padding:12px 16px; cursor:pointer; transition:all .15s; user-select:none; }
+  .indrel-item:hover { border-color:#93c5fd; background:#f0f9ff; }
+  .indrel-item.selected { border-color:#3b82f6; background:#eff6ff; }
+  .indrel-checkbox { width:18px; height:18px; accent-color:#0a2540; cursor:pointer; flex-shrink:0; }
+  .indrel-item-info { flex:1; min-width:0; }
+  .indrel-item-codigo { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#0a2540; }
+  .indrel-item-enunciado { font-size:13px; color:#1e293b; margin-top:2px; }
+  .indrel-item-meta { font-size:11px; color:#64748b; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap; }
+  .indrel-item-meta span { display:flex; align-items:center; gap:3px; }
+  .indrel-has-data { background:#dcfce7; color:#15803d; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; flex-shrink:0; }
+  .indrel-no-data { background:#f1f5f9; color:#94a3b8; font-size:10px; font-weight:600; padding:2px 7px; border-radius:6px; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -3599,6 +3616,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
     <div class="indcage-tabs">
       <button class="indcage-tab active" data-indcage-tab="indicadores" onclick="indcageTab('indicadores',this)">📋 Indicadores</button>
       <button class="indcage-tab" data-indcage-tab="resultados" onclick="indcageTab('resultados',this)">📊 Resultados</button>
+      <button class="indcage-tab" data-indcage-tab="relatorio" onclick="indcageTab('relatorio',this)">📄 Relatório Word</button>
     </div>
   </div>
 </div>
@@ -3808,6 +3826,57 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
       <div style="font-size:48px;margin-bottom:12px;">📂</div>
       <div style="font-size:16px;font-weight:600;color:#0a2540;margin-bottom:6px;">Nenhum resultado importado</div>
       <div style="font-size:13px;color:#64748b;">Importe uma planilha Excel com os resultados dos indicadores para visualizar os gráficos e tabelas.</div>
+    </div>
+  </div>
+
+  <!-- ─── TAB: RELATÓRIO WORD ──────────────────────────────────── -->
+  <div id="indcage-sec-relatorio" class="indcage-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#0a2540;">📄 Gerar Relatório de Monitoramento</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px;">Selecione os indicadores desejados e gere um relatório automático em formato Word (.docx) com dados e gráficos.</div>
+      </div>
+    </div>
+
+    <!-- Configurações do relatório -->
+    <div class="indrel-config-bar">
+      <div class="indrel-config-field">
+        <label class="indcage-filter-label">Trimestre</label>
+        <select id="rel-trimestre" class="indcage-filter-select">
+          <option value="1">1º Trimestre</option>
+          <option value="2">2º Trimestre</option>
+          <option value="3">3º Trimestre</option>
+          <option value="4">4º Trimestre</option>
+        </select>
+      </div>
+      <div class="indrel-config-field">
+        <label class="indcage-filter-label">Ano</label>
+        <input type="number" id="rel-ano" class="indcage-filter-select" value="2026" min="2020" max="2035" style="width:110px;">
+      </div>
+      <div class="indrel-config-field" style="flex:1;min-width:200px;">
+        <label class="indcage-filter-label">Subtítulo / Órgão (opcional)</label>
+        <input type="text" id="rel-subtitulo" class="indcage-filter-select" placeholder="Ex: CAGE-RS — Escritório de Processos" style="width:100%;">
+      </div>
+      <button class="btn btn-primary" onclick="indcageGerarRelatorioWord()" id="rel-generate-btn" style="margin-top:auto;padding:10px 20px;font-size:13px;">
+        📄 Gerar Relatório Word
+      </button>
+    </div>
+
+    <!-- Seleção de indicadores -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;font-weight:700;color:#0a2540;">Indicadores para incluir no relatório <span id="rel-count-sel" style="font-size:12px;font-weight:400;color:#64748b;margin-left:6px;"></span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="indcageRelSelecionarTodos()" style="font-size:11px;padding:5px 12px;">✓ Selecionar todos</button>
+        <button class="btn btn-outline" onclick="indcageRelDesmarcarTodos()" style="font-size:11px;padding:5px 12px;">✗ Desmarcar todos</button>
+      </div>
+    </div>
+
+    <div id="indcage-rel-list" class="indrel-list"></div>
+
+    <div id="indrel-empty" style="display:none;text-align:center;padding:48px 20px;color:#94a3b8;">
+      <div style="font-size:40px;margin-bottom:10px;">📋</div>
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Nenhum indicador cadastrado</div>
+      <div style="font-size:12px;margin-top:4px;">Cadastre indicadores na aba <strong>Indicadores</strong> ou importe via SISPLAN.</div>
     </div>
   </div>
 </div>
@@ -12337,6 +12406,7 @@ function saveStatusModal() {
     if(sec) sec.classList.add('active');
     if(tab === 'indicadores') indcageRenderIndicadores();
     if(tab === 'resultados')  indcageRenderResultados();
+    if(tab === 'relatorio')   indcageRenderRelatorioTab();
   };
 
   // ─── Helpers ──────────────────────────────────────────────────────
@@ -13254,6 +13324,477 @@ function saveStatusModal() {
     const d = Number(decimais) || 0;
     return Number(v).toLocaleString('pt-BR', { minimumFractionDigits:d, maximumFractionDigits:d });
   }
+
+  // ─── Aba Relatório Word ────────────────────────────────────────────
+
+  window.indcageRenderRelatorioTab = function() {
+    ensureData();
+    const all = getAllIndicators();
+    const resultados = DATA.indicadoresCage.resultados || [];
+    const list = document.getElementById('indcage-rel-list');
+    const empty = document.getElementById('indrel-empty');
+    const countSel = document.getElementById('rel-count-sel');
+    if(!list) return;
+
+    if(all.length === 0) {
+      list.innerHTML = '';
+      if(empty) empty.style.display = 'block';
+      return;
+    }
+    if(empty) empty.style.display = 'none';
+
+    const codigosComDados = new Set(resultados.map(r => r.codigo).filter(Boolean));
+
+    list.innerHTML = all.map(ind => {
+      const temDados = ind.codigo && codigosComDados.has(ind.codigo);
+      const badge = temDados
+        ? `<span class="indrel-has-data">✓ com dados</span>`
+        : `<span class="indrel-no-data">sem resultados</span>`;
+      const metaInfo = [
+        ind.divisao ? `🏢 ${ind.divisao}` : '',
+        ind.periodicidade ? `🔁 ${ind.periodicidade}` : '',
+        ind.responsavel ? `👤 ${ind.responsavel}` : '',
+      ].filter(Boolean).join('  ');
+      return `
+      <label class="indrel-item" id="indrel-item-${ind.codigo || ind.id}">
+        <input type="checkbox" class="rel-ind-check indrel-checkbox" value="${ind.codigo || ''}" data-id="${ind.id || ''}" onchange="indcageRelUpdateCount()">
+        <div class="indrel-item-info">
+          ${ind.codigo ? `<div class="indrel-item-codigo">${ind.codigo}</div>` : ''}
+          <div class="indrel-item-enunciado">${ind.enunciado || '<em style="color:#94a3b8">Sem enunciado</em>'}</div>
+          ${metaInfo ? `<div class="indrel-item-meta"><span>${metaInfo}</span></div>` : ''}
+        </div>
+        ${badge}
+      </label>`;
+    }).join('');
+
+    indcageRelUpdateCount();
+  };
+
+  window.indcageRelUpdateCount = function() {
+    const total = document.querySelectorAll('.rel-ind-check').length;
+    const sel   = document.querySelectorAll('.rel-ind-check:checked').length;
+    const el = document.getElementById('rel-count-sel');
+    if(el) el.textContent = sel > 0 ? `(${sel} de ${total} selecionados)` : `(${total} disponíveis)`;
+  };
+
+  window.indcageRelSelecionarTodos = function() {
+    document.querySelectorAll('.rel-ind-check').forEach(cb => cb.checked = true);
+    indcageRelUpdateCount();
+  };
+
+  window.indcageRelDesmarcarTodos = function() {
+    document.querySelectorAll('.rel-ind-check').forEach(cb => cb.checked = false);
+    indcageRelUpdateCount();
+  };
+
+  // ─── Renderizar gráfico em canvas offscreen → base64 ──────────────
+  async function _chartToBase64(codigo, chartType) {
+    return new Promise(resolve => {
+      ensureData();
+      const cfg = _getOverride(codigo);
+      const all = DATA.indicadoresCage.resultados
+        .filter(r => r.codigo === codigo)
+        .sort((a,b) => (a.periodo||'').localeCompare(b.periodo||''));
+      if(all.length === 0) return resolve(null);
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = 900;
+      canvas.height = 380;
+      canvas.style.position = 'absolute';
+      canvas.style.left = '-9999px';
+      canvas.style.top  = '-9999px';
+      document.body.appendChild(canvas);
+
+      let chartCfg;
+      const hasPercentage = cfg.tipo !== 'numero' && cfg.tipo !== 'moeda' &&
+        all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined && r.pctRealizado !== 0);
+
+      if(chartType === 'yoy' && hasPercentage) {
+        const byYearMonth = {};
+        all.forEach(r => {
+          if(!r.periodo) return;
+          const [yr, mo] = r.periodo.split('-');
+          if(!yr || !mo) return;
+          if(!byYearMonth[yr]) byYearMonth[yr] = {};
+          byYearMonth[yr][mo] = r.pctRealizado;
+        });
+        const years = Object.keys(byYearMonth).sort().slice(-3);
+        const months = [...new Set(all.map(r => r.periodo?.slice(5,7)).filter(Boolean))].sort();
+        const monthLabels = months.map(m => { const d=new Date(2000,parseInt(m)-1,1); return d.toLocaleString('pt-BR',{month:'short'}); });
+        const palette = ['#0a2540','#00a86b','#e8a020'];
+        chartCfg = {
+          type: 'bar',
+          data: {
+            labels: monthLabels,
+            datasets: years.map((yr, yi) => ({
+              label: yr,
+              data: months.map(m => byYearMonth[yr]?.[m] ?? null),
+              backgroundColor: palette[yi] + 'cc',
+              borderColor: palette[yi],
+              borderWidth: 1.5,
+              borderRadius: 4
+            }))
+          },
+          options: {
+            responsive: false,
+            animation: false,
+            plugins: { legend: { labels: { font: { size: 13 } } }, tooltip: { enabled: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => v + '%', font: { size: 12 } } }, x: { ticks: { font: { size: 12 } } } }
+          }
+        };
+      } else if(hasPercentage) {
+        // Evolução percentual
+        const last18 = all.slice(-18);
+        const labels = last18.map(r => _periodoLabel(r.periodo));
+        const realizado = last18.map(r => r.pctRealizado);
+        const pctIndice = last18.map(() => 100);
+        chartCfg = {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: '% Realizado', data: realizado,
+                backgroundColor: realizado.map(v => { if(v===null) return '#cbd5e1'; const cls=_pctClass(v,cfg); return cls==='pct-verde'?'rgba(22,163,74,.8)':cls==='pct-amarelo'?'rgba(234,179,8,.8)':'rgba(220,38,38,.8)'; }),
+                borderRadius: 4, order: 2 },
+              { label: '% Índice (meta)', data: pctIndice, type: 'line', borderColor: '#0a2540', backgroundColor: 'rgba(10,37,64,.08)', borderWidth: 2.5, pointRadius: 3, tension: .3, fill: false, order: 1 }
+            ]
+          },
+          options: {
+            responsive: false,
+            animation: false,
+            plugins: { legend: { labels: { font: { size: 13 } } }, tooltip: { enabled: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => v + '%', font: { size: 12 } }, grid: { color: 'rgba(0,0,0,.05)' } }, x: { ticks: { font: { size: 10 }, maxRotation: 45 } } }
+          }
+        };
+      } else {
+        // Absoluto
+        const last18 = all.slice(-18);
+        const labels = last18.map(r => _periodoLabel(r.periodo));
+        const realizadoAbs = last18.map(r => r.realizado !== undefined ? r.realizado : null);
+        let metaAbs = last18.map(r => r.meta !== undefined ? r.meta : null);
+        const hasMeta = metaAbs.some(m => m !== null && m !== undefined && m !== 0);
+        let metaLabel = 'Meta';
+        if(!hasMeta) {
+          const last12 = all.slice(-12).filter(r => r.realizado !== null && r.realizado !== undefined && r.realizado !== 0);
+          if(last12.length > 0) {
+            const media12m = last12.reduce((s, r) => s + r.realizado, 0) / last12.length;
+            metaAbs = last18.map(() => media12m);
+            metaLabel = 'Meta (média 12m)';
+          }
+        }
+        if(cfg.metaRef !== null) { metaAbs = last18.map(() => cfg.metaRef); metaLabel = 'Meta (configurada)'; }
+        const bgColors = realizadoAbs.map((v, i) => {
+          if(v === null) return '#cbd5e1';
+          const m = metaAbs[i];
+          if(m === null || m === 0) return 'rgba(10,37,64,.7)';
+          const ratio = v / m * 100;
+          const cls = _pctClass(ratio, cfg);
+          return cls === 'pct-verde' ? 'rgba(22,163,74,.8)' : cls === 'pct-amarelo' ? 'rgba(234,179,8,.8)' : 'rgba(220,38,38,.8)';
+        });
+        chartCfg = {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Realizado', data: realizadoAbs, backgroundColor: bgColors, borderRadius: 4, order: 2 },
+              { label: metaLabel, data: metaAbs, type: 'line', borderColor: '#0a2540', backgroundColor: 'rgba(10,37,64,.08)', borderWidth: 2.5, pointRadius: 3, tension: .3, fill: false, order: 1 }
+            ]
+          },
+          options: {
+            responsive: false,
+            animation: false,
+            plugins: { legend: { labels: { font: { size: 13 } } }, tooltip: { enabled: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => _fmtNum(v), font: { size: 12 } }, grid: { color: 'rgba(0,0,0,.05)' } }, x: { ticks: { font: { size: 10 }, maxRotation: 45 } } }
+          }
+        };
+      }
+
+      const chart = new Chart(canvas, chartCfg);
+
+      // Chart.js animation is off, but give a tick for rendering
+      setTimeout(() => {
+        const dataUrl = canvas.toDataURL('image/png');
+        chart.destroy();
+        document.body.removeChild(canvas);
+        resolve(dataUrl);
+      }, 100);
+    });
+  }
+
+  // ─── Gerar Relatório Word ──────────────────────────────────────────
+  window.indcageGerarRelatorioWord = async function() {
+    if(typeof docx === 'undefined') {
+      showToast('Biblioteca docx não carregada. Verifique a conexão e recarregue a página.', 'warn');
+      return;
+    }
+
+    const checkboxes = document.querySelectorAll('.rel-ind-check:checked');
+    if(checkboxes.length === 0) {
+      showToast('Selecione pelo menos um indicador para gerar o relatório.', 'warn');
+      return;
+    }
+
+    const trimestre = document.getElementById('rel-trimestre')?.value || '1';
+    const ano = document.getElementById('rel-ano')?.value || '2026';
+    const subtitulo = document.getElementById('rel-subtitulo')?.value.trim() || 'CAGE-RS — Controladoria-Geral do Estado do Rio Grande do Sul';
+    const trimestreNomes = ['1º','2º','3º','4º'];
+    const trimestreLabel = trimestreNomes[parseInt(trimestre)-1] + ' Trimestre ' + ano;
+    const titulo = 'Relatório de Monitoramento de Indicadores: ' + trimestreLabel;
+
+    const btn = document.getElementById('rel-generate-btn');
+    if(btn) { btn.disabled = true; btn.textContent = '⏳ Gerando…'; }
+
+    try {
+      const {
+        Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell,
+        HeadingLevel, AlignmentType, WidthType, BorderStyle, PageBreak, ShadingType,
+        VerticalAlign, convertInchesToTwip
+      } = docx;
+
+      const selectedCodigos = Array.from(checkboxes).map(cb => cb.value).filter(Boolean);
+      const allInds = getAllIndicators();
+      const resultados = DATA.indicadoresCage.resultados || [];
+      const hoje = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+      const noBorder = { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } };
+      const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' };
+      const thinBorderAll = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+      const headerBorder = { top: { style: BorderStyle.SINGLE, size: 6, color: '0a2540' }, bottom: { style: BorderStyle.SINGLE, size: 6, color: '0a2540' }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } };
+
+      const docChildren = [];
+
+      // ── Capa ──────────────────────────────────────────────────────
+      docChildren.push(
+        new Paragraph({ spacing: { before: 2400 } }),
+        new Paragraph({
+          children: [ new TextRun({ text: titulo, bold: true, size: 52, color: '0a2540', font: 'Calibri' }) ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 }
+        }),
+        new Paragraph({
+          children: [ new TextRun({ text: subtitulo, size: 26, color: '4a5568', font: 'Calibri' }) ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [ new TextRun({ text: 'Gerado em ' + hoje, size: 22, color: '8898aa', italics: true, font: 'Calibri' }) ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 2400 }
+        }),
+        new Paragraph({
+          children: [ new TextRun({ text: `Total de indicadores: ${selectedCodigos.length}`, size: 24, color: '0a2540', font: 'Calibri' }) ],
+          alignment: AlignmentType.CENTER,
+        }),
+      );
+
+      // ── Seções por indicador ───────────────────────────────────────
+      for(const codigo of selectedCodigos) {
+        const ind = allInds.find(i => i.codigo === codigo);
+        const cfg = _getOverride(codigo);
+        const resDoInd = resultados
+          .filter(r => r.codigo === codigo)
+          .sort((a,b) => (b.periodo||'').localeCompare(a.periodo||''));
+
+        // Quebra de página antes de cada indicador
+        docChildren.push(
+          new Paragraph({ children: [new PageBreak()], spacing: { before: 0, after: 0 } })
+        );
+
+        // Título do indicador
+        const tituloInd = [codigo, ind?.enunciado].filter(Boolean).join(' — ');
+        docChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: tituloInd, bold: true, size: 36, color: '0a2540', font: 'Calibri' })],
+            spacing: { before: 240, after: 200 },
+            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: 'e8a020' } }
+          })
+        );
+
+        // Tabela de informações do indicador
+        const infoRows = [
+          ['Código', codigo || '—'],
+          ['Enunciado', ind?.enunciado || '—'],
+          ind?.divisao ? ['Divisão', ind.divisao] : null,
+          ind?.responsavel ? ['Responsável', ind.responsavel] : null,
+          ind?.periodicidade ? ['Periodicidade', ind.periodicidade] : null,
+          ind?.meta ? ['Meta', ind.meta] : null,
+          cfg?.unidade ? ['Unidade', cfg.unidade] : null,
+        ].filter(Boolean);
+
+        if(infoRows.length > 0) {
+          const infoTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: infoRows.map(([label, value]) => new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 22, type: WidthType.PERCENTAGE },
+                  borders: thinBorderAll,
+                  shading: { fill: 'EFF6FF', type: ShadingType.CLEAR },
+                  children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, color: '1e40af', font: 'Calibri' })] })],
+                  verticalAlign: VerticalAlign.CENTER,
+                }),
+                new TableCell({
+                  width: { size: 78, type: WidthType.PERCENTAGE },
+                  borders: thinBorderAll,
+                  children: [new Paragraph({ children: [new TextRun({ text: String(value), size: 20, font: 'Calibri' })] })],
+                  verticalAlign: VerticalAlign.CENTER,
+                }),
+              ]
+            }))
+          });
+          docChildren.push(infoTable);
+          docChildren.push(new Paragraph({ spacing: { after: 200 } }));
+        }
+
+        // Gráfico principal (evolução ou absoluto)
+        showToast(`Gerando gráfico de ${codigo}…`, 'info');
+        const imgEvoB64 = await _chartToBase64(codigo, 'evo');
+        if(imgEvoB64) {
+          docChildren.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Evolução dos Resultados', bold: true, size: 24, color: '0a2540', font: 'Calibri' })],
+              spacing: { before: 160, after: 100 }
+            }),
+            new Paragraph({
+              children: [new ImageRun({
+                data: imgEvoB64.split(',')[1],
+                transformation: { width: 620, height: 260 },
+                type: 'png'
+              })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 160 }
+            })
+          );
+        }
+
+        // Gráfico YoY (se disponível)
+        const hasPercentage = cfg.tipo !== 'numero' && cfg.tipo !== 'moeda' &&
+          resDoInd.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined && r.pctRealizado !== 0);
+        if(hasPercentage) {
+          const imgYoyB64 = await _chartToBase64(codigo, 'yoy');
+          if(imgYoyB64) {
+            docChildren.push(
+              new Paragraph({
+                children: [new TextRun({ text: 'Comparativo Anual (YoY)', bold: true, size: 24, color: '0a2540', font: 'Calibri' })],
+                spacing: { before: 160, after: 100 }
+              }),
+              new Paragraph({
+                children: [new ImageRun({
+                  data: imgYoyB64.split(',')[1],
+                  transformation: { width: 620, height: 260 },
+                  type: 'png'
+                })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 160 }
+              })
+            );
+          }
+        }
+
+        // Tabela de resultados (últimos 12 meses)
+        if(resDoInd.length > 0) {
+          const last12 = resDoInd.slice(0, 12);
+          const unidade = cfg?.unidade || '';
+          const colHdr = (txt) => new TableCell({
+            borders: { top: { style: BorderStyle.SINGLE, size: 8, color: '0a2540' }, bottom: { style: BorderStyle.SINGLE, size: 8, color: '0a2540' }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } },
+            shading: { fill: '0a2540', type: ShadingType.CLEAR },
+            children: [new Paragraph({ children: [new TextRun({ text: txt, bold: true, size: 18, color: 'FFFFFF', font: 'Calibri' })], alignment: AlignmentType.CENTER })]
+          });
+          const colCell = (txt, right) => new TableCell({
+            borders: thinBorderAll,
+            children: [new Paragraph({ children: [new TextRun({ text: txt, size: 18, font: 'Calibri' })], alignment: right ? AlignmentType.RIGHT : AlignmentType.LEFT })]
+          });
+
+          docChildren.push(
+            new Paragraph({
+              children: [new TextRun({ text: 'Resultados Recentes (últimos 12 meses)', bold: true, size: 24, color: '0a2540', font: 'Calibri' })],
+              spacing: { before: 200, after: 100 }
+            }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  tableHeader: true,
+                  children: [colHdr('Período'), colHdr('Realizado'), colHdr('Meta'), colHdr('% Realizado'), colHdr('Análise')]
+                }),
+                ...last12.map(r => new TableRow({
+                  children: [
+                    colCell(_periodoLabel(r.periodo)),
+                    colCell(r.realizado !== null && r.realizado !== undefined ? _fmtNum(r.realizado) + (unidade ? ' ' + unidade : '') : '—', true),
+                    colCell(r.meta !== null && r.meta !== undefined ? _fmtNum(r.meta) + (unidade ? ' ' + unidade : '') : '—', true),
+                    colCell(r.pctRealizado !== null && r.pctRealizado !== undefined ? _fmtNum(r.pctRealizado) + '%' : '—', true),
+                    colCell(r.analise || '—'),
+                  ]
+                }))
+              ]
+            }),
+            new Paragraph({ spacing: { after: 200 } })
+          );
+        }
+
+        // Área de comentários / análise (espaço em branco com borda)
+        docChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: 'Análise / Comentários:', bold: true, size: 24, color: '0a2540', font: 'Calibri' })],
+            spacing: { before: 200, after: 100 }
+          }),
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder },
+                    children: [
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                      new Paragraph({ spacing: { before: 40, after: 40 } }),
+                    ],
+                    margins: { top: convertInchesToTwip(0.1), bottom: convertInchesToTwip(0.1), left: convertInchesToTwip(0.1), right: convertInchesToTwip(0.1) }
+                  })
+                ]
+              })
+            ]
+          })
+        );
+      }
+
+      // ── Gerar e baixar o arquivo ──────────────────────────────────
+      const document = new Document({
+        creator: 'GesProc-RS — CAGE-RS',
+        title: titulo,
+        sections: [{
+          properties: {
+            page: {
+              margin: { top: convertInchesToTwip(1.0), bottom: convertInchesToTwip(1.0), left: convertInchesToTwip(1.18), right: convertInchesToTwip(1.18) }
+            }
+          },
+          children: docChildren
+        }]
+      });
+
+      const blob = await Packer.toBlob(document);
+      const fileName = `Relatorio_Monitoramento_${trimestreLabel.replace(/\s+/g,'_')}.docx`;
+      const url = URL.createObjectURL(blob);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Relatório Word gerado com sucesso! 📄', 'success');
+
+    } catch(err) {
+      console.error('Erro ao gerar relatório Word:', err);
+      showToast('Erro ao gerar relatório: ' + (err.message || err), 'warn');
+    } finally {
+      if(btn) { btn.disabled = false; btn.textContent = '📄 Gerar Relatório Word'; }
+    }
+  };
+
 })(); // end Indicadores CAGE IIFE
 
 </script>
