@@ -8183,12 +8183,20 @@ function runSearch(raw) {
     });
   });
 
-  // Search Metodologias e Manuais (REPO_DOCS) — inclui conteúdo indexado de PDFs
+  // Search Metodologias e Manuais (REPO_DOCS) — inclui conteúdo indexado e FAQs geradas por IA
   (REPO_DOCS||[]).forEach((doc, i) => {
     const text = [doc.title||'', doc.desc||'', doc.cat||'', doc.fileName||'', doc.textContent||''].join(' ').toLowerCase();
     if(text.includes(lower)) {
       results.push({ type:'repo', doc, idx: i });
     }
+    // Busca em cada FAQ gerada por IA do documento
+    (doc.faqs||[]).forEach((f, fi) => {
+      const inQ = f.q && f.q.toLowerCase().includes(lower);
+      const inA = f.a && f.a.toLowerCase().includes(lower);
+      if(inQ || inA) {
+        results.push({ type:'repo_faq', doc, faq: f, faqIdx: fi });
+      }
+    });
   });
 
   countEl.textContent = results.length ? `${results.length} resultado${results.length>1?'s':''}` : '';
@@ -8203,9 +8211,10 @@ function runSearch(raw) {
   }
 
   // Group results by type for section headers
-  const faqResults   = results.filter(r => r.type === 'faq');
-  const normaResults = results.filter(r => r.type === 'norma');
-  const repoResults  = results.filter(r => r.type === 'repo');
+  const faqResults     = results.filter(r => r.type === 'faq');
+  const normaResults   = results.filter(r => r.type === 'norma');
+  const repoResults    = results.filter(r => r.type === 'repo');
+  const repoFaqResults = results.filter(r => r.type === 'repo_faq');
 
   const renderSection = (items, label) => {
     if(!items.length) return '';
@@ -8223,6 +8232,12 @@ function runSearch(raw) {
             <div class="search-result-q">${highlight(r.norma.code||'', q)}</div>
             ${r.norma.name ? `<div class="search-result-a">${highlight(r.norma.name, q)}</div>` : ''}
             ${r.norma.url ? `<div style="font-size:11px;color:var(--cage-accent);margin-top:4px;">🔗 ${r.norma.url}</div>` : ''}
+          </div>`;
+        if(r.type === 'repo_faq') return `
+          <div class="search-result-item" onclick="openRepoDocViewer('${r.doc.id}', true)">
+            <div class="search-result-pop">📚 ${r.doc.title} · FAQ do Manual</div>
+            <div class="search-result-q">${highlight(r.faq.q, q)}</div>
+            ${r.faq.a ? `<div class="search-result-a">${highlight(r.faq.a.substring(0,240)+(r.faq.a.length>240?'…':''), q)}</div>` : ''}
           </div>`;
         if(r.type === 'repo') {
           const inTitle = (r.doc.title||'').toLowerCase().includes(lower);
@@ -8248,9 +8263,10 @@ function runSearch(raw) {
   };
 
   resultsEl.innerHTML =
-    renderSection(faqResults,   `FAQs (${faqResults.length})`) +
-    renderSection(normaResults, `Normas & Revisões (${normaResults.length})`) +
-    renderSection(repoResults,  `Metodologias & Manuais (${repoResults.length})`);
+    renderSection(faqResults,     `FAQs (${faqResults.length})`) +
+    renderSection(normaResults,   `Normas & Revisões (${normaResults.length})`) +
+    renderSection(repoResults,    `Metodologias & Manuais (${repoResults.length})`) +
+    renderSection(repoFaqResults, `FAQs de Manuais (${repoFaqResults.length})`);
 }
 
 function goToRepoDoc(id) {
@@ -8258,7 +8274,7 @@ function goToRepoDoc(id) {
   showRepoModule();
 }
 
-function openRepoDocViewer(id) {
+function openRepoDocViewer(id, showFaqs) {
   const doc = REPO_DOCS.find(x => x.id === id);
   if(!doc) return;
   const q = (document.getElementById('search-modal-input')?.value || '').trim();
@@ -8309,25 +8325,35 @@ function openRepoDocViewer(id) {
   const body = modal.querySelector('#repo-viewer-body');
   const nav  = modal.querySelector('#repo-viewer-nav');
 
-  if(!doc.textContent) {
+  // Seção de FAQs geradas por IA
+  const faqSection = (doc.faqs && doc.faqs.length) ? `
+    <div style="margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e2e8f0;">
+      <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#2563eb;margin-bottom:12px;">💬 FAQs geradas por IA</div>
+      ${doc.faqs.map((f,i) => `
+        <div style="margin-bottom:14px;padding:12px 14px;background:#f8fafc;border-radius:8px;border-left:3px solid #2563eb;">
+          <div style="font-size:13px;font-weight:700;color:#0a2540;margin-bottom:4px;">${i+1}. ${q ? highlight(f.q, q) : f.q}</div>
+          <div style="font-size:13px;color:#374151;line-height:1.7;">${q ? highlight(f.a, q) : f.a}</div>
+        </div>`).join('')}
+    </div>` : '';
+
+  if(!doc.textContent && !(doc.faqs && doc.faqs.length)) {
     body.innerHTML = `<div style="text-align:center;padding:40px;color:#94a3b8;">
       <div style="font-size:32px;margin-bottom:12px;">📄</div>
       <div>Este documento ainda não foi indexado.</div>
       <div style="margin-top:8px;font-size:12px;">Use o botão "🔍 Indexar" no card do documento para extrair o texto.</div>
     </div>`;
     nav.style.display = 'none';
+  } else if(showFaqs && doc.faqs && doc.faqs.length) {
+    // Modo FAQ: mostra só as FAQs destacadas, sem o textContent completo
+    body.innerHTML = faqSection;
+    nav.style.display = 'none';
   } else {
     // Escapa HTML, depois aplica highlight
-    const escaped = doc.textContent
+    const escaped = (doc.textContent||'')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     if(q) {
       const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
-      body.innerHTML = escaped.replace(re, '<mark id="repo-viewer-first-mark" style="background:#fef08a;padding:0 2px;border-radius:2px;scroll-margin-top:80px;">$1</mark>');
-      // Remove id duplicado (só o primeiro deve ter)
-      let first = true;
-      body.querySelectorAll('mark').forEach(m => {
-        if(first) { first = false; } else { m.removeAttribute('id'); }
-      });
+      body.innerHTML = faqSection + escaped.replace(re, '<mark style="background:#fef08a;padding:0 2px;border-radius:2px;">$1</mark>');
       const total = body.querySelectorAll('mark').length;
       // Barra de navegação entre ocorrências
       nav.style.display = 'flex';
@@ -8339,7 +8365,7 @@ function openRepoDocViewer(id) {
       window._repoViewerMarks = Array.from(body.querySelectorAll('mark'));
       window._repoViewerMarkIdx = 0;
     } else {
-      body.innerHTML = escaped;
+      body.innerHTML = faqSection + escaped;
       nav.style.display = 'none';
     }
   }
