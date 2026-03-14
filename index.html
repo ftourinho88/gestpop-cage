@@ -1350,8 +1350,425 @@
 
 
 
-<div id="pop-denuncias" class="pop-content active"></div>
-<div id="pop-representacoes" class="pop-content"></div>
+<!-- ═══════════════════════════════════════════ -->
+<!-- POP 1: DENÚNCIAS -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pop-denuncias" class="pop-content active">
+
+  <!-- VISÃO GERAL -->
+  <section id="d-visao-geral" class="section active">
+    <div class="pop-banner denuncias fade-up">
+      <div class="pop-banner-icon">📋</div>
+      <div>
+        <div class="pop-banner-title">Tratar Denúncias</div>
+        <div class="pop-banner-sub">Macroprocesso: Promoção da Integridade e Prevenção à Corrupção · Processo: Tratar Denúncias e Representações</div>
+      </div>
+      <div class="pop-banner-meta">
+        <span class="badge badge-green" id="d-rev-badge">Rev. 0 · Mar/2026</span>
+      </div>
+    </div>
+    <div class="overview-grid fade-up delay-1">
+      <div class="metric-card green"><div class="metric-icon">📊</div>
+        <span class="metric-value" contenteditable="false" id="d-metric-vol-pre" oninput="calcHorasEcon('d');markChanged()">—</span>
+        <span class="metric-label">Vol. Mensal Pré</span></div>
+      <div class="metric-card blue"><div class="metric-icon">📉</div>
+        <span class="metric-value" contenteditable="false" id="d-metric-vol-pos" oninput="calcHorasEcon('d');markChanged()">—</span>
+        <span class="metric-label">Vol. Mensal Pós</span></div>
+      <div class="metric-card gold"><div class="metric-icon">⏱</div>
+        <span class="metric-value" contenteditable="false" id="d-metric-ciclo-pre" oninput="calcHorasEcon('d');markChanged()">—</span>
+        <span class="metric-label">Ciclo Pré (h)</span></div>
+      <div class="metric-card red"><div class="metric-icon">⚡</div>
+        <span class="metric-value" contenteditable="false" id="d-metric-ciclo-pos" oninput="calcHorasEcon('d');markChanged()">—</span>
+        <span class="metric-label">Ciclo Pós (h)</span></div>
+      <div class="metric-card teal"><div class="metric-icon">💡</div>
+        <span class="metric-value" id="d-metric-horas" style="font-size:22px;">—</span>
+        <span class="metric-label">Horas Economizadas</span></div>
+    </div>
+    <div id="d-ficha-card" class="card fade-up delay-2" style="margin-top:0;margin-bottom:16px;display:none;">
+      <div class="card-header"><span class="card-title">📋 Ficha Técnica</span><button class="btn btn-outline" onclick="openStatusModal('d')" style="font-size:11px;padding:4px 10px;margin-left:auto;" id="d-ficha-edit-btn">✏️ Editar</button></div>
+      <div class="card-body" id="d-ficha-body" style="padding:16px;"></div>
+    </div>
+    <div class="two-col fade-up delay-1">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Objetivo</span></div>
+        <div class="card-body">
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:12px;" contenteditable="false" data-key="d:obj">O subprocesso <strong>Tratar Denúncias</strong> tem como objetivo realizar o <strong>recebimento, tratamento, apuração e comunicação de resultados</strong> de denúncias pela CAGE.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <div style="background:var(--cage-light);border-radius:8px;padding:10px 14px;font-size:12px;">
+              <div style="color:var(--text-muted);margin-bottom:2px;">Entrada</div>
+              <div style="font-weight:600;color:var(--cage-blue);" contenteditable="false" data-key="d:entrada_resumo">Denúncia por FalaBR, e-mail ou presencialmente</div>
+            </div>
+            <div style="background:var(--cage-light);border-radius:8px;padding:10px 14px;font-size:12px;">
+              <div style="color:var(--text-muted);margin-bottom:2px;">Saída</div>
+              <div style="font-weight:600;color:var(--cage-blue);" contenteditable="false" data-key="d:saida_resumo">Denúncia tratada e comunicação de resultados</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Siglas</span><button class="edit-add-btn" onclick="addSigla('d-sigla-grid')">+ Sigla</button></div>
+        <div class="card-body" style="padding:16px;"><div class="sigla-grid" id="d-sigla-grid">
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="d:s1a">FalaBR</div><div class="sigla-def" contenteditable="false" data-key="d:s1d">Plataforma Integrada de Ouvidoria e Acesso à Informação do Poder Executivo Federal</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="d:s2a">SAEWEB</div><div class="sigla-def" contenteditable="false" data-key="d:s2d">Sistema eletrônico de organização do fluxo de trabalho de auditorias</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="d:s3a">PPI</div><div class="sigla-def" contenteditable="false" data-key="d:s3d">Procedimento Preliminar de Investigação</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="d:s4a">DIR</div><div class="sigla-def" contenteditable="false" data-key="d:s4d">Divisão de Integridade e Responsabilização</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLUXO -->
+  <section id="d-fluxo" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#f0f5ff,#e8f4ff);border:1px solid #c7d9f0;border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🎨</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--cage-blue);">Precisa editar ou corrigir o fluxograma?</div>
+          <div style="font-size:12px;color:var(--text-muted);">Use o editor de fluxo para desenhar, ajustar e exportar o diagrama.</div>
+        </div>
+      </div>
+      <button onclick="showFlowDesigner(document.getElementById('tab-fd'))" style="flex-shrink:0;padding:8px 16px;background:var(--cage-blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🎨 Abrir Editor de Fluxo</button>
+    </div>
+    <div id="d-step-tracker" class="step-tracker"></div>
+    <div id="d-step-panel"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-outline" id="d-btn-prev" onclick="navStep('d',-1)">← Anterior</button>
+      <span class="step-pos" id="d-step-pos"></span>
+      <button class="btn btn-primary" id="d-btn-next" onclick="navStep('d',1)">Próximo →</button>
+    </div>
+    <button id="d-add-step-btn" class="edit-add-btn" style="display:none;" onclick="addStep('d')">+ Etapa</button>
+  </section>
+
+  <!-- RESPONSABILIDADES -->
+  <section id="d-responsabilidades" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;">
+      <div class="card-header"><span class="card-title">Gerente do Processo</span></div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--cage-light);border-radius:8px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(26,74,122,.12);display:flex;align-items:center;justify-content:center;font-size:22px;">👔</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--cage-blue);" contenteditable="false" data-key="d:ger_nome">Chefe da Seção de Apuração e Operações</div>
+            <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="d:ger_desc">Responsável pelo gerenciamento e monitoramento do subprocesso</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="role-grid fade-up delay-1" id="d-role-grid"></div>
+  </section>
+
+  <!-- INDICADORES -->
+  <section id="d-indicadores" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores listados como <strong>sugestões</strong> — metas pendentes de definição.</p></div>
+      <button class="btn-add-ind" id="d-add-ind" onclick="addIndicator('d')">＋ Novo Indicador</button>
+    </div></div>
+    <div class="indicator-grid fade-up delay-1" id="d-indicator-grid"></div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="d-faq" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;"><span>⚠️</span><span style="font-size:13px;color:var(--text-muted);">Perguntas <strong>pendentes</strong> ainda não têm resposta consolidada no POP.</span></div>
+      <div><button class="edit-add-btn" id="d-add-faq" onclick="addFaq('d')">+ Pergunta</button><button class="edit-add-btn" id="d-faq-ia-btn" onclick="generateFaqIA('d')" style="background:#7c3aed;color:white;border-color:#7c3aed;margin-left:4px;">🤖 Gerar com IA</button></div>
+    </div></div>
+    <div class="faq-list fade-up delay-1" id="d-faq-container"></div>
+  </section>
+
+  <!-- NORMAS -->
+  <section id="d-normas" class="section">
+    <div class="two-col">
+      <div class="card fade-up">
+        <div class="card-header"><span class="card-title">Normas Correlatas</span><button class="edit-add-btn" onclick="addNorma('d')">+ Norma</button></div>
+        <div class="card-body" style="padding:16px;"><div class="norm-list" id="d-norm-list"></div></div>
+      </div>
+      <div>
+        <div class="card fade-up delay-1" style="margin-bottom:16px;">
+          <div class="card-header"><span class="card-title">Controle de Revisões</span><button class="edit-add-btn" onclick="openRevModal('d')">+ Revisão</button></div>
+          <div class="card-body" style="padding:0;">
+            <table class="rev-table"><thead><tr><th>Rev.</th><th>Data</th><th>Descrição</th><th>Autor</th></tr></thead>
+            <tbody id="d-rev-body"></tbody></table>
+          </div>
+        </div>
+        <div class="card fade-up delay-2">
+          <div class="card-header"><span class="card-title">Elaboração e Aprovação</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Elaborado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="d:el_nome">Edison Weber Woycinck</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="d:el_func">Auditor do Estado</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="d:el_data">02/03/2026</div></div>
+              <div style="border-left:1px solid var(--cage-border);border-right:1px solid var(--cage-border);">
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Revisado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="d:rv_nome">Felipe Cesar Tourinho</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="d:rv_func">Coordenador do EPP</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="d:rv_data">10/03/2026</div></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Aprovado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="d:ap_nome">—</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="d:ap_func">Pendente</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="d:ap_data">—</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RISCOS -->
+  <section id="d-riscos" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;color:var(--text-secondary);">⚠️ Riscos e oportunidades identificados no processo, ranqueados por nota de risco.</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openRiskModal('d')">＋ Adicionar</button>
+        </div>
+      </div>
+      <div id="d-risk-grid" class="risk-matrix"></div>
+    </div>
+  </section>
+
+  <!-- PLANO DE AÇÃO -->
+  <section id="d-plano-acao" class="section">
+    <div class="section-inner">
+      <div class="card fade-up">
+        <div class="card-header">
+          <span class="card-title">✅ Plano de Ação</span>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="openPaModal('d')">＋ Nova Ação</button>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto;">
+          <table class="pa-table">
+            <thead><tr><th>#</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+            <tbody id="d-pa-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REUNIÕES -->
+  <section id="d-reunioes" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;color:var(--text-secondary);">🤝 Registro de reuniões realizadas com a equipe de mapeamento.</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openMeetModal('d')">＋ Registrar Reunião</button>
+        </div>
+      </div>
+      <div id="d-meet-list"></div>
+    </div>
+  </section>
+</div><!-- /pop-denuncias -->
+
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- POP 2: REPRESENTAÇÕES -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pop-representacoes" class="pop-content">
+
+  <!-- VISÃO GERAL -->
+  <section id="r-visao-geral" class="section active">
+    <div class="pop-banner representacoes fade-up">
+      <div class="pop-banner-icon">📄</div>
+      <div>
+        <div class="pop-banner-title">Tratar Representações</div>
+        <div class="pop-banner-sub">Macroprocesso: Promoção da Integridade e Prevenção à Corrupção · Processo: Tratar Denúncias e Representações</div>
+      </div>
+      <div class="pop-banner-meta">
+        <span class="badge badge-blue" id="r-rev-badge">Rev. 0 · Mar/2026</span>
+      </div>
+    </div>
+    <div class="overview-grid fade-up delay-1">
+      <div class="metric-card green"><div class="metric-icon">📊</div>
+        <span class="metric-value" contenteditable="false" id="r-metric-vol-pre" oninput="calcHorasEcon('r');markChanged()">—</span>
+        <span class="metric-label">Vol. Mensal Pré</span></div>
+      <div class="metric-card blue"><div class="metric-icon">📉</div>
+        <span class="metric-value" contenteditable="false" id="r-metric-vol-pos" oninput="calcHorasEcon('r');markChanged()">—</span>
+        <span class="metric-label">Vol. Mensal Pós</span></div>
+      <div class="metric-card gold"><div class="metric-icon">⏱</div>
+        <span class="metric-value" contenteditable="false" id="r-metric-ciclo-pre" oninput="calcHorasEcon('r');markChanged()">—</span>
+        <span class="metric-label">Ciclo Pré (h)</span></div>
+      <div class="metric-card red"><div class="metric-icon">⚡</div>
+        <span class="metric-value" contenteditable="false" id="r-metric-ciclo-pos" oninput="calcHorasEcon('r');markChanged()">—</span>
+        <span class="metric-label">Ciclo Pós (h)</span></div>
+      <div class="metric-card teal"><div class="metric-icon">💡</div>
+        <span class="metric-value" id="r-metric-horas" style="font-size:22px;">—</span>
+        <span class="metric-label">Horas Economizadas</span></div>
+    </div>
+    <div id="r-ficha-card" class="card fade-up delay-2" style="margin-top:0;margin-bottom:16px;display:none;">
+      <div class="card-header"><span class="card-title">📋 Ficha Técnica</span><button class="btn btn-outline" onclick="openStatusModal('r')" style="font-size:11px;padding:4px 10px;margin-left:auto;" id="r-ficha-edit-btn">✏️ Editar</button></div>
+      <div class="card-body" id="r-ficha-body" style="padding:16px;"></div>
+    </div>
+    <div class="two-col fade-up delay-1">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Objetivo</span></div>
+        <div class="card-body">
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:12px;" contenteditable="false" data-key="r:obj">O subprocesso <strong>Tratar Representações</strong> tem como objetivo realizar o <strong>recebimento, tratamento, apuração e comunicação de resultados</strong> de representações recebidas por Ofício de outros órgãos.</p>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-top:10px;">
+            ⚠️ A representação <strong>pode conter prazo</strong> ou indicar de modo genérico como "maior brevidade possível".
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <div style="background:var(--cage-light);border-radius:8px;padding:10px 14px;font-size:12px;">
+              <div style="color:var(--text-muted);margin-bottom:2px;">Entrada</div>
+              <div style="font-weight:600;color:var(--cage-blue);" contenteditable="false" data-key="r:entrada_resumo">Representação recebida por Ofício</div>
+            </div>
+            <div style="background:var(--cage-light);border-radius:8px;padding:10px 14px;font-size:12px;">
+              <div style="color:var(--text-muted);margin-bottom:2px;">Saída</div>
+              <div style="font-weight:600;color:var(--cage-blue);" contenteditable="false" data-key="r:saida_resumo">Representação apurada e comunicação de resultados</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Siglas</span><button class="edit-add-btn" onclick="addSigla('r-sigla-grid')">+ Sigla</button></div>
+        <div class="card-body" style="padding:16px;"><div class="sigla-grid" id="r-sigla-grid">
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="r:s1a">SAEWEB</div><div class="sigla-def" contenteditable="false" data-key="r:s1d">Sistema eletrônico de organização do fluxo de trabalho de auditorias</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="r:s2a">PPI</div><div class="sigla-def" contenteditable="false" data-key="r:s2d">Procedimento Preliminar de Investigação</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="r:s3a">DIR</div><div class="sigla-def" contenteditable="false" data-key="r:s3d">Divisão de Integridade e Responsabilização</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+          <div class="sigla-item"><div class="sigla-abbr" contenteditable="false" data-key="r:s4a">SEI/PROA</div><div class="sigla-def" contenteditable="false" data-key="r:s4d">Sistemas de processo eletrônico para envio de documentos a órgãos externos</div><button class="edit-rm-btn" onclick="this.closest('.sigla-item').remove();markChanged()">✕</button></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLUXO -->
+  <section id="r-fluxo" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,#f0f5ff,#e8f4ff);border:1px solid #c7d9f0;border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🎨</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--cage-blue);">Precisa editar ou corrigir o fluxograma?</div>
+          <div style="font-size:12px;color:var(--text-muted);">Use o editor de fluxo para desenhar, ajustar e exportar o diagrama.</div>
+        </div>
+      </div>
+      <button onclick="showFlowDesigner(document.getElementById('tab-fd'))" style="flex-shrink:0;padding:8px 16px;background:var(--cage-blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🎨 Abrir Editor de Fluxo</button>
+    </div>
+    <div id="r-step-tracker" class="step-tracker"></div>
+    <div id="r-step-panel"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-outline" id="r-btn-prev" onclick="navStep('r',-1)">← Anterior</button>
+      <span class="step-pos" id="r-step-pos"></span>
+      <button class="btn btn-primary" id="r-btn-next" onclick="navStep('r',1)">Próximo →</button>
+    </div>
+    <button id="r-add-step-btn" class="edit-add-btn" style="display:none;" onclick="addStep('r')">+ Etapa</button>
+  </section>
+
+  <!-- RESPONSABILIDADES -->
+  <section id="r-responsabilidades" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;">
+      <div class="card-header"><span class="card-title">Gerente do Processo</span></div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--cage-light);border-radius:8px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(26,74,122,.12);display:flex;align-items:center;justify-content:center;font-size:22px;">👔</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--cage-blue);" contenteditable="false" data-key="r:ger_nome">Chefe da Seção de Apuração e Operações</div>
+            <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="r:ger_desc">Responsável pelo gerenciamento e monitoramento do subprocesso</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="role-grid fade-up delay-1" id="r-role-grid"></div>
+  </section>
+
+  <!-- INDICADORES -->
+  <section id="r-indicadores" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores listados como <strong>sugestões</strong> — metas pendentes de definição.</p></div>
+      <button class="btn-add-ind" id="r-add-ind" onclick="addIndicator('r')">＋ Novo Indicador</button>
+    </div></div>
+    <div class="indicator-grid fade-up delay-1" id="r-indicator-grid"></div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="r-faq" class="section">
+    <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;"><span>⚠️</span><span style="font-size:13px;color:var(--text-muted);">Perguntas <strong>pendentes</strong> ainda não têm resposta consolidada no POP.</span></div>
+      <div><button class="edit-add-btn" id="r-add-faq" onclick="addFaq('r')">+ Pergunta</button><button class="edit-add-btn" id="r-faq-ia-btn" onclick="generateFaqIA('r')" style="background:#7c3aed;color:white;border-color:#7c3aed;margin-left:4px;">🤖 Gerar com IA</button></div>
+    </div></div>
+    <div class="faq-list fade-up delay-1" id="r-faq-container"></div>
+  </section>
+
+  <!-- NORMAS -->
+  <section id="r-normas" class="section">
+    <div class="two-col">
+      <div class="card fade-up">
+        <div class="card-header"><span class="card-title">Normas Correlatas</span><button class="edit-add-btn" onclick="addNorma('r')">+ Norma</button></div>
+        <div class="card-body" style="padding:16px;"><div class="norm-list" id="r-norm-list"></div></div>
+      </div>
+      <div>
+        <div class="card fade-up delay-1" style="margin-bottom:16px;">
+          <div class="card-header"><span class="card-title">Controle de Revisões</span><button class="edit-add-btn" onclick="openRevModal('r')">+ Revisão</button></div>
+          <div class="card-body" style="padding:0;">
+            <table class="rev-table"><thead><tr><th>Rev.</th><th>Data</th><th>Descrição</th><th>Autor</th></tr></thead>
+            <tbody id="r-rev-body"></tbody></table>
+          </div>
+        </div>
+        <div class="card fade-up delay-2">
+          <div class="card-header"><span class="card-title">Elaboração e Aprovação</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Elaborado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="r:el_nome">Edison Weber Woycinck</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="r:el_func">Auditor do Estado</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="r:el_data">09/03/2026</div></div>
+              <div style="border-left:1px solid var(--cage-border);border-right:1px solid var(--cage-border);">
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Revisado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="r:rv_nome">Felipe Cesar Tourinho</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="r:rv_func">Coordenador do EPP</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="r:rv_data">10/03/2026</div></div>
+              <div><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Aprovado por</div>
+                <div style="font-weight:600;font-size:13px;" contenteditable="false" data-key="r:ap_nome">—</div>
+                <div style="font-size:12px;color:var(--text-muted);" contenteditable="false" data-key="r:ap_func">Pendente</div>
+                <div style="font-size:11px;color:var(--text-muted);" contenteditable="false" data-key="r:ap_data">—</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RISCOS -->
+  <section id="r-riscos" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;color:var(--text-secondary);">⚠️ Riscos e oportunidades identificados no processo, ranqueados por nota de risco.</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openRiskModal('r')">＋ Adicionar</button>
+        </div>
+      </div>
+      <div id="r-risk-grid" class="risk-matrix"></div>
+    </div>
+  </section>
+
+  <!-- PLANO DE AÇÃO -->
+  <section id="r-plano-acao" class="section">
+    <div class="section-inner">
+      <div class="card fade-up">
+        <div class="card-header">
+          <span class="card-title">✅ Plano de Ação</span>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="openPaModal('r')">＋ Nova Ação</button>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto;">
+          <table class="pa-table">
+            <thead><tr><th>#</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+            <tbody id="r-pa-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REUNIÕES -->
+  <section id="r-reunioes" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;color:var(--text-secondary);">🤝 Registro de reuniões realizadas com a equipe de mapeamento.</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openMeetModal('r')">＋ Registrar Reunião</button>
+        </div>
+      </div>
+      <div id="r-meet-list"></div>
+    </div>
+  </section>
+</div><!-- /pop-representacoes -->
 
 
 
@@ -3745,41 +4162,113 @@ function mountNewPopTab(key, label, silent=false) {
           <span class="rev-badge" id="${key}-rev-badge">Rev. 0 · ${today}</span>
         </div>
       </div>
-      <div id="${key}-ficha-card"><div id="${key}-ficha-body"></div></div>
-      <span id="${key}-metric-vol-pre"   style="display:none;"></span>
-      <span id="${key}-metric-vol-pos"   style="display:none;"></span>
-      <span id="${key}-metric-ciclo-pre" style="display:none;"></span>
-      <span id="${key}-metric-ciclo-pos" style="display:none;"></span>
-      <span id="${key}-metric-horas"     style="display:none;"></span>
+      <div class="overview-grid fade-up delay-1">
+        <div class="metric-card green"><div class="metric-icon">📊</div>
+          <span class="metric-value" contenteditable="false" id="${key}-metric-vol-pre" oninput="calcHorasEcon('${key}');markChanged()">—</span>
+          <span class="metric-label">Vol. Mensal Pré</span></div>
+        <div class="metric-card blue"><div class="metric-icon">📉</div>
+          <span class="metric-value" contenteditable="false" id="${key}-metric-vol-pos" oninput="calcHorasEcon('${key}');markChanged()">—</span>
+          <span class="metric-label">Vol. Mensal Pós</span></div>
+        <div class="metric-card gold"><div class="metric-icon">⏱</div>
+          <span class="metric-value" contenteditable="false" id="${key}-metric-ciclo-pre" oninput="calcHorasEcon('${key}');markChanged()">—</span>
+          <span class="metric-label">Ciclo Pré (h)</span></div>
+        <div class="metric-card red"><div class="metric-icon">⚡</div>
+          <span class="metric-value" contenteditable="false" id="${key}-metric-ciclo-pos" oninput="calcHorasEcon('${key}');markChanged()">—</span>
+          <span class="metric-label">Ciclo Pós (h)</span></div>
+        <div class="metric-card teal"><div class="metric-icon">💡</div>
+          <span class="metric-value" id="${key}-metric-horas" style="font-size:22px;">—</span>
+          <span class="metric-label">Horas Economizadas</span></div>
+      </div>
+      <div id="${key}-ficha-card" class="card fade-up delay-2" style="margin-top:0;margin-bottom:16px;display:none;">
+        <div class="card-header"><span class="card-title">📋 Ficha Técnica</span><button class="btn btn-outline" onclick="openStatusModal('${key}')" style="font-size:11px;padding:4px 10px;margin-left:auto;">✏️ Editar</button></div>
+        <div class="card-body" id="${key}-ficha-body" style="padding:16px;"></div>
+      </div>
     </div>
     <div id="${key}-fluxo" class="section">
       <div id="${key}-step-tracker" class="step-tracker"></div>
       <div id="${key}-step-panel"></div>
+      <div class="nav-buttons">
+        <button class="btn btn-outline" id="${key}-btn-prev" onclick="navStep('${key}',-1)">← Anterior</button>
+        <span class="step-pos" id="${key}-step-pos"></span>
+        <button class="btn btn-primary" id="${key}-btn-next" onclick="navStep('${key}',1)">Próximo →</button>
+      </div>
       <button id="${key}-add-step-btn" class="edit-add-btn" style="display:none;" onclick="addStep('${key}')">+ Etapa</button>
     </div>
     <div id="${key}-responsabilidades" class="section">
       <div id="${key}-role-grid" class="role-grid"></div>
     </div>
     <div id="${key}-indicadores" class="section">
+      <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores de desempenho do processo.</p></div>
+        <button class="btn-add-ind" id="${key}-add-ind" onclick="addIndicator('${key}')">＋ Novo Indicador</button>
+      </div></div>
       <div id="${key}-indicator-grid" class="indicator-grid"></div>
     </div>
     <div id="${key}-faq" class="section">
-      <div id="${key}-faq-container"></div>
-      <button id="${key}-add-faq" class="edit-add-btn" style="display:none;" onclick="addFaq('${key}')">+ FAQ</button>
+      <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:8px;"><span>⚠️</span><span style="font-size:13px;color:var(--text-muted);">Perguntas <strong>pendentes</strong> ainda não têm resposta consolidada no POP.</span></div>
+        <div><button class="edit-add-btn" id="${key}-add-faq" onclick="addFaq('${key}')">+ Pergunta</button><button class="edit-add-btn" id="${key}-faq-ia-btn" onclick="generateFaqIA('${key}')" style="background:#7c3aed;color:white;border-color:#7c3aed;margin-left:4px;">🤖 Gerar com IA</button></div>
+      </div></div>
+      <div class="faq-list fade-up delay-1" id="${key}-faq-container"></div>
     </div>
     <div id="${key}-normas" class="section">
-      <div id="${key}-norm-list" class="norm-list"></div>
-      <div id="${key}-sigla-grid" class="sigla-grid"></div>
-      <table><tbody id="${key}-rev-body"></tbody></table>
+      <div class="two-col">
+        <div class="card fade-up">
+          <div class="card-header"><span class="card-title">Normas Correlatas</span><button class="edit-add-btn" onclick="addNorma('${key}')">+ Norma</button></div>
+          <div class="card-body" style="padding:16px;"><div class="norm-list" id="${key}-norm-list"></div></div>
+        </div>
+        <div>
+          <div class="card fade-up delay-1" style="margin-bottom:16px;">
+            <div class="card-header"><span class="card-title">Controle de Revisões</span><button class="edit-add-btn" onclick="openRevModal('${key}')">+ Revisão</button></div>
+            <div class="card-body" style="padding:0;">
+              <table class="rev-table"><thead><tr><th>Rev.</th><th>Data</th><th>Descrição</th><th>Autor</th></tr></thead>
+              <tbody id="${key}-rev-body"></tbody></table>
+            </div>
+          </div>
+          <div class="card fade-up delay-2">
+            <div class="card-header"><span class="card-title">Siglas</span><button class="edit-add-btn" onclick="addSigla('${key}-sigla-grid')">+ Sigla</button></div>
+            <div class="card-body" style="padding:16px;"><div class="sigla-grid" id="${key}-sigla-grid"></div></div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="${key}-riscos" class="section">
-      <div id="${key}-risk-grid"></div>
+      <div class="section-inner">
+        <div class="card fade-up" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;color:var(--text-secondary);">⚠️ Riscos e oportunidades identificados no processo, ranqueados por nota de risco.</div>
+            <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openRiskModal('${key}')">＋ Adicionar</button>
+          </div>
+        </div>
+        <div id="${key}-risk-grid" class="risk-matrix"></div>
+      </div>
     </div>
     <div id="${key}-plano-acao" class="section">
-      <table><tbody id="${key}-pa-tbody"></tbody></table>
+      <div class="section-inner">
+        <div class="card fade-up">
+          <div class="card-header">
+            <span class="card-title">✅ Plano de Ação</span>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" onclick="openPaModal('${key}')">＋ Nova Ação</button>
+          </div>
+          <div class="card-body" style="padding:0;overflow-x:auto;">
+            <table class="pa-table">
+              <thead><tr><th>#</th><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+              <tbody id="${key}-pa-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="${key}-reunioes" class="section">
-      <div id="${key}-meet-list"></div>
+      <div class="section-inner">
+        <div class="card fade-up" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;color:var(--text-secondary);">🤝 Registro de reuniões realizadas com a equipe de mapeamento.</div>
+            <button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="openMeetModal('${key}')">＋ Registrar Reunião</button>
+          </div>
+        </div>
+        <div id="${key}-meet-list"></div>
+      </div>
     </div>`;
 
   // Insert into DOM
