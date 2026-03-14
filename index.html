@@ -12852,7 +12852,7 @@ function saveStatusModal() {
       const last18 = all.slice(-18);
       const labels = last18.map(r => _periodoLabel(r.periodo));
       const realizado = last18.map(r => r.pctRealizado);
-      const pctIndice = last18.map(r => r.pctIndice);
+      const pctIndice = last18.map(() => 100);
 
       const ctxEvo = document.getElementById('indcage-chart-evolucao');
       if(ctxEvo) {
