@@ -2422,10 +2422,14 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
         <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:4px;">Título *</label>
         <input class="modal-input" id="drop-title" type="text" placeholder="Ex: O que é BPMN?">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
         <div>
           <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:4px;">Edição / Mês</label>
           <input class="modal-input" id="drop-edicao" type="text" placeholder="Ex: Edição 01 · Jan/2025">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:4px;">Data de Publicação</label>
+          <input class="modal-input" id="drop-date" type="date">
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:4px;">Tag / Tema</label>
@@ -2460,6 +2464,11 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
       </div>
     </div>
   </div>
+</div>
+
+<!-- DROPS: lightbox para imagem de capa -->
+<div id="drops-lightbox" onclick="dropsCloseLightbox()" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;cursor:zoom-out;">
+  <img id="drops-lightbox-img" src="" style="max-width:92vw;max-height:92vh;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">
 </div>
 
 <!-- ═══ MODAL RISCOS ═══════════════════════ -->
@@ -8257,18 +8266,24 @@ function dropsRender() {
   let list = DROPS.filter(d =>
     !q || d.title.toLowerCase().includes(q) || (d.tag||'').toLowerCase().includes(q) || (d.resumo||'').toLowerCase().includes(q)
   );
+  // Sort newest first
+  list = list.slice().sort((a,b) => new Date(b.publishedAt) - new Date(a.publishedAt));
   const grid = document.getElementById('drops-grid');
   const empty = document.getElementById('drops-empty');
   const countEl = document.getElementById('home-drops-count');
   if(countEl) countEl.textContent = DROPS.length + ' drop' + (DROPS.length !== 1 ? 's' : '');
   if(!list.length) { grid.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
-  grid.innerHTML = list.map(d => `
+  grid.innerHTML = list.map(d => {
+    // Format date using UTC to avoid timezone day-shifts
+    const pub = new Date(d.publishedAt);
+    const dateLabel = pub.toLocaleDateString('pt-BR', {month:'long', year:'numeric', timeZone:'UTC'});
+    const coverHtml = d.coverUrl
+      ? `<div style="height:140px;background:#f0f9ff;overflow:hidden;cursor:zoom-in;" onclick="dropsShowCover('${d.coverUrl.replace(/'/g,"\\'")}')"><img src="${d.coverUrl}" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div>`
+      : `<div style="height:80px;background:linear-gradient(135deg,#0a2540,#1a4a7a);display:flex;align-items:center;justify-content:center;font-size:36px;">💧</div>`;
+    return `
     <div style="background:white;border-radius:14px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
-      ${d.coverUrl
-        ? `<div style="height:140px;background:#f0f9ff;overflow:hidden;"><img src="${d.coverUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display='none'"></div>`
-        : `<div style="height:80px;background:linear-gradient(135deg,#0a2540,#1a4a7a);display:flex;align-items:center;justify-content:center;font-size:36px;">💧</div>`
-      }
+      ${coverHtml}
       <div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${d.edicao ? `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f9ff;color:#0ea5e9;font-weight:600;">${d.edicao}</span>` : ''}
@@ -8276,13 +8291,14 @@ function dropsRender() {
         </div>
         <div style="font-weight:700;font-size:15px;color:#0a2540;line-height:1.3;">${d.title}</div>
         ${d.resumo ? `<div style="font-size:12px;color:#64748b;line-height:1.5;flex:1;">${d.resumo}</div>` : ''}
-        <div style="font-size:11px;color:#94a3b8;">${new Date(d.publishedAt).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
+        <div style="font-size:11px;color:#94a3b8;">${dateLabel}</div>
         <div style="display:flex;gap:8px;margin-top:4px;">
           ${d.link ? `<a href="${d.link}" target="_blank" class="btn btn-primary" style="font-size:12px;flex:1;text-align:center;text-decoration:none;background:#0ea5e9;border-color:#0ea5e9;">📖 Acessar</a>` : ''}
           <button class="btn btn-outline" onclick="dropsOpenEdit('${d.id}')" style="font-size:12px;">✏️</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function dropsOpenNew() {
@@ -8290,6 +8306,12 @@ function dropsOpenNew() {
   ['drop-title','drop-edicao','drop-tag','drop-resumo','drop-link','drop-cover-url'].forEach(id => {
     const el=document.getElementById(id); if(el) el.value='';
   });
+  // Pre-fill date with today in YYYY-MM-DD (local date)
+  const today = new Date();
+  document.getElementById('drop-date').value =
+    today.getFullYear() + '-' +
+    String(today.getMonth()+1).padStart(2,'0') + '-' +
+    String(today.getDate()).padStart(2,'0');
   document.getElementById('drop-cover-preview').style.display='none';
   document.getElementById('drop-delete-btn').style.display='none';
   document.getElementById('drops-modal-title').textContent='💧 Novo Drop de Conhecimento';
@@ -8306,6 +8328,12 @@ function dropsOpenEdit(id) {
   document.getElementById('drop-resumo').value    = d.resumo   || '';
   document.getElementById('drop-link').value      = d.link     || '';
   document.getElementById('drop-cover-url').value = d.coverUrl || '';
+  // Populate date field — convert ISO to YYYY-MM-DD for <input type="date">
+  const pub = d.publishedAt ? new Date(d.publishedAt) : new Date();
+  document.getElementById('drop-date').value =
+    pub.getUTCFullYear() + '-' +
+    String(pub.getUTCMonth()+1).padStart(2,'0') + '-' +
+    String(pub.getUTCDate()).padStart(2,'0');
   if(d.coverUrl) {
     document.getElementById('drop-cover-img').src = d.coverUrl;
     document.getElementById('drop-cover-preview').style.display='block';
@@ -8338,6 +8366,11 @@ async function dropCoverSelected(file) {
 function dropSave() {
   const title = document.getElementById('drop-title').value.trim();
   if(!title) { showToast('Informe o título do Drop.', 'error'); return; }
+  // Build publishedAt from date input (YYYY-MM-DD → ISO at noon UTC to avoid day-shift)
+  const dateVal = document.getElementById('drop-date').value;
+  const publishedAt = dateVal
+    ? new Date(dateVal + 'T12:00:00Z').toISOString()
+    : (dropsEditingId ? DROPS.find(x=>x.id===dropsEditingId)?.publishedAt : new Date().toISOString());
   const drop = {
     id:          dropsEditingId || 'drop_' + Date.now(),
     title,
@@ -8346,7 +8379,7 @@ function dropSave() {
     resumo:      document.getElementById('drop-resumo').value.trim(),
     link:        document.getElementById('drop-link').value.trim(),
     coverUrl:    document.getElementById('drop-cover-url').value.trim(),
-    publishedAt: dropsEditingId ? DROPS.find(x=>x.id===dropsEditingId)?.publishedAt : new Date().toISOString(),
+    publishedAt,
   };
   if(dropsEditingId) {
     const idx = DROPS.findIndex(x => x.id === dropsEditingId);
@@ -8366,6 +8399,16 @@ function dropDelete() {
   dropsRender();
   saveToCloud();
   showToast('🗑 Drop excluído.', 'success');
+}
+
+function dropsShowCover(url) {
+  const lb = document.getElementById('drops-lightbox');
+  document.getElementById('drops-lightbox-img').src = url;
+  lb.style.display = 'flex';
+}
+
+function dropsCloseLightbox() {
+  document.getElementById('drops-lightbox').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════════════
