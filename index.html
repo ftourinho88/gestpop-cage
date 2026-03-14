@@ -8791,11 +8791,11 @@ function saveStatusModal() {
 
     // Node shape helpers
     const shape = n => {
-      const lbl = n.label.replace(/"/g,"'");
-      if(n.type === 'start')    return `${n.id}(["${lbl}"])`;
-      if(n.type === 'end')      return `${n.id}(["${lbl}"]):::endStyle`;
-      if(n.type === 'decision') return `${n.id}{"${lbl}"}`;
-      return `${n.id}["${lbl}"]`;
+      const lbl = (n.label||'').replace(/"/g,"'");
+      if(n.type === 'start')    return `${n.id}(["${lbl||'Início'}"])`;
+      if(n.type === 'end')      return `${n.id}(["${lbl||'Fim'}"]):::endStyle`;
+      if(n.type === 'decision') return `${n.id}{"${lbl||' '}"}`;
+      return `${n.id}["${lbl||' '}"]`;
     };
 
     if(hasLanes) {
@@ -8837,10 +8837,10 @@ function saveStatusModal() {
     const shape = n => {
       const lbl = (n.name||n.label||'').replace(/"/g,"'");
       const id  = 'n' + n.id.replace(/[^a-zA-Z0-9]/g,'_');
-      if(n.type === 'start')    return { id, str: `${id}(["${lbl}"])` };
-      if(n.type === 'end')      return { id, str: `${id}(["${lbl}"]):::endStyle` };
-      if(n.type === 'decision') return { id, str: `${id}{"${lbl}"}` };
-      return { id, str: `${id}["${lbl}"]` };
+      if(n.type === 'start')    return { id, str: `${id}(["${lbl||'Início'}"])` };
+      if(n.type === 'end')      return { id, str: `${id}(["${lbl||'Fim'}"]):::endStyle` };
+      if(n.type === 'decision') return { id, str: `${id}{"${lbl||' '}"}` };
+      return { id, str: `${id}["${lbl||' '}"]` };
     };
 
     const idMap = {};
