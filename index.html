@@ -952,7 +952,7 @@
         </div>
         <div class="cage-banner-text">
           <span class="cage-banner-title">CAGE-RS</span>
-          <span class="cage-banner-sub">Contadoria e Auditoria-Geral</span>
+          <span class="cage-banner-sub">Contadoria e Auditoria-Geral do Estado</span>
         </div>
       </div>
       <div class="header-divider-line"></div>
@@ -3873,7 +3873,7 @@ function showBpmn(tab) {
   initImageModule();
   // Restore saved image for current pop
   const p = popPrefix(currentPop);
-  const hasImg = (DATA[p] && (DATA[p].fluxoImgUrl || DATA[p].fluxoImg));
+  const hasImg = (DATA[p] && (DATA[p].fluxoImgUrl || DATA[p].fluxoImg || DATA[p]._fluxoObjectUrl));
   if(hasImg) {
     loadFluxoImgFromStorage(p);
   } else {
@@ -4520,6 +4520,104 @@ function mountNewPopTab(key, label, silent=false) {
           </div>
         </div>
         <div id="${key}-meet-list"></div>
+      </div>
+    </div>
+    <div id="${key}-acompanhamento" class="section">
+      <div class="section-inner">
+        <div class="card fade-up" style="margin-bottom:20px;">
+          <div class="card-body" style="padding:16px 20px;">
+            <div style="font-size:15px;font-weight:600;color:#0a2540;margin-bottom:4px;">📋 Reuniões de Acompanhamento Pós-Mapeamento</div>
+            <div style="font-size:13px;color:var(--text-secondary);">Registro das reuniões de acompanhamento realizadas após o mapeamento do processo. São previstas no mínimo duas reuniões: uma com 6 meses e outra com 1 ano.</div>
+          </div>
+        </div>
+        <div id="${key}-acomp-list">
+          <div class="card fade-up" style="margin-bottom:20px;" id="${key}-acomp-card-6m">
+            <div class="card-body" style="padding:20px 24px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+                <div style="background:#0a2540;color:#00a86b;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #00a86b;">6 MESES</div>
+                <div style="font-size:15px;font-weight:600;color:#0a2540;">1ª Reunião de Acompanhamento</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                  <input type="date" id="${key}-acomp-6m-data" class="modal-input" style="width:100%;" oninput="saveAcomp('${key}')">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                  <select id="${key}-acomp-6m-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('${key}','6m');saveAcomp('${key}')">
+                    <option value="">— Selecione —</option>
+                    <option value="de_acordo">✅ De acordo</option>
+                    <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                    <option value="nao_implementado">❌ Não implementado</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+                <textarea id="${key}-acomp-6m-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div id="${key}-acomp-6m-justif-wrap" style="margin-bottom:16px;display:none;">
+                <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+                <textarea id="${key}-acomp-6m-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+                <textarea id="${key}-acomp-6m-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+                <textarea id="${key}-acomp-6m-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+                <textarea id="${key}-acomp-6m-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="card fade-up" style="margin-bottom:20px;" id="${key}-acomp-card-1a">
+            <div class="card-body" style="padding:20px 24px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+                <div style="background:#0a2540;color:#e8a020;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #e8a020;">1 ANO</div>
+                <div style="font-size:15px;font-weight:600;color:#0a2540;">2ª Reunião de Acompanhamento</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                  <input type="date" id="${key}-acomp-1a-data" class="modal-input" style="width:100%;" oninput="saveAcomp('${key}')">
+                </div>
+                <div>
+                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                  <select id="${key}-acomp-1a-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('${key}','1a');saveAcomp('${key}')">
+                    <option value="">— Selecione —</option>
+                    <option value="de_acordo">✅ De acordo</option>
+                    <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                    <option value="nao_implementado">❌ Não implementado</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+                <textarea id="${key}-acomp-1a-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div id="${key}-acomp-1a-justif-wrap" style="margin-bottom:16px;display:none;">
+                <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+                <textarea id="${key}-acomp-1a-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+                <textarea id="${key}-acomp-1a-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div style="margin-bottom:16px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+                <textarea id="${key}-acomp-1a-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+                <textarea id="${key}-acomp-1a-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('${key}')"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
 
@@ -5432,13 +5530,19 @@ window.addEventListener('beforeunload', () => {
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
 
   // Payload essencial (POPs, PAT, arquitetura)
+  function _stripTrans(obj) {
+    if(!obj || typeof obj !== 'object') return obj;
+    const out = {};
+    for(const k of Object.keys(obj)) { if(!k.startsWith('_')) out[k] = obj[k]; }
+    return out;
+  }
   const payload = {
-    d:            DATA.d,
-    r:            DATA.r,
+    d:            _stripTrans(DATA.d),
+    r:            _stripTrans(DATA.r),
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
     logoUrl:      DATA._logoUrl || null,
-    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
+    newPops:      newPopKeys.map(k => ({ key: k, data: _stripTrans(DATA[k]) })),
     repoDocs:     [],
     drops:        []
   };
@@ -5520,7 +5624,7 @@ async function saveToCloud(attempt=1) {
     pat:          DATA.pat || [],
     arqOverrides: DATA._arqOverrides || null,
     logoUrl:      DATA._logoUrl || null,
-    newPops:      newPopKeys.map(k => ({ key: k, data: DATA[k] })),
+    newPops:      newPopKeys.map(k => ({ key: k, data: _stripTransient(DATA[k]) })),
     repoDocs:     REPO_DOCS || [],
     drops:        DROPS     || []
   };
@@ -5684,6 +5788,7 @@ async function loadFromCloud() {
         if(!document.getElementById('pop-' + key)) {
           mountNewPopTab(key, pd.meta?.name || 'POP', true);
         }
+        try { loadAcomp(key); } catch(e) { console.warn('loadAcomp', key, e); }
       });
     }
 
@@ -7513,7 +7618,7 @@ function saveAcomp(pop) {
     });
   });
   DATA[pop].acompanhamento = acomp;
-  markUnsaved();
+  markChanged();
 }
 
 function loadAcomp(pop) {
