@@ -55,6 +55,7 @@
   .cage-banner-text{}
   .cage-banner-text .cage-banner-title{font-weight:700;font-size:14px;color:white;letter-spacing:.3px;line-height:1.15;display:block;}
   .cage-banner-text .cage-banner-sub{font-size:10px;color:rgba(255,255,255,.55);line-height:1.2;white-space:nowrap;display:block;}
+  .cage-official-logo{height:42px;max-width:170px;object-fit:contain;flex-shrink:0;filter:brightness(0) invert(1);}
   .header-title{font-size:12px;font-weight:500;line-height:1.3;opacity:.8;}
   .header-title strong{display:block;font-size:14px;font-weight:600;opacity:1;}
   .header-meta{display:flex;align-items:center;gap:8px;}
@@ -648,6 +649,34 @@
   .pat-filter-btn.active{background:var(--cage-blue);color:white;border-color:var(--cage-blue);}
 
 
+  /* ── AUDIT MODULE ── */
+  .audit-tab{padding:8px 18px;border:none;border-bottom:3px solid transparent;background:none;font-size:13px;font-weight:600;cursor:pointer;color:#64748b;white-space:nowrap;transition:all .15s;}
+  .audit-tab.active{color:#0a2540;border-bottom-color:#0a2540;}
+  .audit-tab:hover{color:#0a2540;}
+  .audit-tab-panel{display:block;}
+  .audit-label{font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;display:block;margin-bottom:4px;letter-spacing:.04em;}
+  .audit-card{background:white;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:12px;border-left:4px solid #0a2540;transition:box-shadow .15s;cursor:pointer;}
+  .audit-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.1);}
+  .audit-card-title{font-size:14px;font-weight:700;color:#0a2540;margin-bottom:4px;}
+  .audit-card-meta{font-size:12px;color:#64748b;display:flex;gap:14px;flex-wrap:wrap;}
+  .audit-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .audit-badge-planejada{background:#eff6ff;color:#1d4ed8;}
+  .audit-badge-em_execucao{background:#fef9c3;color:#a16207;}
+  .audit-badge-concluida{background:#dcfce7;color:#15803d;}
+  .audit-badge-cancelada{background:#f1f5f9;color:#94a3b8;}
+  .audit-badge-aberta{background:#fee2e2;color:#dc2626;}
+  .audit-badge-em_tratamento{background:#fef9c3;color:#a16207;}
+  .audit-badge-fechada{background:#dcfce7;color:#15803d;}
+  .audit-badge-pendente{background:#f1f5f9;color:#64748b;}
+  .audit-badge-em_andamento{background:#fef9c3;color:#a16207;}
+  .audit-nc-filter{padding:5px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid #e2e8f0;background:white;cursor:pointer;color:#64748b;transition:all .15s;}
+  .audit-nc-filter.active{background:#0a2540;color:white;border-color:#0a2540;}
+  .audit-nc-critica{border-left-color:#dc2626 !important;}
+  .audit-nc-moderada{border-left-color:#f59e0b !important;}
+  .audit-nc-leve{border-left-color:#22c55e !important;}
+  .checklist-row{background:#f8fafc;border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;}
+  .checklist-row input,.checklist-row select{font-size:12px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;background:white;outline:none;}
+
   /* ── HOME PAGE ── */
   .home-card {
     background: white;
@@ -942,14 +971,9 @@
           <text x="18" y="24" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#00a86b" text-anchor="middle">EPP</text>
         </svg>
       </div>
-      <!-- CAGE-RS institutional banner -->
-      <div class="cage-banner-brand">
-        <div class="cage-banner-shield">
-          <svg width="20" height="24" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 1L1 5V11C1 16.55 4.84 21 10 22C15.16 21 19 16.55 19 11V5L10 1Z" fill="#E8A020" opacity="0.88"/>
-            <path d="M7 12.5L5 10.5L6.2 9.3L7 10.1L13.3 7L14.2 8.5L7 12.5Z" fill="white"/>
-          </svg>
-        </div>
+      <!-- CAGE-RS official logo -->
+      <img src="https://cage.fazenda.rs.gov.br/upload/recortes/202506/04091256_2280_GD.png" alt="CAGE-RS" class="cage-official-logo" onerror="this.style.display='none';document.getElementById('cage-logo-fallback').style.display='flex';">
+      <div id="cage-logo-fallback" class="cage-banner-brand" style="display:none;">
         <div class="cage-banner-text">
           <span class="cage-banner-title">CAGE-RS</span>
           <span class="cage-banner-sub">Contadoria e Auditoria-Geral do Estado</span>
@@ -1006,7 +1030,8 @@
     <div class="sidebar-title">Processos</div>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showRepoModule();" style="margin-bottom:4px;background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.3);">📚 Metodologia e Manuais</button>
-    <button class="sidebar-pat-btn" onclick="closeSidebar();showDropsModule();" style="margin-bottom:8px;background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(14,165,233,.3);">💧 Drops de Conhecimento</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showDropsModule();" style="margin-bottom:4px;background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(14,165,233,.3);">💧 Drops de Conhecimento</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showAuditModule();" style="margin-bottom:8px;background:rgba(220,38,38,.12);color:#fca5a5;border-color:rgba(220,38,38,.3);">🔍 Auditoria de Processos</button>
         <button class="sidebar-pat-btn" onclick="closeSidebar();openPatIfAllowed();">📅 Plano de Trabalho do EPP</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Cadeia de Valor e Mapa Estratégico</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
@@ -1110,6 +1135,12 @@
       <div class="home-card-title">Drops de Conhecimento</div>
       <div class="home-card-desc">Publicações mensais do escritório de processos com dicas, conceitos e boas práticas.</div>
       <div class="home-card-footer" id="home-drops-count">—</div>
+    </div>
+    <div class="home-card" onclick="showAuditModule()" style="border-top:4px solid #dc2626;">
+      <div class="home-card-icon" style="background:#fff1f2;color:#dc2626;">🔍</div>
+      <div class="home-card-title">Auditoria de Processos</div>
+      <div class="home-card-desc">Planeje auditorias, execute checklists inteligentes, registre não conformidades e acompanhe planos de ação.</div>
+      <div class="home-card-footer" id="home-audit-count">—</div>
     </div>
     <div class="home-card" onclick="window.open('https://forms.office.com/Pages/ResponsePage.aspx?id=Cwm9g251AkqlEuXqAsAwQbvi0Bx7w-FOk8Rk-2iAB21UMFlRV0szV09JTlBMSzEzNlVJS1Y4UjA5Qy4u&origin=Invitation&channel=1','_blank')" style="border-top:4px solid #ec4899;">
       <div class="home-card-icon" style="background:#fdf2f8;color:#ec4899;">💡</div>
@@ -2711,6 +2742,327 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
 <!-- DROPS: lightbox para imagem de capa -->
 <div id="drops-lightbox" onclick="dropsCloseLightbox()" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;cursor:zoom-out;">
   <img id="drops-lightbox-img" src="" style="max-width:92vw;max-height:92vh;border-radius:8px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MÓDULO: AUDITORIA DE PROCESSOS             -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="audit-module" style="display:none;padding:32px 24px 80px;max-width:1100px;margin:0 auto;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;">
+    <div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:#0a2540;margin:0 0 4px;">🔍 Auditoria de Processos</h2>
+      <div style="font-size:13px;color:#64748b;">Planejamento, execução e gestão de não conformidades · CAGE-RS</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-outline" onclick="showHome()" style="font-size:13px;">← Início</button>
+      <button id="audit-new-btn" class="btn btn-primary" onclick="auditNewAction()" style="font-size:13px;display:none;">＋ Novo</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:2px;border-bottom:2px solid #e2e8f0;margin-bottom:24px;overflow-x:auto;">
+    <button class="audit-tab active" data-tab="plans"    onclick="auditTab('plans',this)">📋 Planos de Auditoria</button>
+    <button class="audit-tab"        data-tab="exec"     onclick="auditTab('exec',this)">▶ Execução</button>
+    <button class="audit-tab"        data-tab="nc"       onclick="auditTab('nc',this)">⚠️ Não Conformidades</button>
+    <button class="audit-tab"        data-tab="actions"  onclick="auditTab('actions',this)">✅ Plano de Ação</button>
+  </div>
+
+  <!-- Tab: Planos -->
+  <div id="audit-tab-plans" class="audit-tab-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Planos de Auditoria</div>
+      <button class="btn btn-primary" onclick="auditOpenPlanModal()" style="font-size:12px;">＋ Novo Plano</button>
+    </div>
+    <div id="audit-plans-list"></div>
+    <div id="audit-plans-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">📋</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhum plano criado</div>
+      <div style="font-size:13px;">Clique em "Novo Plano" para criar o primeiro plano de auditoria</div>
+    </div>
+  </div>
+
+  <!-- Tab: Execução -->
+  <div id="audit-tab-exec" class="audit-tab-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Execução de Auditorias</div>
+      <button class="btn btn-primary" onclick="auditOpenExecModal()" style="font-size:12px;">＋ Nova Execução</button>
+    </div>
+    <div id="audit-exec-list"></div>
+    <div id="audit-exec-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">▶</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhuma execução registrada</div>
+      <div style="font-size:13px;">Crie um plano de auditoria e inicie a execução com checklist</div>
+    </div>
+  </div>
+
+  <!-- Tab: NCs -->
+  <div id="audit-tab-nc" class="audit-tab-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Não Conformidades</div>
+      <button class="btn btn-primary" onclick="auditOpenNcModal()" style="font-size:12px;background:#dc2626;border-color:#dc2626;">＋ Registrar NC</button>
+    </div>
+    <!-- Filtros NC -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="audit-nc-filter active" data-g="" onclick="auditFilterNc('',this)">Todas</button>
+      <button class="audit-nc-filter" data-g="critica" onclick="auditFilterNc('critica',this)" style="--fc:#dc2626;">🔴 Crítica</button>
+      <button class="audit-nc-filter" data-g="moderada" onclick="auditFilterNc('moderada',this)" style="--fc:#f59e0b;">🟡 Moderada</button>
+      <button class="audit-nc-filter" data-g="leve" onclick="auditFilterNc('leve',this)" style="--fc:#22c55e;">🟢 Leve</button>
+    </div>
+    <div id="audit-nc-list"></div>
+    <div id="audit-nc-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhuma não conformidade registrada</div>
+      <div style="font-size:13px;">Ótimo! Nenhuma NC encontrada ainda.</div>
+    </div>
+  </div>
+
+  <!-- Tab: Ações -->
+  <div id="audit-tab-actions" class="audit-tab-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Plano de Ação — Correções</div>
+      <button class="btn btn-primary" onclick="auditOpenActionModal()" style="font-size:12px;background:#0a2540;border-color:#0a2540;">＋ Nova Ação</button>
+    </div>
+    <!-- Filtros ação -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="audit-nc-filter active" data-g="" onclick="auditFilterAction('',this)">Todas</button>
+      <button class="audit-nc-filter" data-g="pendente" onclick="auditFilterAction('pendente',this)">Pendente</button>
+      <button class="audit-nc-filter" data-g="em_andamento" onclick="auditFilterAction('em_andamento',this)">Em Andamento</button>
+      <button class="audit-nc-filter" data-g="concluida" onclick="auditFilterAction('concluida',this)">Concluída</button>
+    </div>
+    <div id="audit-actions-list"></div>
+    <div id="audit-actions-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">✅</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhuma ação cadastrada</div>
+      <div style="font-size:13px;">Registre não conformidades e crie ações corretivas</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Plano de Auditoria ═══ -->
+<div id="audit-plan-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:640px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="background:#0a2540;border-radius:16px 16px 0 0;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin:0;" id="audit-plan-modal-title">📋 Novo Plano de Auditoria</h3>
+      <button onclick="auditClosePlanModal()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Processo Auditado *</label>
+          <select class="modal-input" id="ap-processo" onchange="auditPlanProcessoChange()">
+            <option value="">— Selecione o processo —</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Unidade Auditada</label>
+          <input class="modal-input" id="ap-unidade" type="text" placeholder="Ex: Divisão de Contabilidade">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Objetivo da Auditoria *</label>
+          <textarea class="modal-input" id="ap-objetivo" rows="2" placeholder="Ex: Verificar aderência ao POP vigente" style="resize:vertical;min-height:60px;"></textarea>
+        </div>
+        <div>
+          <label class="audit-label">Auditor Responsável *</label>
+          <input class="modal-input" id="ap-auditor" type="text" placeholder="Nome do auditor">
+        </div>
+        <div>
+          <label class="audit-label">Data Prevista</label>
+          <input class="modal-input" id="ap-data" type="date">
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Critérios de Auditoria</label>
+          <input class="modal-input" id="ap-criterios" type="text" placeholder="Ex: POP vigente, normas internas, indicadores de desempenho">
+        </div>
+        <div>
+          <label class="audit-label">Status</label>
+          <select class="modal-input" id="ap-status">
+            <option value="planejada">Planejada</option>
+            <option value="em_execucao">Em Execução</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div>
+          <label class="audit-label">Período (ex: 01/01 a 31/03/2025)</label>
+          <input class="modal-input" id="ap-periodo" type="text" placeholder="Período de referência">
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button id="ap-delete-btn" class="btn btn-outline" style="color:#e11d48;border-color:#fda4af;display:none;" onclick="auditDeletePlan()">🗑 Excluir</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-outline" onclick="auditClosePlanModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="auditSavePlan()">Salvar Plano</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Execução / Checklist ═══ -->
+<div id="audit-exec-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:760px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="background:#1a4a7a;border-radius:16px 16px 0 0;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin:0;" id="audit-exec-modal-title">▶ Execução de Auditoria</h3>
+      <button onclick="auditCloseExecModal()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Plano de Auditoria *</label>
+          <select class="modal-input" id="ae-plan" onchange="auditExecPlanChange()">
+            <option value="">— Selecione o plano —</option>
+          </select>
+        </div>
+        <div>
+          <label class="audit-label">Data de Execução</label>
+          <input class="modal-input" id="ae-data" type="date">
+        </div>
+        <div>
+          <label class="audit-label">Status</label>
+          <select class="modal-input" id="ae-status">
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluida">Concluída</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Observações Gerais</label>
+          <textarea class="modal-input" id="ae-obs" rows="2" placeholder="Observações da execução..." style="resize:vertical;min-height:60px;"></textarea>
+        </div>
+      </div>
+      <!-- Checklist -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <label class="audit-label" style="margin-bottom:0;">Checklist de Auditoria</label>
+          <button class="btn btn-outline" onclick="auditAddChecklistItem()" style="font-size:11px;padding:4px 10px;">＋ Item</button>
+        </div>
+        <div id="ae-checklist" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button id="ae-delete-btn" class="btn btn-outline" style="color:#e11d48;border-color:#fda4af;display:none;" onclick="auditDeleteExec()">🗑 Excluir</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-outline" onclick="auditCloseExecModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="auditSaveExec()" style="background:#1a4a7a;border-color:#1a4a7a;">Salvar Execução</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Não Conformidade ═══ -->
+<div id="audit-nc-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:640px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="background:#991b1b;border-radius:16px 16px 0 0;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin:0;" id="audit-nc-modal-title">⚠️ Registrar Não Conformidade</h3>
+      <button onclick="auditCloseNcModal()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="audit-label">Plano / Auditoria</label>
+          <select class="modal-input" id="nc-plan">
+            <option value="">— Sem vínculo —</option>
+          </select>
+        </div>
+        <div>
+          <label class="audit-label">Processo</label>
+          <input class="modal-input" id="nc-processo" type="text" placeholder="Processo afetado">
+        </div>
+        <div>
+          <label class="audit-label">Etapa do Processo</label>
+          <input class="modal-input" id="nc-etapa" type="text" placeholder="Ex: Etapa 3 — Aprovação">
+        </div>
+        <div>
+          <label class="audit-label">Gravidade *</label>
+          <select class="modal-input" id="nc-gravidade">
+            <option value="leve">🟢 Leve — Melhoria recomendada</option>
+            <option value="moderada">🟡 Moderada — Execução inadequada</option>
+            <option value="critica">🔴 Crítica — Risco legal / impacto ao cliente</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Descrição da Não Conformidade *</label>
+          <textarea class="modal-input" id="nc-descricao" rows="3" placeholder="Descreva o problema encontrado..." style="resize:vertical;min-height:70px;"></textarea>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Causa Provável</label>
+          <textarea class="modal-input" id="nc-causa" rows="2" placeholder="Qual a causa raiz?" style="resize:vertical;min-height:50px;"></textarea>
+        </div>
+        <div>
+          <label class="audit-label">Responsável</label>
+          <input class="modal-input" id="nc-responsavel" type="text" placeholder="Nome do responsável">
+        </div>
+        <div>
+          <label class="audit-label">Status</label>
+          <select class="modal-input" id="nc-status">
+            <option value="aberta">Aberta</option>
+            <option value="em_tratamento">Em Tratamento</option>
+            <option value="fechada">Fechada</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button id="nc-delete-btn" class="btn btn-outline" style="color:#e11d48;border-color:#fda4af;display:none;" onclick="auditDeleteNc()">🗑 Excluir</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-outline" onclick="auditCloseNcModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="auditSaveNc()" style="background:#991b1b;border-color:#991b1b;">Salvar NC</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Ação Corretiva ═══ -->
+<div id="audit-action-modal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="background:#065f46;border-radius:16px 16px 0 0;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin:0;" id="audit-action-modal-title">✅ Nova Ação Corretiva</h3>
+      <button onclick="auditCloseActionModal()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Não Conformidade Vinculada</label>
+          <select class="modal-input" id="ac-nc">
+            <option value="">— Sem vínculo —</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">Ação a ser executada *</label>
+          <textarea class="modal-input" id="ac-acao" rows="3" placeholder="Descreva a ação corretiva..." style="resize:vertical;min-height:70px;"></textarea>
+        </div>
+        <div>
+          <label class="audit-label">Responsável *</label>
+          <input class="modal-input" id="ac-responsavel" type="text" placeholder="Nome / setor responsável">
+        </div>
+        <div>
+          <label class="audit-label">Prazo</label>
+          <input class="modal-input" id="ac-prazo" type="date">
+        </div>
+        <div>
+          <label class="audit-label">Status</label>
+          <select class="modal-input" id="ac-status">
+            <option value="pendente">Pendente</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div>
+          <label class="audit-label">Área / Setor</label>
+          <input class="modal-input" id="ac-setor" type="text" placeholder="Ex: RH, TI, Contabilidade">
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+      <button id="ac-delete-btn" class="btn btn-outline" style="color:#e11d48;border-color:#fda4af;display:none;" onclick="auditDeleteAction()">🗑 Excluir</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-outline" onclick="auditCloseActionModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="auditSaveAction()" style="background:#065f46;border-color:#065f46;">Salvar Ação</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ MODAL RISCOS ═══════════════════════ -->
@@ -5271,7 +5623,7 @@ let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
 let workspaceId = sessionStorage.getItem('gestpop_wsid') || null;
 
 function hideAllModules() {
-  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module','fd-module'].forEach(id => {
+  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module','fd-module','audit-module'].forEach(id => {
     const el = document.getElementById(id);
     if(el) { el.style.display = 'none'; el.classList.remove('active'); }
   });
@@ -5540,6 +5892,7 @@ window.addEventListener('beforeunload', () => {
     d:            _stripTrans(DATA.d),
     r:            _stripTrans(DATA.r),
     pat:          DATA.pat || [],
+    audits:       DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
     arqOverrides: DATA._arqOverrides || null,
     logoUrl:      DATA._logoUrl || null,
     newPops:      newPopKeys.map(k => ({ key: k, data: _stripTrans(DATA[k]) })),
@@ -5622,6 +5975,7 @@ async function saveToCloud(attempt=1) {
     d:            _stripTransient(DATA.d),
     r:            _stripTransient(DATA.r),
     pat:          DATA.pat || [],
+    audits:       DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
     arqOverrides: DATA._arqOverrides || null,
     logoUrl:      DATA._logoUrl || null,
     newPops:      newPopKeys.map(k => ({ key: k, data: _stripTransient(DATA[k]) })),
@@ -5771,6 +6125,9 @@ async function loadFromCloud() {
     if(payload.d && typeof payload.d === 'object') Object.assign(DATA.d, payload.d);
     if(payload.r && typeof payload.r === 'object') Object.assign(DATA.r, payload.r);
     if(payload.pat) DATA.pat = Array.isArray(payload.pat) ? payload.pat : [];
+    if(payload.audits && typeof payload.audits === 'object') {
+      DATA.audits = { plans:[], executions:[], nonconformities:[], actions:[], ...payload.audits };
+    }
     if(payload.logoUrl) DATA._logoUrl = payload.logoUrl;
     if(Array.isArray(payload.repoDocs)) { REPO_DOCS = payload.repoDocs; }
     if(Array.isArray(payload.drops))    { DROPS     = payload.drops; dropsRender(); }
@@ -6720,6 +7077,7 @@ function exportBackup() {
       d:    DATA.d,
       r:    DATA.r,
       pat:  DATA.pat || [],
+      audits: DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
       newPops: allKeys.map(k => ({ key: k, data: DATA[k] }))
     };
     const json = JSON.stringify(payload, null, 2);
@@ -7027,6 +7385,17 @@ async function buildPptx(D) {
   pres.layout = 'LAYOUT_16x9';
   pres.title  = 'GesProc-RS · ' + (D.meta?.name || 'POP');
 
+  // Buscar logo oficial da CAGE como base64 (com cache)
+  let cageLogoB64 = null;
+  try {
+    if(!window._cageLogoB64Cache) {
+      const resp = await fetch('https://cage.fazenda.rs.gov.br/upload/recortes/202506/04091256_2280_GD.png');
+      const blob = await resp.blob();
+      window._cageLogoB64Cache = await new Promise(res => { const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(blob); });
+    }
+    cageLogoB64 = window._cageLogoB64Cache;
+  } catch(e) { console.warn('Não foi possível carregar logo CAGE para o PPT', e); }
+
   const C = {
     navy:'0A2540', mid:'1A4A7A', green:'00A86B', gold:'E8A020',
     white:'FFFFFF', light:'F4F7FB', text:'0A1929', muted:'8898AA', amber:'F59E0B'
@@ -7063,10 +7432,11 @@ async function buildPptx(D) {
     // Banner CAGE-RS no topo da capa
     s.addShape(pres.ShapeType.rect, { x:0, y:0, w:10, h:0.72, fill:{ color:'000000', transparency:45 } });
     s.addShape(pres.ShapeType.rect, { x:0, y:0.72, w:10, h:0.05, fill:{ color:C.gold } });
-    s.addShape(pres.ShapeType.rect, { x:0.3, y:0.1, w:0.52, h:0.52, fill:{ color:C.gold }, shadow:mks() });
-    s.addText('⚖', { x:0.3, y:0.1, w:0.52, h:0.52, fontSize:16, align:'center', valign:'middle', margin:0 });
-    s.addText('CAGE-RS', { x:0.92, y:0.08, w:3.5, h:0.3, fontSize:14, color:C.white, bold:true, valign:'middle', margin:0 });
-    s.addText('Contadoria e Auditoria-Geral do Estado do RS', { x:0.92, y:0.38, w:5, h:0.28, fontSize:8.5, color:'CADCFC', valign:'middle', margin:0 });
+    if(cageLogoB64) {
+      s.addImage({ data: cageLogoB64, x:0.28, y:0.08, w:2.8, h:0.56, sizing:{ type:'contain', w:2.8, h:0.56 } });
+    } else {
+      s.addText('CAGE-RS', { x:0.3, y:0.08, w:3.5, h:0.56, fontSize:14, color:C.white, bold:true, valign:'middle', margin:0 });
+    }
     s.addText('Estado do Rio Grande do Sul', { x:6.5, y:0.08, w:3.3, h:0.56, fontSize:9, color:'8CB8FF', align:'right', valign:'middle', margin:0 });
     // Faixa verde lateral
     s.addShape(pres.ShapeType.rect, { x:0, y:0.77, w:0.25, h:4.855, fill:{ color:C.green } });
@@ -7289,10 +7659,11 @@ async function buildPptx(D) {
     // Banner CAGE-RS na base do slide de encerramento
     s.addShape(pres.ShapeType.rect, { x:0, y:4.85, w:10, h:0.775, fill:{ color:'000000', transparency:40 } });
     s.addShape(pres.ShapeType.rect, { x:0, y:4.85, w:10, h:0.04, fill:{ color:C.gold } });
-    s.addShape(pres.ShapeType.rect, { x:0.3, y:4.95, w:0.52, h:0.52, fill:{ color:C.gold }, shadow:mks() });
-    s.addText('⚖', { x:0.3, y:4.95, w:0.52, h:0.52, fontSize:15, align:'center', valign:'middle', margin:0 });
-    s.addText('CAGE-RS', { x:0.92, y:4.93, w:3, h:0.28, fontSize:13, color:C.white, bold:true, valign:'middle', margin:0 });
-    s.addText('Contadoria e Auditoria-Geral do Estado do Rio Grande do Sul', { x:0.92, y:5.22, w:6.5, h:0.28, fontSize:8, color:'CADCFC', valign:'middle', margin:0 });
+    if(cageLogoB64) {
+      s.addImage({ data: cageLogoB64, x:0.28, y:4.94, w:2.6, h:0.56, sizing:{ type:'contain', w:2.6, h:0.56 } });
+    } else {
+      s.addText('CAGE-RS', { x:0.3, y:4.93, w:3, h:0.56, fontSize:13, color:C.white, bold:true, valign:'middle', margin:0 });
+    }
     s.addText('gestpoc.cage.rs.gov.br', { x:7, y:4.93, w:2.7, h:0.56, fontSize:8.5, color:'8CB8FF', align:'right', valign:'middle', margin:0 });
   }
 
@@ -8040,6 +8411,7 @@ function showHome() {
   const bi   = document.getElementById('bi-module');
   const qu   = document.getElementById('quadro-module');
   const arq  = document.getElementById('arq-module');
+  const aud  = document.getElementById('audit-module');
 
   // Hide all modules and pops
   document.querySelectorAll('.pop-content').forEach(el => el.classList.remove('active'));
@@ -8047,6 +8419,7 @@ function showHome() {
   if(bi)  bi.style.display  = 'none';
   if(qu)  qu.style.display  = 'none';
   if(arq) arq.style.display = 'none';
+  if(aud) aud.style.display = 'none';
 
   // Turn off edit mode if active
   if(editMode) toggleEditMode();
@@ -8252,6 +8625,13 @@ function homeRefresh() {
   if(pcEl) pcEl.textContent = popKeys.length + ' POP' + (popKeys.length !== 1 ? 's' : '') + ' disponível' + (popKeys.length !== 1 ? 'eis' : '');
   const acEl = document.getElementById('home-arq-count');
   if(acEl) acEl.textContent = macros + ' macroprocessos · ' + procs + ' processos';
+  const auditCountEl = document.getElementById('home-audit-count');
+  if(auditCountEl) {
+    auditEnsure();
+    const planCount = DATA.audits.plans.length;
+    const ncCount = DATA.audits.nonconformities.filter(nc=>nc.status==='aberta').length;
+    auditCountEl.textContent = planCount + ' plano(s)' + (ncCount ? ' · ' + ncCount + ' NC(s) abertas' : '');
+  }
 
   // Mostrar card editor só após permissão resolvida (currentUser definido)
   // Se currentUser ainda null, manter oculto até checkEditorPermission terminar
@@ -8818,6 +9198,446 @@ function dropsShowCover(url) {
 function dropsCloseLightbox() {
   document.getElementById('drops-lightbox').style.display = 'none';
 }
+
+// ═══════════════════════════════════════════════════════════
+// MÓDULO AUDITORIA DE PROCESSOS
+// ═══════════════════════════════════════════════════════════
+
+if(!DATA.audits) DATA.audits = { plans:[], executions:[], nonconformities:[], actions:[] };
+
+let _auditCurrentTab = 'plans';
+let _auditEditPlanId = null;
+let _auditEditExecId = null;
+let _auditEditNcId   = null;
+let _auditEditActId  = null;
+let _auditNcFilter   = '';
+let _auditActFilter  = '';
+
+function auditEnsure() {
+  if(!DATA.audits) DATA.audits = {};
+  if(!Array.isArray(DATA.audits.plans))           DATA.audits.plans = [];
+  if(!Array.isArray(DATA.audits.executions))      DATA.audits.executions = [];
+  if(!Array.isArray(DATA.audits.nonconformities)) DATA.audits.nonconformities = [];
+  if(!Array.isArray(DATA.audits.actions))         DATA.audits.actions = [];
+}
+
+function showAuditModule(show=true) {
+  if(!show) { showHome(); return; }
+  hideHome();
+  hideAllModules();
+  auditEnsure();
+  document.getElementById('audit-module').style.display = 'block';
+  auditTab(_auditCurrentTab);
+}
+
+function auditTab(tab, el) {
+  _auditCurrentTab = tab;
+  document.querySelectorAll('.audit-tab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else { const found = document.querySelector('.audit-tab[data-tab="'+tab+'"]'); if(found) found.classList.add('active'); }
+  document.querySelectorAll('.audit-tab-panel').forEach(p => p.style.display='none');
+  const panel = document.getElementById('audit-tab-' + tab);
+  if(panel) panel.style.display = 'block';
+  if(tab === 'plans')   auditRenderPlans();
+  if(tab === 'exec')    auditRenderExec();
+  if(tab === 'nc')      auditRenderNc();
+  if(tab === 'actions') auditRenderActions();
+}
+
+function _auditBadge(status) {
+  return '<span class="audit-badge audit-badge-'+status+'">'+_auditStatusLabel(status)+'</span>';
+}
+function _auditStatusLabel(s) {
+  return {planejada:'Planejada',em_execucao:'Em Execução',concluida:'Concluída',cancelada:'Cancelada',
+          aberta:'Aberta',em_tratamento:'Em Tratamento',fechada:'Fechada',
+          pendente:'Pendente',em_andamento:'Em Andamento'}[s] || s;
+}
+function _auditGravBadge(g) {
+  const m={critica:'🔴 Crítica',moderada:'🟡 Moderada',leve:'🟢 Leve'};
+  const c={critica:'#fee2e2;color:#dc2626',moderada:'#fef9c3;color:#a16207',leve:'#dcfce7;color:#15803d'};
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:'+(c[g]||'#f1f5f9;color:#64748b')+'">'+( m[g]||g)+'</span>';
+}
+function _fmtDate(d) { if(!d) return '—'; return new Date(d+'T12:00:00Z').toLocaleDateString('pt-BR'); }
+
+// ── PLANOS ─────────────────────────────────────────────────────
+function auditRenderPlans() {
+  auditEnsure();
+  const list = document.getElementById('audit-plans-list');
+  const empty = document.getElementById('audit-plans-empty');
+  const plans = DATA.audits.plans;
+  if(!plans.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = plans.map(p => {
+    const ncCount = DATA.audits.nonconformities.filter(nc => nc.planId === p.id).length;
+    const execCount = DATA.audits.executions.filter(e => e.planId === p.id).length;
+    return '<div class="audit-card" onclick="auditOpenPlanModal(\''+p.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'+
+        '<div class="audit-card-title">📋 '+(p.processoNome||p.processo||'(sem processo)')+'</div>'+
+        _auditBadge(p.status||'planejada')+
+      '</div>'+
+      '<div style="font-size:13px;color:#475569;margin-bottom:8px;">'+(p.objetivo||'—')+'</div>'+
+      '<div class="audit-card-meta">'+
+        '<span>👤 '+(p.auditor||'—')+'</span>'+
+        '<span>📅 '+_fmtDate(p.dataPrevista)+'</span>'+
+        '<span>🏢 '+(p.unidade||'—')+'</span>'+
+        (p.criterios ? '<span>📌 '+p.criterios+'</span>' : '')+
+      '</div>'+
+      '<div style="margin-top:10px;display:flex;gap:10px;font-size:12px;color:#94a3b8;">'+
+        '<span>▶ '+execCount+' execução(ões)</span>'+
+        '<span>⚠️ '+ncCount+' NC(s)</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+function auditOpenPlanModal(id) {
+  auditEnsure();
+  _auditEditPlanId = id || null;
+  const plan = id ? DATA.audits.plans.find(p=>p.id===id) : null;
+  const sel = document.getElementById('ap-processo');
+  const popKeys = ['d','r',...Object.keys(DATA).filter(k=>k.startsWith('pop_'))];
+  sel.innerHTML = '<option value="">— Selecione o processo —</option>' +
+    popKeys.map(k => {
+      const n = DATA[k]?.meta?.name || k;
+      return '<option value="'+k+'"'+(plan?.processo===k?' selected':'')+'>'+n+'</option>';
+    }).join('');
+  document.getElementById('ap-unidade').value    = plan?.unidade    || '';
+  document.getElementById('ap-objetivo').value   = plan?.objetivo   || '';
+  document.getElementById('ap-auditor').value    = plan?.auditor    || '';
+  document.getElementById('ap-data').value       = plan?.dataPrevista || '';
+  document.getElementById('ap-criterios').value  = plan?.criterios  || '';
+  document.getElementById('ap-status').value     = plan?.status     || 'planejada';
+  document.getElementById('ap-periodo').value    = plan?.periodo    || '';
+  document.getElementById('audit-plan-modal-title').textContent = id ? '✏️ Editar Plano' : '📋 Novo Plano de Auditoria';
+  document.getElementById('ap-delete-btn').style.display = id ? 'inline-block' : 'none';
+  document.getElementById('audit-plan-modal').style.display='flex';
+}
+function auditClosePlanModal() { document.getElementById('audit-plan-modal').style.display='none'; }
+function auditPlanProcessoChange() {}
+
+function auditSavePlan() {
+  auditEnsure();
+  const processo = document.getElementById('ap-processo').value;
+  const objetivo = document.getElementById('ap-objetivo').value.trim();
+  const auditor  = document.getElementById('ap-auditor').value.trim();
+  if(!objetivo) { showToast('Informe o objetivo da auditoria.', 'error'); return; }
+  if(!auditor)  { showToast('Informe o auditor responsável.', 'error'); return; }
+  const processoNome = processo ? (DATA[processo]?.meta?.name || processo) : '';
+  const plan = {
+    id:            _auditEditPlanId || 'plan_' + Date.now(),
+    processo, processoNome,
+    unidade:       document.getElementById('ap-unidade').value.trim(),
+    objetivo,
+    auditor,
+    dataPrevista:  document.getElementById('ap-data').value,
+    criterios:     document.getElementById('ap-criterios').value.trim(),
+    status:        document.getElementById('ap-status').value,
+    periodo:       document.getElementById('ap-periodo').value.trim(),
+    criadoEm:      _auditEditPlanId ? (DATA.audits.plans.find(p=>p.id===_auditEditPlanId)?.criadoEm || new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(_auditEditPlanId) {
+    const i = DATA.audits.plans.findIndex(p=>p.id===_auditEditPlanId);
+    if(i>=0) DATA.audits.plans[i]=plan; else DATA.audits.plans.push(plan);
+  } else { DATA.audits.plans.push(plan); }
+  auditClosePlanModal();
+  auditRenderPlans();
+  saveToCloud();
+  showToast('✅ Plano salvo!', 'success');
+}
+function auditDeletePlan() {
+  const p = DATA.audits.plans.find(x=>x.id===_auditEditPlanId);
+  if(!confirm('Excluir o plano "'+(p?.processoNome||p?.objetivo)+'"?')) return;
+  DATA.audits.plans = DATA.audits.plans.filter(x=>x.id!==_auditEditPlanId);
+  auditClosePlanModal(); auditRenderPlans(); saveToCloud();
+  showToast('🗑 Plano excluído.', 'success');
+}
+
+// ── EXECUÇÃO / CHECKLIST ────────────────────────────────────────
+let _auditTempChecklist = [];
+
+function auditRenderExec() {
+  auditEnsure();
+  const list = document.getElementById('audit-exec-list');
+  const empty = document.getElementById('audit-exec-empty');
+  const execs = DATA.audits.executions;
+  if(!execs.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = execs.map(e => {
+    const plan = DATA.audits.plans.find(p=>p.id===e.planId);
+    const total = (e.checklist||[]).length;
+    const conf  = (e.checklist||[]).filter(c=>c.conformidade==='conforme').length;
+    const nc    = (e.checklist||[]).filter(c=>c.conformidade==='nao_conforme').length;
+    return '<div class="audit-card" style="border-left-color:#1a4a7a;" onclick="auditOpenExecModal(\''+e.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'+
+        '<div class="audit-card-title">▶ '+(plan?.processoNome||plan?.objetivo||'Execução')+'</div>'+
+        _auditBadge(e.status||'em_andamento')+
+      '</div>'+
+      '<div class="audit-card-meta">'+
+        '<span>📅 '+_fmtDate(e.dataExecucao)+'</span>'+
+        '<span>✅ '+conf+'/'+total+' conformes</span>'+
+        (nc ? '<span style="color:#dc2626;">⚠️ '+nc+' NC(s)</span>' : '')+
+      '</div>'+
+      (e.observacoes ? '<div style="font-size:12px;color:#64748b;margin-top:6px;">'+e.observacoes+'</div>' : '')+
+      '</div>';
+  }).join('');
+}
+
+function auditOpenExecModal(id) {
+  auditEnsure();
+  _auditEditExecId = id || null;
+  const exec = id ? DATA.audits.executions.find(e=>e.id===id) : null;
+  const planSel = document.getElementById('ae-plan');
+  planSel.innerHTML = '<option value="">— Selecione o plano —</option>' +
+    DATA.audits.plans.map(p=>'<option value="'+p.id+'"'+(exec?.planId===p.id?' selected':'')+'>'+( p.processoNome||p.objetivo)+'</option>').join('');
+  document.getElementById('ae-data').value   = exec?.dataExecucao || '';
+  document.getElementById('ae-status').value = exec?.status       || 'em_andamento';
+  document.getElementById('ae-obs').value    = exec?.observacoes  || '';
+  _auditTempChecklist = exec?.checklist ? JSON.parse(JSON.stringify(exec.checklist)) : [];
+  if(!_auditTempChecklist.length && exec?.planId) auditAutoChecklist(exec.planId);
+  auditRenderChecklistEditor();
+  document.getElementById('audit-exec-modal-title').textContent = id ? '✏️ Editar Execução' : '▶ Nova Execução de Auditoria';
+  document.getElementById('ae-delete-btn').style.display = id ? 'inline-block' : 'none';
+  document.getElementById('audit-exec-modal').style.display='flex';
+}
+function auditCloseExecModal() { document.getElementById('audit-exec-modal').style.display='none'; }
+
+function auditExecPlanChange() {
+  const planId = document.getElementById('ae-plan').value;
+  if(!_auditTempChecklist.length && planId) { auditAutoChecklist(planId); auditRenderChecklistEditor(); }
+}
+
+function auditAutoChecklist(planId) {
+  const plan = DATA.audits.plans.find(p=>p.id===planId);
+  if(!plan?.processo) return;
+  const popData = DATA[plan.processo];
+  if(!popData) return;
+  const items = [];
+  (popData.steps||[]).forEach((s,i) => {
+    items.push({ id:'ci_'+Date.now()+'_'+i, item:'Etapa '+(i+1), pergunta:'A etapa "'+(s.title||'Etapa '+(i+1))+'" é executada conforme o POP?', tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+  });
+  (popData.indicators||[]).forEach((ind,i) => {
+    items.push({ id:'ci_ind_'+i, item:'Indicador', pergunta:'O indicador "'+(ind.name||'Indicador '+(i+1))+'" está sendo medido?', tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+  });
+  _auditTempChecklist = items;
+}
+
+function auditRenderChecklistEditor() {
+  const container = document.getElementById('ae-checklist');
+  if(!container) return;
+  if(!_auditTempChecklist.length) { container.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px;">Nenhum item. Clique em "+ Item" ou selecione um plano para gerar automaticamente.</div>'; return; }
+  container.innerHTML = _auditTempChecklist.map((c,i) =>
+    '<div class="checklist-row">'+
+      '<input type="text" value="'+( (c.pergunta||'').replace(/"/g,'&quot;'))+'" placeholder="Pergunta do checklist" onchange="_auditTempChecklist['+i+'].pergunta=this.value">'+
+      '<select onchange="_auditTempChecklist['+i+'].conformidade=this.value">'+
+        '<option value=""'+(!c.conformidade?' selected':'')+'>—</option>'+
+        '<option value="conforme"'+(c.conformidade==='conforme'?' selected':'')+'>✅ Conforme</option>'+
+        '<option value="parcial"'+(c.conformidade==='parcial'?' selected':'')+'>⚡ Parcial</option>'+
+        '<option value="nao_conforme"'+(c.conformidade==='nao_conforme'?' selected':'')+'>❌ Não Conforme</option>'+
+        '<option value="na"'+(c.conformidade==='na'?' selected':'')+'>— N/A</option>'+
+      '</select>'+
+      '<input type="text" value="'+( (c.observacao||'').replace(/"/g,'&quot;'))+'" placeholder="Obs" style="min-width:100px;" onchange="_auditTempChecklist['+i+'].observacao=this.value">'+
+      '<button onclick="_auditTempChecklist.splice('+i+',1);auditRenderChecklistEditor()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕</button>'+
+    '</div>'
+  ).join('');
+}
+
+function auditAddChecklistItem() {
+  _auditTempChecklist.push({ id:'ci_'+Date.now(), item:'', pergunta:'', tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+  auditRenderChecklistEditor();
+}
+
+function auditSaveExec() {
+  auditEnsure();
+  const planId = document.getElementById('ae-plan').value;
+  if(!planId) { showToast('Selecione o plano de auditoria.', 'error'); return; }
+  const exec = {
+    id:            _auditEditExecId || 'exec_'+Date.now(),
+    planId,
+    dataExecucao:  document.getElementById('ae-data').value,
+    status:        document.getElementById('ae-status').value,
+    observacoes:   document.getElementById('ae-obs').value.trim(),
+    checklist:     _auditTempChecklist,
+    criadoEm:      _auditEditExecId ? (DATA.audits.executions.find(e=>e.id===_auditEditExecId)?.criadoEm||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(_auditEditExecId) {
+    const i = DATA.audits.executions.findIndex(e=>e.id===_auditEditExecId);
+    if(i>=0) DATA.audits.executions[i]=exec; else DATA.audits.executions.push(exec);
+  } else { DATA.audits.executions.push(exec); }
+  auditCloseExecModal(); auditRenderExec(); saveToCloud();
+  showToast('✅ Execução salva!', 'success');
+}
+function auditDeleteExec() {
+  if(!confirm('Excluir esta execução?')) return;
+  DATA.audits.executions = DATA.audits.executions.filter(e=>e.id!==_auditEditExecId);
+  auditCloseExecModal(); auditRenderExec(); saveToCloud();
+  showToast('🗑 Execução excluída.', 'success');
+}
+
+// ── NÃO CONFORMIDADES ──────────────────────────────────────────
+function auditRenderNc() {
+  auditEnsure();
+  const list = document.getElementById('audit-nc-list');
+  const empty = document.getElementById('audit-nc-empty');
+  let ncs = DATA.audits.nonconformities;
+  if(_auditNcFilter) ncs = ncs.filter(nc=>nc.gravidade===_auditNcFilter);
+  if(!ncs.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = ncs.map(nc => {
+    const hasAction = DATA.audits.actions.some(a=>a.ncId===nc.id);
+    return '<div class="audit-card audit-nc-'+(nc.gravidade||'leve')+'" onclick="auditOpenNcModal(\''+nc.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px;">'+
+        '<div class="audit-card-title">⚠️ '+(nc.processo||'Processo não informado')+(nc.etapa?' — '+nc.etapa:'')+' </div>'+
+        '<div style="display:flex;gap:6px;">'+_auditGravBadge(nc.gravidade||'leve')+' '+_auditBadge(nc.status||'aberta')+'</div>'+
+      '</div>'+
+      '<div style="font-size:13px;color:#475569;margin-bottom:8px;">'+(nc.descricao||'—')+'</div>'+
+      '<div class="audit-card-meta">'+
+        (nc.causaProvavel?'<span>🔎 '+nc.causaProvavel+'</span>':'')+
+        '<span>👤 '+(nc.responsavel||'—')+'</span>'+
+        (hasAction?'<span style="color:#15803d;">✅ Com ação</span>':'<span style="color:#dc2626;">⚡ Sem ação</span>')+
+      '</div></div>';
+  }).join('');
+}
+
+function auditFilterNc(g, el) {
+  _auditNcFilter = g;
+  document.querySelectorAll('.audit-nc-filter').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  auditRenderNc();
+}
+
+function auditOpenNcModal(id) {
+  auditEnsure();
+  _auditEditNcId = id||null;
+  const nc = id ? DATA.audits.nonconformities.find(n=>n.id===id) : null;
+  const planSel = document.getElementById('nc-plan');
+  planSel.innerHTML = '<option value="">— Sem vínculo —</option>' +
+    DATA.audits.plans.map(p=>'<option value="'+p.id+'"'+(nc?.planId===p.id?' selected':'')+'>'+( p.processoNome||p.objetivo)+'</option>').join('');
+  document.getElementById('nc-processo').value   = nc?.processo   || '';
+  document.getElementById('nc-etapa').value      = nc?.etapa      || '';
+  document.getElementById('nc-gravidade').value  = nc?.gravidade  || 'leve';
+  document.getElementById('nc-descricao').value  = nc?.descricao  || '';
+  document.getElementById('nc-causa').value      = nc?.causaProvavel || '';
+  document.getElementById('nc-responsavel').value= nc?.responsavel|| '';
+  document.getElementById('nc-status').value     = nc?.status     || 'aberta';
+  document.getElementById('audit-nc-modal-title').textContent = id ? '✏️ Editar NC' : '⚠️ Registrar Não Conformidade';
+  document.getElementById('nc-delete-btn').style.display = id ? 'inline-block' : 'none';
+  document.getElementById('audit-nc-modal').style.display='flex';
+}
+function auditCloseNcModal() { document.getElementById('audit-nc-modal').style.display='none'; }
+
+function auditSaveNc() {
+  auditEnsure();
+  const descricao = document.getElementById('nc-descricao').value.trim();
+  if(!descricao) { showToast('Descreva a não conformidade.', 'error'); return; }
+  const nc = {
+    id:           _auditEditNcId || 'nc_'+Date.now(),
+    planId:       document.getElementById('nc-plan').value,
+    processo:     document.getElementById('nc-processo').value.trim(),
+    etapa:        document.getElementById('nc-etapa').value.trim(),
+    gravidade:    document.getElementById('nc-gravidade').value,
+    descricao,
+    causaProvavel:document.getElementById('nc-causa').value.trim(),
+    responsavel:  document.getElementById('nc-responsavel').value.trim(),
+    status:       document.getElementById('nc-status').value,
+    criadoEm:     _auditEditNcId ? (DATA.audits.nonconformities.find(n=>n.id===_auditEditNcId)?.criadoEm||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(_auditEditNcId) {
+    const i = DATA.audits.nonconformities.findIndex(n=>n.id===_auditEditNcId);
+    if(i>=0) DATA.audits.nonconformities[i]=nc; else DATA.audits.nonconformities.push(nc);
+  } else { DATA.audits.nonconformities.push(nc); }
+  auditCloseNcModal(); auditRenderNc(); saveToCloud();
+  showToast('✅ NC registrada!', 'success');
+}
+function auditDeleteNc() {
+  if(!confirm('Excluir esta não conformidade?')) return;
+  DATA.audits.nonconformities = DATA.audits.nonconformities.filter(n=>n.id!==_auditEditNcId);
+  auditCloseNcModal(); auditRenderNc(); saveToCloud();
+  showToast('🗑 NC excluída.', 'success');
+}
+
+// ── PLANO DE AÇÃO ──────────────────────────────────────────────
+function auditRenderActions() {
+  auditEnsure();
+  const list = document.getElementById('audit-actions-list');
+  const empty = document.getElementById('audit-actions-empty');
+  let acts = DATA.audits.actions;
+  if(_auditActFilter) acts = acts.filter(a=>a.status===_auditActFilter);
+  if(!acts.length) { list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  list.innerHTML = acts.map(a => {
+    const nc = DATA.audits.nonconformities.find(n=>n.id===a.ncId);
+    const overdue = a.prazo && a.status!=='concluida' && a.status!=='cancelada' && new Date(a.prazo+'T23:59:59') < new Date();
+    return '<div class="audit-card" style="border-left-color:'+(overdue?'#dc2626':'#065f46')+'" onclick="auditOpenActionModal(\''+a.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px;">'+
+        '<div class="audit-card-title">✅ '+(a.acao||'(sem descrição)')+'</div>'+
+        _auditBadge(a.status||'pendente')+
+      '</div>'+
+      (nc ? '<div style="font-size:12px;color:#64748b;margin-bottom:6px;">🔗 NC: '+(nc.processo||( nc.descricao||'').substring(0,60))+'</div>' : '')+
+      '<div class="audit-card-meta">'+
+        '<span>👤 '+(a.responsavel||'—')+'</span>'+
+        '<span>📅 Prazo: '+_fmtDate(a.prazo)+'</span>'+
+        (a.setor?'<span>🏢 '+a.setor+'</span>':'')+
+        (overdue?'<span style="color:#dc2626;font-weight:700;">⏰ Vencida</span>':'')+
+      '</div></div>';
+  }).join('');
+}
+
+function auditFilterAction(s, el) {
+  _auditActFilter = s;
+  document.querySelectorAll('#audit-tab-actions .audit-nc-filter').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  auditRenderActions();
+}
+
+function auditOpenActionModal(id) {
+  auditEnsure();
+  _auditEditActId = id||null;
+  const ac = id ? DATA.audits.actions.find(a=>a.id===id) : null;
+  const ncSel = document.getElementById('ac-nc');
+  ncSel.innerHTML = '<option value="">— Sem vínculo —</option>' +
+    DATA.audits.nonconformities.map(nc=>'<option value="'+nc.id+'"'+(ac?.ncId===nc.id?' selected':'')+'>'+(nc.processo||'NC')+' — '+((nc.descricao||'').substring(0,50))+'</option>').join('');
+  document.getElementById('ac-acao').value       = ac?.acao        || '';
+  document.getElementById('ac-responsavel').value= ac?.responsavel || '';
+  document.getElementById('ac-prazo').value      = ac?.prazo       || '';
+  document.getElementById('ac-status').value     = ac?.status      || 'pendente';
+  document.getElementById('ac-setor').value      = ac?.setor       || '';
+  document.getElementById('audit-action-modal-title').textContent = id ? '✏️ Editar Ação' : '✅ Nova Ação Corretiva';
+  document.getElementById('ac-delete-btn').style.display = id ? 'inline-block' : 'none';
+  document.getElementById('audit-action-modal').style.display='flex';
+}
+function auditCloseActionModal() { document.getElementById('audit-action-modal').style.display='none'; }
+
+function auditSaveAction() {
+  auditEnsure();
+  const acao = document.getElementById('ac-acao').value.trim();
+  const responsavel = document.getElementById('ac-responsavel').value.trim();
+  if(!acao) { showToast('Descreva a ação.', 'error'); return; }
+  if(!responsavel) { showToast('Informe o responsável.', 'error'); return; }
+  const ac = {
+    id:           _auditEditActId || 'ac_'+Date.now(),
+    ncId:         document.getElementById('ac-nc').value,
+    acao,
+    responsavel,
+    prazo:        document.getElementById('ac-prazo').value,
+    status:       document.getElementById('ac-status').value,
+    setor:        document.getElementById('ac-setor').value.trim(),
+    criadoEm:     _auditEditActId ? (DATA.audits.actions.find(a=>a.id===_auditEditActId)?.criadoEm||new Date().toISOString()) : new Date().toISOString(),
+  };
+  if(_auditEditActId) {
+    const i = DATA.audits.actions.findIndex(a=>a.id===_auditEditActId);
+    if(i>=0) DATA.audits.actions[i]=ac; else DATA.audits.actions.push(ac);
+  } else { DATA.audits.actions.push(ac); }
+  auditCloseActionModal(); auditRenderActions(); saveToCloud();
+  showToast('✅ Ação salva!', 'success');
+}
+function auditDeleteAction() {
+  if(!confirm('Excluir esta ação?')) return;
+  DATA.audits.actions = DATA.audits.actions.filter(a=>a.id!==_auditEditActId);
+  auditCloseActionModal(); auditRenderActions(); saveToCloud();
+  showToast('🗑 Ação excluída.', 'success');
+}
+
+function auditNewAction() { auditOpenPlanModal(); }
+
 
 // ═══════════════════════════════════════════════════════════
 // GEMINI: Extração de POP diretamente do documento
