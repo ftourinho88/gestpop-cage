@@ -1190,7 +1190,10 @@
         <h2 style="font-family:'DM Serif Display',serif;font-size:22px;color:#0a2540;margin:0 0 2px;">🏢 Gestão Escritório de Processos</h2>
         <div style="font-size:12px;color:#64748b;">CAGE-RS · Plano Anual de Trabalho e Dashboard de Desempenho</div>
       </div>
-      <button class="btn btn-outline" onclick="showHome()" style="font-size:12px;padding:6px 14px;">← Início</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="epp-report-btn" onclick="eppExportStatusReport()" class="btn btn-primary" style="font-size:12px;padding:6px 14px;background:#00a86b;border-color:#00a86b;">📊 Exportar Status Report</button>
+        <button class="btn btn-outline" onclick="showHome()" style="font-size:12px;padding:6px 14px;">← Início</button>
+      </div>
     </div>
     <div style="display:flex;gap:0;">
       <button class="epp-tab active" data-tab="pat"  onclick="eppTab('pat',this)">📅 Plano Anual de Trabalho</button>
@@ -7907,6 +7910,356 @@ async function buildPptx(D) {
   showToast('✅ PPT exportado: ' + fname, 'success');
 }
 
+
+// ═══ EPP STATUS REPORT EXECUTIVO ═══════════════════════
+async function eppExportStatusReport() {
+  const btn = document.getElementById('epp-report-btn');
+  if(btn) { btn.textContent = '⏳ Gerando...'; btn.disabled = true; }
+  try {
+    await _buildEppStatusReport();
+  } catch(e) {
+    console.error('[eppExportStatusReport]', e);
+    showToast('Erro ao gerar Status Report: ' + e.message, 'warn');
+  }
+  if(btn) { btn.textContent = '📊 Exportar Status Report'; btn.disabled = false; }
+}
+
+async function _buildEppStatusReport() {
+  const pres = new PptxGenJS();
+  pres.layout = 'LAYOUT_16x9'; // 10" × 5.625"
+
+  // ── Logos ──────────────────────────────────────────────
+  let cageLogoB64 = null, eppLogoB64 = null;
+  try {
+    if(!window._cageLogoB64Cache) {
+      const resp = await fetch('https://cage.fazenda.rs.gov.br/upload/recortes/202506/04091256_2280_GD.png');
+      const blob = await resp.blob();
+      window._cageLogoB64Cache = await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
+    }
+    cageLogoB64 = window._cageLogoB64Cache;
+  } catch(e) {}
+  if(DATA._logoUrl) {
+    try {
+      const resp = await fetch(DATA._logoUrl);
+      const blob = await resp.blob();
+      eppLogoB64 = await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
+    } catch(e) {}
+  }
+
+  // ── Cores ──────────────────────────────────────────────
+  const C = {
+    teal:  '00B0A3', black: '1A1A1A', white: 'FFFFFF',
+    gray:  '808080', lgray: 'F5F5F5', mgray: 'D0D0D0',
+    dgray: '2C2C2C', navy:  '0A2540',
+  };
+
+  // ── Dados de tempo ─────────────────────────────────────
+  const now    = new Date();
+  const year   = now.getFullYear();
+  const qCur   = Math.ceil((now.getMonth()+1)/3);
+  const mNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const cycleStr  = mNames[now.getMonth()] + '/' + String(year).slice(2);
+  const monthLong = mNames[now.getMonth()] + ' / ' + year;
+
+  // ── PAT helpers ────────────────────────────────────────
+  const patItems = Array.isArray(DATA.pat) ? DATA.pat : [];
+  const fmt = d => {
+    if(!d) return '—';
+    try { return new Date(d+'T12:00:00Z').toLocaleDateString('pt-BR'); } catch(e) { return d; }
+  };
+  const getPopMeta = (item, field) => {
+    if(item.popVinc && DATA[item.popVinc]?.meta) return DATA[item.popVinc].meta[field] || '';
+    return '';
+  };
+  const getGerente  = i => getPopMeta(i,'gerente')      || i.responsavel || '—';
+  const getPatroc   = i => getPopMeta(i,'patrocinador')  || '—';
+  const getObjetivo = i => getPopMeta(i,'desc') || getPopMeta(i,'resultados') || i.desc || '—';
+  const getFase     = i => {
+    const p = parseFloat(i.progresso) || 0;
+    if(p <= 0) return '—';
+    return String(Math.min(7, Math.max(1, Math.ceil(p / (100/7)))));
+  };
+
+  // ── Datasets ───────────────────────────────────────────
+  const mapeamentos = patItems.filter(i =>
+    i.tipo === 'Mapeamento de Processo' &&
+    (i.status === 'andamento' || i.status === 'em_andamento' || i.status === 'atrasado')
+  );
+
+  const concluidos = patItems.filter(i => {
+    if(i.status !== 'concluido' || !i.fim) return false;
+    const d = new Date(i.fim+'T12:00:00Z');
+    return d.getMonth() === now.getMonth() && d.getFullYear() === year;
+  });
+
+  const qStart   = new Date(year, (qCur-1)*3, 1);
+  const nextQEnd = new Date(year, qCur*3+2, 31, 23, 59, 59);
+  const proximos = patItems.filter(i => {
+    if(i.status !== 'planejado' || !i.fim) return false;
+    return new Date(i.fim+'T12:00:00Z') >= qStart &&
+           new Date(i.fim+'T12:00:00Z') <= nextQEnd;
+  });
+
+  // ── KPIs dashboard ─────────────────────────────────────
+  const popKeys = ['d','r',...Object.keys(DATA).filter(k=>k.startsWith('pop_'))];
+  const horasList = popKeys.map(k => {
+    const m = DATA[k]?.meta || {};
+    const mensal = (parseFloat(m.volPre)||0)*(parseFloat(m.cicloPre)||0)
+                 - (parseFloat(m.volPos)||0)*(parseFloat(m.cicloPos)||0);
+    return { mensal, anual: mensal*12 };
+  }).filter(h => h.mensal > 0);
+  const totalHorasAnual = horasList.reduce((s,h)=>s+h.anual, 0);
+  const arqData    = typeof arqGetData === 'function' ? arqGetData() : [];
+  const pctMapeado = arqData.length ? Math.round(arqData.filter(r=>r.mapeado).length/arqData.length*100) : 0;
+  const pctPat     = patItems.length ? Math.round(patItems.filter(p=>p.status==='concluido').length/patItems.length*100) : 0;
+  const concl_all  = patItems.filter(p=>p.status==='concluido');
+  const atras_all  = patItems.filter(p=>p.status==='atrasado');
+  const totalFin   = concl_all.length + atras_all.length;
+  const taxaOnTime = totalFin ? Math.round(concl_all.length/totalFin*100) : null;
+  const prazos     = concl_all.filter(p=>p.inicio&&p.fim).map(p=>
+    Math.max(0,Math.round((new Date(p.fim+'T00:00:00')-new Date(p.inicio+'T00:00:00'))/86400000)));
+  const prazoMedio = prazos.length ? Math.round(prazos.reduce((s,v)=>s+v,0)/prazos.length) : null;
+
+  // ── Helpers de slide ───────────────────────────────────
+  const addLogos = s => {
+    if(cageLogoB64) s.addImage({ data:cageLogoB64, x:7.3, y:5.0, w:1.4, h:0.45, sizing:{type:'contain',w:1.4,h:0.45} });
+    if(eppLogoB64)  s.addImage({ data:eppLogoB64,  x:8.9, y:5.0, w:1.0, h:0.45, sizing:{type:'contain',w:1.0,h:0.45} });
+  };
+
+  // Dots decoration (top-right)
+  const addDots = (s, xBase, yBase) => {
+    for(let r=0;r<6;r++) for(let c=0;c<4;c++) {
+      if(r+c < 2) continue;
+      s.addShape(pres.ShapeType.ellipse, { x:xBase+c*0.22, y:yBase+r*0.22, w:0.1, h:0.1, fill:{color:'BBBBBB'} });
+    }
+  };
+
+  // Table cell helpers
+  const thCell = (text, extra={}) => ({
+    text, options:{ bold:true, color:C.white, fill:{color:C.teal}, fontSize:9,
+                   align:'center', valign:'middle', margin:[4,4,4,4], ...extra }
+  });
+  const tdCell = (text, extra={}) => ({
+    text, options:{ fontSize:9, color:C.black, valign:'middle', margin:[4,6,4,6], ...extra }
+  });
+  const emptyRow = cols => [{
+    text:'Nenhum registro no período.',
+    options:{ fontSize:10, color:C.gray, align:'center', valign:'middle',
+              margin:10, colspan:cols }
+  }];
+
+  // ── SLIDE 1: CAPA ──────────────────────────────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+    // Dark right panel
+    s.addShape(pres.ShapeType.rect, { x:6.4, y:0, w:3.6, h:5.625, fill:{color:C.dgray} });
+    // Teal accent lines top-left
+    for(let i=0;i<4;i++) s.addShape(pres.ShapeType.rect, { x:0.3+i*0.12, y:0.12, w:0.06, h:0.8+i*0.12, fill:{color:i<2?C.teal:C.mgray} });
+    // Title
+    s.addShape(pres.ShapeType.rect, { x:1.0, y:0.9, w:5.2, h:1.5, line:{type:'dash',color:C.gray,pt:1}, fill:{color:C.white} });
+    s.addText('Status Report', { x:1.1, y:1.0, w:5.0, h:0.7, fontSize:34, color:C.black, bold:true, fontFace:'Calibri', margin:0 });
+    s.addText('Executivo', { x:1.1, y:1.65, w:5.0, h:0.65, fontSize:34, color:C.black, bold:true, fontFace:'Calibri', margin:0 });
+    s.addShape(pres.ShapeType.rect, { x:1.1, y:2.4, w:2.4, h:0.14, fill:{color:C.teal} });
+    // Sub info
+    s.addShape(pres.ShapeType.rect, { x:1.1, y:2.8, w:3.0, h:0.38, fill:{color:C.black} });
+    s.addText('Escritório de Processos', { x:1.1, y:2.8, w:3.0, h:0.38, fontSize:11, color:C.white, bold:true, align:'center', valign:'middle', margin:0 });
+    s.addText('Ciclo: ' + cycleStr, { x:1.1, y:3.32, w:3.5, h:0.35, fontSize:14, color:C.black, bold:true, margin:0 });
+    s.addShape(pres.ShapeType.rect, { x:1.1, y:3.68, w:2.0, h:0.1, fill:{color:C.teal} });
+    s.addShape(pres.ShapeType.rect, { x:1.1, y:4.1, w:5.0, h:0.02, fill:{color:C.mgray} });
+    if(cageLogoB64) s.addImage({ data:cageLogoB64, x:1.1, y:4.3, w:1.5, h:0.6, sizing:{type:'contain',w:1.5,h:0.6} });
+    if(eppLogoB64)  s.addImage({ data:eppLogoB64,  x:2.8, y:4.3, w:1.3, h:0.6, sizing:{type:'contain',w:1.3,h:0.6} });
+  }
+
+  // ── SLIDE 2: MAPEAMENTOS EM ANDAMENTO ─────────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+    // Teal rect behind title
+    s.addShape(pres.ShapeType.rect, { x:0, y:0, w:2.2, h:1.05, fill:{color:C.teal} });
+    s.addText('Mapeamentos em andamento', {
+      x:0.1, y:0.05, w:8.5, h:0.95,
+      fontSize:30, color:C.black, bold:true, fontFace:'Calibri', valign:'middle', margin:0
+    });
+    s.addShape(pres.ShapeType.rect, { x:0.1, y:1.02, w:4.5, h:0.1, fill:{color:C.teal} });
+    addDots(s, 8.5, 0.1);
+
+    // Table
+    const colW = [2.3, 1.5, 1.2, 0.85, 1.1, 2.15, 0.6];
+    const tblRows = [
+      [ thCell('Processo'), thCell('Gerente do Processo'), thCell('Patrocinador'),
+        thCell('Início'), thCell('Previsão de entrega'), thCell('Objetivo do projeto de melhoria'), thCell('Fase') ]
+    ];
+    if(mapeamentos.length > 0) {
+      mapeamentos.forEach(i => {
+        const isAtrasado = i.status === 'atrasado';
+        tblRows.push([
+          tdCell(i.titulo||'—', {bold:true}),
+          tdCell(getGerente(i), {align:'center'}),
+          tdCell(getPatroc(i),  {align:'center'}),
+          tdCell(fmt(i.inicio), {align:'center'}),
+          tdCell(isAtrasado ? fmt(i.fim)+'\n(Atrasado)' : fmt(i.fim), {align:'center', color:isAtrasado?'CC0000':C.black}),
+          tdCell(getObjetivo(i), {italic:true}),
+          tdCell(getFase(i), {align:'center', bold:true}),
+        ]);
+      });
+    } else {
+      tblRows.push(emptyRow(7));
+    }
+    s.addTable(tblRows, { x:0.1, y:1.18, w:9.8, colW, rowH:0.52, border:{type:'solid',color:'D0D0D0',pt:0.5} });
+
+    // Legend box
+    s.addShape(pres.ShapeType.rect, { x:0.1, y:4.25, w:6.8, h:1.0, line:{type:'dash',color:C.gray,pt:1}, fill:{color:C.white} });
+    s.addText(
+      'Fases do mapeamento:\n' +
+      '1) Abertura do miniprojeto          5) Aprovação equipe de negócio\n' +
+      '2) Entendimento e desenho do processo     6) Plano de Ação\n' +
+      '3) Análise e redesenho do processo        7) Entrega e aprovação patrocinador\n' +
+      '4) Elaboração e entrega do POP',
+      { x:0.2, y:4.3, w:6.6, h:0.9, fontSize:7.5, color:C.dgray, valign:'top', margin:0 }
+    );
+    addLogos(s);
+  }
+
+  // ── SLIDE 3: TRABALHOS CONCLUÍDOS NO MÊS ─────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+    s.addShape(pres.ShapeType.rect, { x:0, y:0, w:2.8, h:1.05, fill:{color:C.teal} });
+    s.addText('Trabalhos concluídos no mês', {
+      x:0.1, y:0.05, w:9.0, h:0.95,
+      fontSize:28, color:C.black, bold:true, fontFace:'Calibri', valign:'middle', margin:0
+    });
+    s.addShape(pres.ShapeType.rect, { x:0.1, y:1.02, w:4.5, h:0.1, fill:{color:C.teal} });
+    addDots(s, 8.5, 0.1);
+
+    const colW2 = [1.0, 1.8, 1.4, 1.2, 0.7, 0.8, 2.9];
+    const tblRows2 = [
+      [ thCell('Tipo'), thCell('Processo'), thCell('Gerente do Processo'),
+        thCell('Patrocinador'), thCell('Início'), thCell('Entrega'),
+        thCell('Objetivo / Resultado da revisão') ]
+    ];
+    if(concluidos.length > 0) {
+      concluidos.forEach(i => {
+        tblRows2.push([
+          tdCell(i.tipo||'—', {align:'center', bold:true}),
+          tdCell(i.titulo||'—', {bold:true}),
+          tdCell(getGerente(i), {align:'center'}),
+          tdCell(getPatroc(i),  {align:'center'}),
+          tdCell(fmt(i.inicio), {align:'center'}),
+          tdCell(fmt(i.fim),    {align:'center'}),
+          tdCell(getObjetivo(i), {italic:true}),
+        ]);
+      });
+    } else {
+      tblRows2.push(emptyRow(7));
+    }
+    s.addTable(tblRows2, { x:0.1, y:1.18, w:9.8, colW:colW2, rowH:0.52, border:{type:'solid',color:'D0D0D0',pt:0.5} });
+    addLogos(s);
+  }
+
+  // ── SLIDE 4: PRÓXIMOS TRABALHOS ───────────────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+
+    // Dotted left decoration
+    for(let r=0;r<5;r++) for(let c=0;c<4;c++)
+      s.addShape(pres.ShapeType.ellipse, { x:0.1+c*0.22, y:1.7+r*0.28, w:0.1, h:0.1, fill:{color:'CCCCCC'} });
+
+    // Title box with dashed border
+    s.addShape(pres.ShapeType.rect, { x:0.7, y:0.18, w:5.2, h:1.0, line:{type:'dash',color:C.teal,pt:1.5}, fill:{color:C.white} });
+    s.addText('Próximos trabalhos', { x:0.8, y:0.22, w:5.0, h:0.62, fontSize:32, color:C.black, bold:true, fontFace:'Calibri', margin:0 });
+    s.addShape(pres.ShapeType.rect, { x:0.8, y:0.88, w:2.8, h:0.14, fill:{color:C.teal} });
+    if(cageLogoB64) s.addImage({ data:cageLogoB64, x:8.5, y:0.15, w:1.3, h:0.55, sizing:{type:'contain',w:1.3,h:0.55} });
+
+    // Content box
+    s.addShape(pres.ShapeType.rect, { x:0.7, y:1.4, w:8.5, h:3.55, line:{type:'dash',color:C.gray,pt:1}, fill:{color:C.white} });
+
+    // Bullet items
+    const qNames2 = ['1º Tri','2º Tri','3º Tri','4º Tri'];
+    const getQLabel = i => {
+      if(!i.fim) return '';
+      const d = new Date(i.fim+'T12:00:00Z');
+      const q = Math.ceil((d.getMonth()+1)/3);
+      return ' ['+qNames2[q-1]+'/'+String(d.getFullYear()).slice(2)+']';
+    };
+    if(proximos.length > 0) {
+      const bulletArr = proximos.slice(0,8).map(i => {
+        const tipo = i.tipo || '';
+        const qLabel = getQLabel(i);
+        return [
+          { text:'• ', options:{ fontSize:11, color:C.black } },
+          { text: tipo ? tipo+' de ' : '', options:{ fontSize:11, color:C.black } },
+          { text: `'${i.titulo||'—'}'`, options:{ fontSize:11, color:C.black, bold:true } },
+          { text: qLabel, options:{ fontSize:9, color:C.gray } },
+          { text:'\n', options:{ fontSize:7 } },
+        ];
+      }).flat();
+      s.addText(bulletArr, { x:0.9, y:1.5, w:8.0, h:3.3, fontSize:11, color:C.black, valign:'top', margin:0, paraSpaceAfter:6 });
+    } else {
+      s.addText('Nenhum trabalho planejado para o trimestre atual e próximo.', {
+        x:0.9, y:2.8, w:8.0, h:0.5, fontSize:11, color:C.gray, align:'center', margin:0
+      });
+    }
+
+    // Bottom right hatched decoration (approximated with thin dark rects)
+    for(let i=0;i<6;i++)
+      s.addShape(pres.ShapeType.rect, { x:8.8+i*0.1, y:4.0+i*0.16, w:1.2-i*0.1, h:0.06, fill:{color:'BBBBBB'} });
+  }
+
+  // ── SLIDE 5: INDICADORES DO ESCRITÓRIO ────────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+    // Header bar
+    s.addShape(pres.ShapeType.rect, { x:0, y:0, w:10, h:0.9, fill:{color:C.teal} });
+    s.addText('Indicadores do Escritório de Processos', {
+      x:0.3, y:0, w:7.5, h:0.9, fontSize:20, color:C.white, bold:true, valign:'middle', margin:0
+    });
+    s.addText(monthLong, { x:0.3, y:0, w:9.4, h:0.9, fontSize:11, color:'E0F9F7', align:'right', valign:'middle', margin:0 });
+
+    const kpis = [
+      { label:'Horas economizadas / ano', val:totalHorasAnual>0?Math.round(totalHorasAnual).toLocaleString('pt-BR')+' h':'—', col:C.teal },
+      { label:'Processos redesenhados',   val:String(horasList.length), col:'1A4A7A' },
+      { label:'Cobertura da arquitetura', val:pctMapeado+'%', col:'8B5CF6' },
+      { label:'PAT realizado',            val:pctPat+'%', col:'3B82F6' },
+      { label:'Taxa de cumprimento de prazo', val:taxaOnTime!==null?taxaOnTime+'%':'—', col:'00A86B' },
+      { label:'Prazo médio de entrega',   val:prazoMedio!==null?prazoMedio+' dias':'—', col:'F59E0B' },
+    ];
+    kpis.forEach((k,i) => {
+      const col = i%3, row = Math.floor(i/3);
+      const x = 0.3+col*3.18, y = 1.05+row*2.05;
+      s.addShape(pres.ShapeType.rect, { x, y, w:3.0, h:1.85, fill:{color:'F8FAFC'}, line:{color:'E2E8F0',pt:1} });
+      s.addShape(pres.ShapeType.rect, { x, y, w:0.14, h:1.85, fill:{color:k.col} });
+      s.addText(k.val,   { x:x+0.22, y:y+0.3,  w:2.6, h:0.8, fontSize:30, color:k.col, bold:true, margin:0 });
+      s.addText(k.label, { x:x+0.22, y:y+1.1,  w:2.6, h:0.55, fontSize:10, color:'334155', margin:0 });
+    });
+    addLogos(s);
+  }
+
+  // ── SLIDE 6: OBRIGADO ─────────────────────────────────
+  {
+    const s = pres.addSlide();
+    s.background = { color:C.white };
+    // Dark right panel
+    s.addShape(pres.ShapeType.rect, { x:6.5, y:0, w:3.5, h:5.625, fill:{color:C.dgray} });
+    // Teal accent top-left
+    for(let i=0;i<4;i++) s.addShape(pres.ShapeType.rect, { x:0.3+i*0.12, y:0.12, w:0.06, h:0.8+i*0.12, fill:{color:i<2?C.teal:C.mgray} });
+    s.addText('Obrigado', { x:0.4, y:1.5, w:5.8, h:1.0, fontSize:52, color:C.black, bold:true, fontFace:'Calibri', margin:0 });
+    s.addShape(pres.ShapeType.rect, { x:0.4, y:2.6, w:4.0, h:0.18, fill:{color:C.teal} });
+    s.addShape(pres.ShapeType.rect, { x:0.4, y:3.55, w:2.2, h:0.08, fill:{color:C.teal} });
+    s.addText('Escritório de Processos CAGE', { x:0.4, y:3.7, w:5.5, h:0.42, fontSize:14, color:C.black, bold:true, margin:0 });
+    if(cageLogoB64) s.addImage({ data:cageLogoB64, x:0.4, y:4.5, w:1.5, h:0.6, sizing:{type:'contain',w:1.5,h:0.6} });
+    if(eppLogoB64)  s.addImage({ data:eppLogoB64,  x:2.1, y:4.5, w:1.3, h:0.6, sizing:{type:'contain',w:1.3,h:0.6} });
+  }
+
+  // ── Salvar ─────────────────────────────────────────────
+  const fname = 'StatusReport_EPP_' + mNames[now.getMonth()] + '_' + year + '.pptx';
+  await pres.writeFile({ fileName: fname });
+  showToast('✅ Status Report exportado: ' + fname, 'success');
+}
 
 // ═══ MÉTRICAS VOLUME/CICLO ════════════════════════════
 function calcHorasEcon(p) {
