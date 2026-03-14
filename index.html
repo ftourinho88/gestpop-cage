@@ -12487,16 +12487,16 @@ function saveStatusModal() {
           if(h.includes('justificativa')) col.justificativa = i;
           if(h.includes('ndice') || h.includes('indice')) col.pctIndice = i;
           if(h.includes('meta') && col.meta === undefined) col.meta = i;
-          // Excluir colunas com 'acum'/'acúm' para não confundir com realizado simples
-          if(h.includes('realizado') && !h.includes('acum') && !h.includes('acúm') && !h.includes('cumul') && !h.includes('%') && col.realizado === undefined) col.realizado = i;
-          if(h.includes('realizado') && !h.includes('acum') && !h.includes('acúm') && !h.includes('cumul') && h.includes('%') && col.pctRealizado === undefined) col.pctRealizado = i;
-          if((h.includes('acum') || h.includes('acúm') || h.includes('cumul')) && !h.includes('%') && col.realizadoAcum === undefined) col.realizadoAcum = i;
-          if((h.includes('acum') || h.includes('acúm') || h.includes('cumul')) && h.includes('%') && col.pctRealizAcum === undefined) col.pctRealizAcum = i;
+          // Excluir colunas com 'acum'/'acumulado' para não confundir com realizado simples
+          if(h.includes('realizado') && !h.includes('acum') && !h.includes('cumul') && !h.includes('%') && col.realizado === undefined) col.realizado = i;
+          if(h.includes('realizado') && !h.includes('acum') && !h.includes('cumul') && h.includes('%') && col.pctRealizado === undefined) col.pctRealizado = i;
+          if((h.includes('acum') || h.includes('cumul')) && !h.includes('%') && col.realizadoAcum === undefined) col.realizadoAcum = i;
+          if((h.includes('acum') || h.includes('cumul')) && h.includes('%') && col.pctRealizAcum === undefined) col.pctRealizAcum = i;
         });
         // Análise columns: find by position among remaining 'analise' cols
-        // Suporta tanto 'Analise' (sem acento) quanto 'Análise' (com acento → 'nális')
+        // Acentos normalizados em _normalizeHeader, então 'Análise' → 'analise'
         const analiseIdxs = [];
-        headers.forEach((h, i) => { if(h.includes('anali') || h.includes('anlise') || h.includes('nális') || h.includes('álise')) analiseIdxs.push(i); });
+        headers.forEach((h, i) => { if(h.includes('anali') || h.includes('anlise') || h.includes('nalis') || h.includes('alise')) analiseIdxs.push(i); });
         if(analiseIdxs.length >= 1) col.analise  = analiseIdxs[0];
         if(analiseIdxs.length >= 2) col.analise2 = analiseIdxs[1];
         // % Realizado — if not found by %, find after realizado column
@@ -12585,7 +12585,8 @@ function saveStatusModal() {
 
   function _normalizeHeader(h) {
     return h.replace(/[\u{1F000}-\u{1FFFF}]|[\u2600-\u27BF]|[️⃣]/gu, '')
-            .replace(/[^a-záàâãéèêíìîóòôõúùûç%\s]/gi, '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z%\s]/gi, '')
             .toLowerCase().trim().replace(/\s+/g,' ');
   }
 
