@@ -14,6 +14,8 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://unpkg.com/drawflow/dist/drawflow.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/drawflow/dist/drawflow.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -954,6 +956,79 @@
 #fd-left-panel { width:260px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--cage-border); transition:width .2s; }
 #fd-left-panel.collapsed { width:0 !important; overflow:hidden; border-right:none; }
 
+
+  /* ══════════════════════════════════════════════
+     INDICADORES CAGE MODULE
+  ══════════════════════════════════════════════ */
+  #indicadores-cage-module { background:white; border-bottom:2px solid #e2e8f0; position:sticky; top:64px; z-index:20; }
+  .indcage-header { max-width:1200px; margin:0 auto; padding:16px 32px 0; }
+  .indcage-tabs { display:flex; gap:0; }
+  .indcage-tab { padding:10px 20px; font-size:13px; font-weight:600; color:#64748b; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; white-space:nowrap; background:none; border-left:none; border-right:none; border-top:none; }
+  .indcage-tab:hover { color:#0a2540; }
+  .indcage-tab.active { color:#e8a020; border-bottom-color:#e8a020; }
+  #indcage-panel { max-width:1200px; margin:0 auto; padding:24px 32px 80px; }
+  .indcage-section { display:none; }
+  .indcage-section.active { display:block; }
+
+  /* Indicator card grid */
+  .indcage-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; margin-top:20px; }
+  .indcage-card { background:white; border:1.5px solid var(--cage-border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow-sm); transition:box-shadow .2s; position:relative; }
+  .indcage-card:hover { box-shadow:var(--shadow-md); }
+  .indcage-card-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .indcage-card-codigo { font-size:11px; font-weight:700; color:#8898aa; text-transform:uppercase; letter-spacing:.06em; }
+  .indcage-card-titulo { font-size:14px; font-weight:600; color:var(--cage-blue); line-height:1.35; margin-top:2px; }
+  .indcage-card-nivel { display:inline-block; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-top:6px; }
+  .nivel-atividade { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+  .nivel-processo { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+  .nivel-macroprocesso { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
+  .nivel-acao { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+  .nivel-etapa { background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; }
+  .indcage-card-meta { display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--cage-border); font-size:12px; color:var(--text-secondary); }
+  .indcage-card-sisplan { font-size:10px; color:#8898aa; margin-top:4px; }
+  .indcage-card-pop { font-size:11px; color:#0a2540; background:#f4f7fb; border-radius:6px; padding:2px 6px; margin-top:4px; display:inline-block; }
+  .indcage-card-actions { display:flex; gap:6px; margin-top:12px; }
+
+  /* Resultados tab */
+  .indcage-import-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#f4f7fb; border-radius:var(--radius); padding:14px 18px; margin-bottom:24px; }
+  .indcage-filter-bar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; align-items:flex-end; }
+  .indcage-filter-group { display:flex; flex-direction:column; gap:4px; }
+  .indcage-filter-label { font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
+  .indcage-filter-select { padding:7px 12px; border:1.5px solid var(--cage-border); border-radius:8px; font-size:13px; background:white; color:var(--text-primary); min-width:180px; }
+  .indcage-filter-select:focus { outline:none; border-color:var(--cage-accent); }
+
+  /* KPI cards for indicator result */
+  .indcage-kpi-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:24px; }
+  .indcage-kpi { background:white; border:1.5px solid var(--cage-border); border-radius:var(--radius); padding:14px 16px; text-align:center; }
+  .indcage-kpi-value { font-size:28px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--cage-blue); line-height:1.1; }
+  .indcage-kpi-value.verde { color:#16a34a; }
+  .indcage-kpi-value.vermelho { color:#dc2626; }
+  .indcage-kpi-value.amarelo { color:#d97706; }
+  .indcage-kpi-label { font-size:11px; color:#64748b; margin-top:4px; font-weight:500; }
+  .indcage-kpi-sub { font-size:10px; color:#94a3b8; margin-top:2px; }
+
+  /* Charts */
+  .indcage-charts-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  @media(max-width:800px){ .indcage-charts-row { grid-template-columns:1fr; } }
+  .indcage-chart-card { background:white; border:1.5px solid var(--cage-border); border-radius:var(--radius); padding:16px; }
+  .indcage-chart-title { font-size:13px; font-weight:700; color:var(--cage-blue); margin-bottom:12px; }
+  .indcage-chart-wrap { position:relative; height:220px; }
+
+  /* Results table */
+  .indcage-table-wrap { overflow-x:auto; border-radius:var(--radius); border:1.5px solid var(--cage-border); }
+  .indcage-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .indcage-table thead th { background:var(--cage-blue); color:white; padding:10px 12px; text-align:left; white-space:nowrap; font-weight:600; font-size:11px; }
+  .indcage-table tbody tr:nth-child(even) { background:#f8fafc; }
+  .indcage-table tbody td { padding:9px 12px; border-bottom:1px solid var(--cage-border); vertical-align:middle; }
+  .indcage-table tbody tr:hover { background:#f0f9ff; }
+  .indcage-pct-pill { display:inline-block; padding:2px 8px; border-radius:10px; font-weight:700; font-size:11px; font-family:'JetBrains Mono',monospace; }
+  .pct-verde { background:#dcfce7; color:#15803d; }
+  .pct-amarelo { background:#fef9c3; color:#a16207; }
+  .pct-vermelho { background:#fee2e2; color:#b91c1c; }
+  .pct-cinza { background:#f1f5f9; color:#64748b; }
+
+  /* Indicator CAGE modal */
+  #indcage-modal .gmod-body { display:flex; flex-direction:column; gap:14px; }
+  .indcage-nivel-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 </style>
 </head>
 <body>
@@ -1060,6 +1135,7 @@
     <button class="sidebar-pat-btn" onclick="closeSidebar();showBiModule();" style="margin-top:4px;background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25);">📊 Cadeia de Valor e Mapa Estratégico</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showQuadroModule();" style="margin-top:4px;background:rgba(16,185,129,.12);color:#6ee7b7;border-color:rgba(16,185,129,.25);">🗒 Quadro de Esboço</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showArqModule();" style="margin-top:4px;background:rgba(139,92,246,.12);color:#c4b5fd;border-color:rgba(139,92,246,.25);">🏛 Arquitetura de Processos</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showIndCageModule();" style="margin-top:4px;background:rgba(232,160,32,.12);color:#fcd34d;border-color:rgba(232,160,32,.3);">📈 Indicadores CAGE</button>
   </div>
   <div class="sidebar-list" id="sidebar-list"></div>
 </div>
@@ -1165,6 +1241,12 @@
       <div class="home-card-title">Auditoria de Processos</div>
       <div class="home-card-desc">Planeje auditorias, execute checklists inteligentes, registre não conformidades e acompanhe planos de ação.</div>
       <div class="home-card-footer" id="home-audit-count">—</div>
+    </div>
+    <div class="home-card" onclick="showIndCageModule()" style="border-top:4px solid #e8a020;">
+      <div class="home-card-icon" style="background:#fffbeb;color:#e8a020;">📈</div>
+      <div class="home-card-title">Indicadores CAGE</div>
+      <div class="home-card-desc">Gerencie indicadores de desempenho, importe resultados do SISPLAN e acompanhe a evolução e comparativos anuais.</div>
+      <div class="home-card-footer" id="home-indcage-count">—</div>
     </div>
     <div class="home-card" onclick="window.open('https://forms.office.com/Pages/ResponsePage.aspx?id=Cwm9g251AkqlEuXqAsAwQbvi0Bx7w-FOk8Rk-2iAB21UMFlRV0szV09JTlBMSzEzNlVJS1Y4UjA5Qy4u&origin=Invitation&channel=1','_blank')" style="border-top:4px solid #ec4899;">
       <div class="home-card-icon" style="background:#fdf2f8;color:#ec4899;">💡</div>
@@ -3478,6 +3560,228 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeIndModal()">Cancelar</button>
       <button class="btn btn-success" onclick="saveIndModal()">💾 Salvar Indicador</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MÓDULO: INDICADORES CAGE                                      -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="indicadores-cage-module" style="display:none;">
+  <div class="indcage-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:22px;color:#0a2540;margin:0 0 2px;">📈 Indicadores CAGE</h2>
+        <div style="font-size:12px;color:#64748b;">CAGE-RS · Gestão de Indicadores de Desempenho</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline" onclick="showHome()" style="font-size:12px;padding:6px 14px;">← Início</button>
+      </div>
+    </div>
+    <div class="indcage-tabs">
+      <button class="indcage-tab active" data-indcage-tab="indicadores" onclick="indcageTab('indicadores',this)">📋 Indicadores</button>
+      <button class="indcage-tab" data-indcage-tab="resultados" onclick="indcageTab('resultados',this)">📊 Resultados</button>
+    </div>
+  </div>
+</div>
+
+<div id="indcage-panel" style="display:none;">
+  <!-- ─── TAB: INDICADORES ─────────────────────────────────── -->
+  <div id="indcage-sec-indicadores" class="indcage-section active">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#0a2540;">Todos os Indicadores</div>
+        <div style="font-size:12px;color:#64748b;margin-top:2px;">Indicadores dos mapeamentos + indicadores autônomos cadastrados</div>
+      </div>
+      <button class="btn btn-success" onclick="indcageOpenModal(null)" style="font-size:13px;">+ Novo Indicador</button>
+    </div>
+    <!-- Filter bar -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      <input id="indcage-search" type="text" class="modal-input" placeholder="🔍 Buscar por código ou enunciado…" style="max-width:280px;padding:8px 12px;font-size:13px;" oninput="indcageRenderIndicadores()">
+      <select id="indcage-filter-nivel" class="indcage-filter-select" onchange="indcageRenderIndicadores()" style="min-width:160px;">
+        <option value="">Todos os níveis</option>
+        <option value="atividade">Atividade</option>
+        <option value="processo">Processo/Projeto</option>
+        <option value="macroprocesso">Macroprocesso/Proj Estratégico</option>
+        <option value="acao">Ação</option>
+        <option value="etapa">Etapa</option>
+      </select>
+      <select id="indcage-filter-divisao" class="indcage-filter-select" onchange="indcageRenderIndicadores()" style="min-width:160px;">
+        <option value="">Todas as divisões</option>
+      </select>
+    </div>
+    <div id="indcage-grid" class="indcage-grid"></div>
+  </div>
+
+  <!-- ─── TAB: RESULTADOS ──────────────────────────────────── -->
+  <div id="indcage-sec-resultados" class="indcage-section">
+    <!-- Import bar -->
+    <div class="indcage-import-bar">
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:13px;font-weight:700;color:#0a2540;">📥 Importar Planilha SISPLAN</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;">Colunas esperadas: Divisão, Código, Tipo Nível, Enunciado, Período Aval., Justificativa, Análise, % Índice, Meta, Realizado, % Realizado, Análise, Realizado Acúm., % Realiz. Acúm.</div>
+      </div>
+      <label class="btn btn-primary" style="font-size:12px;padding:8px 16px;cursor:pointer;margin:0;">
+        📂 Escolher Arquivo Excel
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="indcageImportExcel(this)">
+      </label>
+      <button class="btn btn-outline" onclick="indcageClearResultados()" style="font-size:12px;padding:8px 14px;">🗑 Limpar Dados</button>
+      <div id="indcage-import-status" style="font-size:12px;color:#64748b;"></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="indcage-filter-bar">
+      <div class="indcage-filter-group">
+        <label class="indcage-filter-label">Indicador</label>
+        <select id="indcage-res-filter-ind" class="indcage-filter-select" onchange="indcageRenderResultados()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="indcage-filter-group">
+        <label class="indcage-filter-label">Divisão</label>
+        <select id="indcage-res-filter-div" class="indcage-filter-select" onchange="indcageRenderResultados()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="indcage-filter-group">
+        <label class="indcage-filter-label">Ano</label>
+        <select id="indcage-res-filter-ano" class="indcage-filter-select" onchange="indcageRenderResultados()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="indcage-filter-group">
+        <label class="indcage-filter-label">Período (mês)</label>
+        <select id="indcage-res-filter-periodo" class="indcage-filter-select" onchange="indcageRenderResultados()">
+          <option value="">Todos os períodos</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPIs do período selecionado -->
+    <div id="indcage-kpi-row" class="indcage-kpi-row"></div>
+
+    <!-- Charts -->
+    <div id="indcage-charts-area" class="indcage-charts-row" style="display:none;">
+      <div class="indcage-chart-card">
+        <div class="indcage-chart-title">📈 Evolução do Indicador (últimos 18 meses)</div>
+        <div class="indcage-chart-wrap"><canvas id="indcage-chart-evolucao"></canvas></div>
+      </div>
+      <div class="indcage-chart-card">
+        <div class="indcage-chart-title">📊 Comparativo Ano a Ano (mesmo mês)</div>
+        <div class="indcage-chart-wrap"><canvas id="indcage-chart-yoy"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Results table -->
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;font-weight:700;color:#0a2540;" id="indcage-table-title">Resultados Importados</div>
+      <div style="font-size:12px;color:#64748b;" id="indcage-table-count"></div>
+    </div>
+    <div id="indcage-table-wrap" class="indcage-table-wrap">
+      <table class="indcage-table">
+        <thead>
+          <tr>
+            <th>Período</th>
+            <th>Divisão</th>
+            <th>Código</th>
+            <th>Tipo/Nível</th>
+            <th>Enunciado</th>
+            <th>Meta</th>
+            <th>Realizado</th>
+            <th>% Realizado</th>
+            <th>% Índice</th>
+            <th>Realiz. Acúm.</th>
+            <th>% Realiz. Acúm.</th>
+            <th>Análise</th>
+          </tr>
+        </thead>
+        <tbody id="indcage-table-body"></tbody>
+      </table>
+    </div>
+    <div id="indcage-empty-state" style="display:none;text-align:center;padding:60px 20px;">
+      <div style="font-size:48px;margin-bottom:12px;">📂</div>
+      <div style="font-size:16px;font-weight:600;color:#0a2540;margin-bottom:6px;">Nenhum resultado importado</div>
+      <div style="font-size:13px;color:#64748b;">Importe uma planilha Excel com os resultados dos indicadores para visualizar os gráficos e tabelas.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Indicador CAGE -->
+<div class="gmod-overlay" id="indcage-modal">
+  <div class="gmod-box" style="max-width:600px;">
+    <div class="gmod-head">
+      <span id="indcage-modal-title">Novo Indicador CAGE</span>
+      <button class="gmod-close" onclick="indcageCloseModal()">✕</button>
+    </div>
+    <div class="gmod-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="indcage-nivel-grid">
+        <div>
+          <label class="gmod-label">Código do Indicador</label>
+          <input class="modal-input" id="ic-codigo" type="text" placeholder="Ex: IND-001">
+        </div>
+        <div>
+          <label class="gmod-label">Código SISPLAN <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+          <input class="modal-input" id="ic-sisplan" type="text" placeholder="Ex: SP-2024-001">
+        </div>
+      </div>
+      <div>
+        <label class="gmod-label">Enunciado do Indicador *</label>
+        <input class="modal-input" id="ic-enunciado" type="text" placeholder="Nome/descrição do indicador">
+      </div>
+      <div class="indcage-nivel-grid">
+        <div>
+          <label class="gmod-label">Tipo / Nível *</label>
+          <select class="modal-input" id="ic-nivel">
+            <option value="atividade">Atividade</option>
+            <option value="processo" selected>Processo / Projeto</option>
+            <option value="macroprocesso">Macroprocesso / Proj Estratégico</option>
+            <option value="acao">Ação</option>
+            <option value="etapa">Etapa</option>
+          </select>
+        </div>
+        <div>
+          <label class="gmod-label">Divisão</label>
+          <input class="modal-input" id="ic-divisao" type="text" placeholder="Ex: DAF, DCA, DGE…">
+        </div>
+      </div>
+      <div>
+        <label class="gmod-label">Vincular a Mapeamento <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+        <select class="modal-input" id="ic-pop">
+          <option value="">— Nenhum vínculo —</option>
+        </select>
+      </div>
+      <div class="indcage-nivel-grid">
+        <div>
+          <label class="gmod-label">Meta</label>
+          <input class="modal-input" id="ic-meta" type="text" placeholder="Ex: 90%, 30 dias…">
+        </div>
+        <div>
+          <label class="gmod-label">Periodicidade</label>
+          <select class="modal-input" id="ic-periodicidade">
+            <option value="mensal">Mensal</option>
+            <option value="bimestral">Bimestral</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="gmod-label">Responsável</label>
+        <input class="modal-input" id="ic-responsavel" type="text" placeholder="Nome do responsável pelo indicador">
+      </div>
+      <div>
+        <label class="gmod-label">Fórmula de Cálculo</label>
+        <input class="modal-input" id="ic-formula" type="text" placeholder="Ex: (Realizados / Total) × 100">
+      </div>
+      <div>
+        <label class="gmod-label">Fonte dos Dados</label>
+        <input class="modal-input" id="ic-fonte" type="text" placeholder="Sistema, planilha, relatório…">
+      </div>
+    </div>
+    <div class="gmod-foot">
+      <button class="btn btn-outline" onclick="indcageCloseModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="indcageSaveModal()">💾 Salvar Indicador</button>
     </div>
   </div>
 </div>
@@ -5866,7 +6170,7 @@ let isViewer = false;   // acesso leitura apenas (sem edição/PAT)
 let workspaceId = sessionStorage.getItem('gestpop_wsid') || null;
 
 function hideAllModules() {
-  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module','fd-module','audit-module','epp-module','epp-dash-panel'].forEach(id => {
+  ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module','bpmn-module','fd-module','audit-module','epp-module','epp-dash-panel','indicadores-cage-module','indcage-panel'].forEach(id => {
     const el = document.getElementById(id);
     if(el) { el.style.display = 'none'; el.classList.remove('active'); }
   });
@@ -6163,7 +6467,7 @@ window.addEventListener('beforeunload', () => {
   // Montar payload — limite keepalive do Chrome é 64KB (65536 bytes)
   // Incluir repoDocs e drops apenas se couberem no orçamento
   const KEEPALIVE_LIMIT = 63000; // margem de segurança abaixo de 64KB
-  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl']);
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl','indicadoresCage','audits']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
 
   // Payload essencial (POPs, PAT, arquitetura)
@@ -6174,15 +6478,16 @@ window.addEventListener('beforeunload', () => {
     return out;
   }
   const payload = {
-    d:            _stripTrans(DATA.d),
-    r:            _stripTrans(DATA.r),
-    pat:          DATA.pat || [],
-    audits:       DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
-    arqOverrides: DATA._arqOverrides || null,
-    logoUrl:      DATA._logoUrl || null,
-    newPops:      newPopKeys.map(k => ({ key: k, data: _stripTrans(DATA[k]) })),
-    repoDocs:     [],
-    drops:        []
+    d:               _stripTrans(DATA.d),
+    r:               _stripTrans(DATA.r),
+    pat:             DATA.pat || [],
+    audits:          DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
+    arqOverrides:    DATA._arqOverrides || null,
+    logoUrl:         DATA._logoUrl || null,
+    newPops:         newPopKeys.map(k => ({ key: k, data: _stripTrans(DATA[k]) })),
+    indicadoresCage: DATA.indicadoresCage || { indicadores: [], resultados: [] },
+    repoDocs:        [],
+    drops:           []
   };
 
   let reqBody = JSON.stringify({
@@ -6247,7 +6552,7 @@ async function saveToCloud(attempt=1) {
 
   try { harvestEditables(); } catch(e) { console.warn('harvestEditables:', e); }
 
-  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl']);
+  const INTERNAL_KEYS = new Set(['d','r','pat','_arqOverrides','_repoDocs','_drops','_logoUrl','indicadoresCage','audits']);
   const newPopKeys = Object.keys(DATA).filter(k => !INTERNAL_KEYS.has(k));
   // Strip session-only transient fields (prefixed with _) before persisting
   function _stripTransient(obj) {
@@ -6257,15 +6562,16 @@ async function saveToCloud(attempt=1) {
     return out;
   }
   const payload = {
-    d:            _stripTransient(DATA.d),
-    r:            _stripTransient(DATA.r),
-    pat:          DATA.pat || [],
-    audits:       DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
-    arqOverrides: DATA._arqOverrides || null,
-    logoUrl:      DATA._logoUrl || null,
-    newPops:      newPopKeys.map(k => ({ key: k, data: _stripTransient(DATA[k]) })),
-    repoDocs:     REPO_DOCS || [],
-    drops:        DROPS     || []
+    d:               _stripTransient(DATA.d),
+    r:               _stripTransient(DATA.r),
+    pat:             DATA.pat || [],
+    audits:          DATA.audits || { plans:[], executions:[], nonconformities:[], actions:[] },
+    arqOverrides:    DATA._arqOverrides || null,
+    logoUrl:         DATA._logoUrl || null,
+    newPops:         newPopKeys.map(k => ({ key: k, data: _stripTransient(DATA[k]) })),
+    repoDocs:        REPO_DOCS || [],
+    drops:           DROPS     || [],
+    indicadoresCage: DATA.indicadoresCage || { indicadores: [], resultados: [] }
   };
 
   try {
@@ -6419,6 +6725,12 @@ async function loadFromCloud() {
     if(payload.arqOverrides) {
       DATA._arqOverrides = payload.arqOverrides;
       _arqData = null;
+    }
+    if(payload.indicadoresCage && typeof payload.indicadoresCage === 'object') {
+      DATA.indicadoresCage = {
+        indicadores: Array.isArray(payload.indicadoresCage.indicadores) ? payload.indicadoresCage.indicadores : [],
+        resultados:  Array.isArray(payload.indicadoresCage.resultados)  ? payload.indicadoresCage.resultados  : []
+      };
     }
     if(payload.newPops?.length) {
       payload.newPops.forEach(({ key, data: pd }) => {
@@ -9567,6 +9879,13 @@ function homeRefresh() {
     const ncCount = DATA.audits.nonconformities.filter(nc=>nc.status==='aberta').length;
     auditCountEl.textContent = planCount + ' plano(s)' + (ncCount ? ' · ' + ncCount + ' NC(s) abertas' : '');
   }
+  const indcageCountEl = document.getElementById('home-indcage-count');
+  if(indcageCountEl) {
+    const icData = DATA.indicadoresCage;
+    const indCount = (icData?.indicadores?.length || 0);
+    const resCount = (icData?.resultados?.length || 0);
+    indcageCountEl.textContent = indCount + ' indicador' + (indCount!==1?'es':'') + (resCount ? ' · ' + resCount + ' resultado(s)' : '');
+  }
 
   // Mostrar card editor só após permissão resolvida (currentUser definido)
   // Se currentUser ainda null, manter oculto até checkEditorPermission terminar
@@ -11869,6 +12188,647 @@ function saveStatusModal() {
   });
 
 })(); // end Flow Designer IIFE
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO: INDICADORES CAGE
+// ══════════════════════════════════════════════════════════════════
+
+(function() {
+  // ─── State ───────────────────────────────────────────────────────
+  let _tab = 'indicadores';
+  let _editId = null;   // ID do indicador sendo editado (null = novo)
+  let _chartEvo = null;  // Chart.js instance - evolução
+  let _chartYoy = null;  // Chart.js instance - year-over-year
+
+  // ─── Data init ────────────────────────────────────────────────────
+  function ensureData() {
+    if(!DATA.indicadoresCage) DATA.indicadoresCage = { indicadores: [], resultados: [] };
+    if(!Array.isArray(DATA.indicadoresCage.indicadores)) DATA.indicadoresCage.indicadores = [];
+    if(!Array.isArray(DATA.indicadoresCage.resultados))  DATA.indicadoresCage.resultados  = [];
+  }
+
+  // ─── Module show/hide ─────────────────────────────────────────────
+  window.showIndCageModule = function(show=true) {
+    hideAllModules();
+    if(!show) return;
+    if(typeof hideHome === 'function') hideHome();
+    ensureData();
+    document.getElementById('indicadores-cage-module').style.display = 'block';
+    document.getElementById('indcage-panel').style.display = 'block';
+    indcageTab(_tab, document.querySelector('[data-indcage-tab="'+_tab+'"]'));
+  };
+
+  // ─── Tab switching ────────────────────────────────────────────────
+  window.indcageTab = function(tab, btn) {
+    _tab = tab;
+    document.querySelectorAll('.indcage-tab').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    document.querySelectorAll('.indcage-section').forEach(s => s.classList.remove('active'));
+    const sec = document.getElementById('indcage-sec-' + tab);
+    if(sec) sec.classList.add('active');
+    if(tab === 'indicadores') indcageRenderIndicadores();
+    if(tab === 'resultados')  indcageRenderResultados();
+  };
+
+  // ─── Helpers ──────────────────────────────────────────────────────
+  function nivelLabel(v) {
+    const map = { atividade:'Atividade', processo:'Processo/Projeto',
+      macroprocesso:'Macroprocesso/Proj Estratégico', acao:'Ação', etapa:'Etapa' };
+    return map[v] || v || '—';
+  }
+  function nivelClass(v) {
+    return 'nivel-' + (v || 'processo');
+  }
+
+  // Coleta todos indicadores: autônomos + de POPs (vinculados)
+  function getAllIndicators() {
+    ensureData();
+    const list = [];
+    // Autônomos
+    DATA.indicadoresCage.indicadores.forEach(ind => {
+      list.push({ ...ind, _source: 'cage' });
+    });
+    // De POPs — pegar de DATA.d, DATA.r e pop_*
+    const popKeys = Object.keys(DATA).filter(k => k === 'd' || k === 'r' || k.startsWith('pop_'));
+    popKeys.forEach(pk => {
+      const pop = DATA[pk];
+      if(!pop || !Array.isArray(pop.indicators)) return;
+      const popName = pop.meta?.name || pk;
+      pop.indicators.forEach((ind, idx) => {
+        // só incluir se ainda não foi "absorvido" como indicador autônomo por codigo
+        list.push({
+          id: 'pop_' + pk + '_' + idx,
+          codigo: ind.codigo || '',
+          enunciado: ind.title || '',
+          sisplan: ind.sisplan || '',
+          nivel: ind.nivel || 'processo',
+          divisao: ind.divisao || pop.meta?.divisao || '',
+          pop: pk,
+          meta: ind.meta || '',
+          periodicidade: ind.periodicidade || '',
+          responsavel: ind.responsavel || '',
+          formula: ind.formula || '',
+          fonte: ind.fonte || '',
+          _source: 'pop',
+          _popName: popName
+        });
+      });
+    });
+    return list;
+  }
+
+  // ─── Render: Lista de Indicadores ────────────────────────────────
+  window.indcageRenderIndicadores = function() {
+    ensureData();
+    const search  = (document.getElementById('indcage-search')?.value || '').toLowerCase();
+    const nivel   = document.getElementById('indcage-filter-nivel')?.value || '';
+    const divisao = document.getElementById('indcage-filter-divisao')?.value || '';
+
+    const all = getAllIndicators();
+
+    // Popular divisões no filtro
+    const divs = [...new Set(all.map(i => i.divisao).filter(Boolean))].sort();
+    const divSel = document.getElementById('indcage-filter-divisao');
+    if(divSel) {
+      const cur = divSel.value;
+      divSel.innerHTML = '<option value="">Todas as divisões</option>'
+        + divs.map(d => `<option value="${d}" ${d===cur?'selected':''}>${d}</option>`).join('');
+    }
+
+    const filtered = all.filter(ind => {
+      if(search && !(ind.codigo+' '+ind.enunciado).toLowerCase().includes(search)) return false;
+      if(nivel && ind.nivel !== nivel) return false;
+      if(divisao && ind.divisao !== divisao) return false;
+      return true;
+    });
+
+    const grid = document.getElementById('indcage-grid');
+    if(!grid) return;
+
+    if(filtered.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#94a3b8;">
+        <div style="font-size:48px;margin-bottom:12px;">📊</div>
+        <div style="font-size:15px;font-weight:600;color:#0a2540;">Nenhum indicador encontrado</div>
+        <div style="font-size:13px;margin-top:4px;">Ajuste os filtros ou adicione novos indicadores.</div>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(ind => {
+      const isCage = ind._source === 'cage';
+      const editBtn = isCage
+        ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="indcageOpenModal('${ind.id}')">✏️ Editar</button>
+           <button class="btn" style="font-size:11px;padding:4px 10px;background:#fee2e2;color:#b91c1c;border-color:#fecaca;" onclick="indcageDelete('${ind.id}')">✕</button>`
+        : `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="indcageGoToPop('${ind.pop}')">🔗 Ver POP</button>`;
+      const sisplan = ind.sisplan ? `<div class="indcage-card-sisplan">SISPLAN: ${ind.sisplan}</div>` : '';
+      const popLink = isCage && ind.pop ? `<div class="indcage-card-pop">🔗 ${DATA[ind.pop]?.meta?.name || ind.pop}</div>` : (ind._source === 'pop' ? `<div class="indcage-card-pop">📋 ${ind._popName}</div>` : '');
+      const meta = ind.meta ? `<span>🎯 Meta: <strong>${ind.meta}</strong></span>` : '';
+      return `
+      <div class="indcage-card">
+        <div class="indcage-card-header">
+          <div style="flex:1">
+            ${ind.codigo ? `<div class="indcage-card-codigo">${ind.codigo}</div>` : ''}
+            <div class="indcage-card-titulo">${ind.enunciado || '<em style="color:#94a3b8">Sem enunciado</em>'}</div>
+            <span class="indcage-card-nivel ${nivelClass(ind.nivel)}">${nivelLabel(ind.nivel)}</span>
+            ${sisplan}
+            ${popLink}
+          </div>
+        </div>
+        ${meta ? `<div class="indcage-card-meta">${meta} ${ind.periodicidade ? `· 🔁 ${ind.periodicidade}` : ''} ${ind.divisao ? `· 🏢 ${ind.divisao}` : ''}</div>` : ''}
+        ${ind.responsavel ? `<div style="font-size:11px;color:#64748b;margin-top:6px;">👤 ${ind.responsavel}</div>` : ''}
+        <div class="indcage-card-actions">${editBtn}</div>
+      </div>`;
+    }).join('');
+  };
+
+  // ─── Modal: Abrir ─────────────────────────────────────────────────
+  window.indcageOpenModal = function(id) {
+    ensureData();
+    _editId = id;
+    const ind = id ? DATA.indicadoresCage.indicadores.find(i => i.id === id) : null;
+    document.getElementById('indcage-modal-title').textContent = ind ? 'Editar Indicador' : 'Novo Indicador CAGE';
+    document.getElementById('ic-codigo').value       = ind?.codigo || '';
+    document.getElementById('ic-sisplan').value      = ind?.sisplan || '';
+    document.getElementById('ic-enunciado').value    = ind?.enunciado || '';
+    document.getElementById('ic-nivel').value        = ind?.nivel || 'processo';
+    document.getElementById('ic-divisao').value      = ind?.divisao || '';
+    document.getElementById('ic-meta').value         = ind?.meta || '';
+    document.getElementById('ic-periodicidade').value= ind?.periodicidade || 'mensal';
+    document.getElementById('ic-responsavel').value  = ind?.responsavel || '';
+    document.getElementById('ic-formula').value      = ind?.formula || '';
+    document.getElementById('ic-fonte').value        = ind?.fonte || '';
+
+    // Popular select de POPs
+    const popSel = document.getElementById('ic-pop');
+    const popKeys = Object.keys(DATA).filter(k => k === 'd' || k === 'r' || k.startsWith('pop_'));
+    popSel.innerHTML = '<option value="">— Nenhum vínculo —</option>'
+      + popKeys.map(k => `<option value="${k}" ${ind?.pop===k?'selected':''}>${DATA[k]?.meta?.name || k}</option>`).join('');
+
+    document.getElementById('indcage-modal').classList.add('open');
+  };
+
+  window.indcageCloseModal = function() {
+    document.getElementById('indcage-modal').classList.remove('open');
+    _editId = null;
+  };
+
+  window.indcageSaveModal = function() {
+    ensureData();
+    const enunciado = document.getElementById('ic-enunciado').value.trim();
+    if(!enunciado) { showToast('Informe o enunciado do indicador.', 'warn'); return; }
+    const data = {
+      codigo:       document.getElementById('ic-codigo').value.trim(),
+      sisplan:      document.getElementById('ic-sisplan').value.trim(),
+      enunciado,
+      nivel:        document.getElementById('ic-nivel').value,
+      divisao:      document.getElementById('ic-divisao').value.trim(),
+      pop:          document.getElementById('ic-pop').value,
+      meta:         document.getElementById('ic-meta').value.trim(),
+      periodicidade:document.getElementById('ic-periodicidade').value,
+      responsavel:  document.getElementById('ic-responsavel').value.trim(),
+      formula:      document.getElementById('ic-formula').value.trim(),
+      fonte:        document.getElementById('ic-fonte').value.trim(),
+    };
+    if(_editId) {
+      const idx = DATA.indicadoresCage.indicadores.findIndex(i => i.id === _editId);
+      if(idx !== -1) Object.assign(DATA.indicadoresCage.indicadores[idx], data);
+    } else {
+      data.id = 'ic_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      DATA.indicadoresCage.indicadores.push(data);
+    }
+    indcageCloseModal();
+    indcageRenderIndicadores();
+    markChanged();
+    showToast('✅ Indicador salvo!', 'success');
+  };
+
+  window.indcageDelete = function(id) {
+    if(!confirm('Remover este indicador?')) return;
+    ensureData();
+    DATA.indicadoresCage.indicadores = DATA.indicadoresCage.indicadores.filter(i => i.id !== id);
+    indcageRenderIndicadores();
+    markChanged();
+    showToast('Indicador removido.', 'success');
+  };
+
+  window.indcageGoToPop = function(popKey) {
+    if(typeof switchPop === 'function' && (popKey === 'd' || popKey === 'r')) {
+      switchPop(popKey === 'd' ? 'denuncias' : 'representacoes');
+    }
+  };
+
+  // ─── Importar Excel ───────────────────────────────────────────────
+  window.indcageImportExcel = function(input) {
+    const file = input?.files?.[0];
+    if(!file) return;
+    const status = document.getElementById('indcage-import-status');
+    if(status) status.textContent = '⏳ Lendo arquivo…';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        ensureData();
+        const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        if(rows.length < 2) { showToast('Planilha vazia ou sem dados.', 'warn'); return; }
+
+        // Detectar header row (primeira linha não vazia com >= 5 colunas preenchidas)
+        let headerIdx = 0;
+        for(let i = 0; i < Math.min(5, rows.length); i++) {
+          if(rows[i].filter(c => String(c).trim()).length >= 5) { headerIdx = i; break; }
+        }
+        const headers = rows[headerIdx].map(h => _normalizeHeader(String(h)));
+
+        // Map column indices
+        const col = {};
+        headers.forEach((h, i) => {
+          if(h.includes('divis'))      col.divisao = i;
+          if(h.includes('digo') || (h.includes('cod') && !h.includes('per'))) col.codigo = i;
+          if(h.includes('tipo') || h.includes('nivel') || h.includes('nvel')) col.tipoNivel = i;
+          if(h.includes('enunciado') || h.includes('indicador')) col.enunciado = i;
+          if(h.includes('period') || h.includes('aval')) col.periodo = i;
+          if(h.includes('justificativa'))  col.justificativa = i;
+          if(h.includes('ndice') || h.includes('indice')) col.pctIndice = i;
+          if(h.includes('meta') && col.meta === undefined) col.meta = i;
+          if(h.includes('realizado') && !h.includes('acum') && !h.includes('cumul') && col.realizado === undefined) col.realizado = i;
+          if(h.includes('realizado') && !h.includes('acum') && h.includes('%') && col.pctRealizado === undefined) col.pctRealizado = i;
+          if((h.includes('acum') || h.includes('cumul')) && !h.includes('%') && col.realizadoAcum === undefined) col.realizadoAcum = i;
+          if((h.includes('acum') || h.includes('cumul')) && h.includes('%') && col.pctRealizAcum === undefined) col.pctRealizAcum = i;
+        });
+        // Análise columns: find by position among remaining 'analise' cols
+        const analiseIdxs = [];
+        headers.forEach((h, i) => { if(h.includes('anali') || h.includes('anlise')) analiseIdxs.push(i); });
+        if(analiseIdxs.length >= 1) col.analise  = analiseIdxs[0];
+        if(analiseIdxs.length >= 2) col.analise2 = analiseIdxs[1];
+        // % Realizado — if not found by %, find after realizado column
+        if(col.pctRealizado === undefined && col.realizado !== undefined) {
+          // look for a % column after realizado
+          for(let i = col.realizado+1; i < headers.length; i++) {
+            if(headers[i].includes('%') || headers[i].includes('perc')) { col.pctRealizado = i; break; }
+          }
+        }
+
+        const importedAt = new Date().toISOString();
+        const newRows = [];
+        for(let i = headerIdx + 1; i < rows.length; i++) {
+          const r = rows[i];
+          const enunciado = col.enunciado !== undefined ? String(r[col.enunciado]).trim() : '';
+          const codigo    = col.codigo    !== undefined ? String(r[col.codigo]).trim()    : '';
+          if(!enunciado && !codigo) continue; // skip empty rows
+          const periodo = col.periodo !== undefined ? _parsePeriodo(r[col.periodo]) : '';
+          newRows.push({
+            divisao:       col.divisao      !== undefined ? String(r[col.divisao]).trim()      : '',
+            codigo,
+            tipoNivel:     col.tipoNivel    !== undefined ? String(r[col.tipoNivel]).trim()     : '',
+            enunciado,
+            periodo,
+            justificativa: col.justificativa!== undefined ? String(r[col.justificativa]).trim(): '',
+            analise:       col.analise      !== undefined ? String(r[col.analise]).trim()       : '',
+            pctIndice:     col.pctIndice    !== undefined ? _parseNum(r[col.pctIndice])         : null,
+            meta:          col.meta         !== undefined ? _parseNum(r[col.meta])              : null,
+            realizado:     col.realizado    !== undefined ? _parseNum(r[col.realizado])         : null,
+            pctRealizado:  col.pctRealizado !== undefined ? _parseNum(r[col.pctRealizado])      : null,
+            analise2:      col.analise2     !== undefined ? String(r[col.analise2]).trim()      : '',
+            realizadoAcum: col.realizadoAcum!== undefined ? _parseNum(r[col.realizadoAcum])    : null,
+            pctRealizAcum: col.pctRealizAcum!== undefined ? _parseNum(r[col.pctRealizAcum])    : null,
+            _importedAt:   importedAt
+          });
+        }
+
+        // Merge: replace rows with same codigo+periodo, append new
+        const existing = DATA.indicadoresCage.resultados;
+        newRows.forEach(nr => {
+          const key = (nr.codigo + '||' + nr.periodo + '||' + nr.divisao).toLowerCase();
+          const idx = existing.findIndex(er => (er.codigo+'||'+er.periodo+'||'+er.divisao).toLowerCase() === key);
+          if(idx !== -1) existing[idx] = nr;
+          else existing.push(nr);
+        });
+
+        // Populate auto-create indicators from imported codes
+        newRows.forEach(nr => {
+          if(!nr.codigo) return;
+          const exists = getAllIndicators().some(i => i.codigo === nr.codigo);
+          if(!exists) {
+            DATA.indicadoresCage.indicadores.push({
+              id: 'ic_auto_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+              codigo: nr.codigo,
+              enunciado: nr.enunciado,
+              sisplan: '',
+              nivel: _guessNivel(nr.tipoNivel),
+              divisao: nr.divisao,
+              pop: '',
+              meta: nr.meta !== null ? String(nr.meta) : '',
+              periodicidade: 'mensal',
+              responsavel: '',
+              formula: '',
+              fonte: 'Importado SISPLAN'
+            });
+          }
+        });
+
+        markChanged();
+        saveToCloud();
+        if(status) status.textContent = `✅ ${newRows.length} registros importados`;
+        showToast(`📥 ${newRows.length} resultados importados com sucesso!`, 'success');
+        indcageRenderResultados();
+        // reset input
+        input.value = '';
+      } catch(err) {
+        console.error('indcageImportExcel error:', err);
+        if(status) status.textContent = '❌ Erro ao importar';
+        showToast('Erro ao importar planilha: ' + err.message, 'warn');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  function _normalizeHeader(h) {
+    return h.replace(/[\u{1F000}-\u{1FFFF}]|[\u2600-\u27BF]|[️⃣]/gu, '')
+            .replace(/[^a-záàâãéèêíìîóòôõúùûç%\s]/gi, '')
+            .toLowerCase().trim().replace(/\s+/g,' ');
+  }
+
+  function _parseNum(v) {
+    if(v === null || v === undefined || v === '') return null;
+    if(typeof v === 'number') return v;
+    const s = String(v).replace(',','.').replace(/[^0-9.\-]/g,'');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
+  function _parsePeriodo(v) {
+    if(!v) return '';
+    if(typeof v === 'object' && v instanceof Date) {
+      // Excel date object
+      const y = v.getFullYear();
+      const m = String(v.getMonth()+1).padStart(2,'0');
+      return y + '-' + m;
+    }
+    const s = String(v).trim();
+    // Formats: "Jan/2024", "01/2024", "2024-01", "Janeiro 2024"
+    const meses = { jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12,
+      january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12 };
+    // Try "Mmm/YYYY" or "MMMM/YYYY"
+    const m1 = s.match(/^([a-záàâãçéê]+)[\/\s\-](\d{4})$/i);
+    if(m1) {
+      const mKey = m1[1].toLowerCase().slice(0,3);
+      const mNum = meses[mKey];
+      if(mNum) return m1[2] + '-' + String(mNum).padStart(2,'0');
+    }
+    // Try "MM/YYYY"
+    const m2 = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+    if(m2) return m2[2] + '-' + m2[1].padStart(2,'0');
+    // Try "YYYY-MM"
+    const m3 = s.match(/^(\d{4})[\/\-](\d{1,2})$/);
+    if(m3) return m3[1] + '-' + m3[2].padStart(2,'0');
+    return s;
+  }
+
+  function _guessNivel(tipoNivel) {
+    const s = (tipoNivel||'').toLowerCase();
+    if(s.includes('macro') || s.includes('estrat')) return 'macroprocesso';
+    if(s.includes('atividade')) return 'atividade';
+    if(s.includes('etapa')) return 'etapa';
+    if(s.includes('acao') || s.includes('ação')) return 'acao';
+    return 'processo';
+  }
+
+  // ─── Limpar resultados ────────────────────────────────────────────
+  window.indcageClearResultados = function() {
+    if(!confirm('Remover todos os resultados importados? Os indicadores cadastrados serão mantidos.')) return;
+    ensureData();
+    DATA.indicadoresCage.resultados = [];
+    markChanged();
+    indcageRenderResultados();
+    showToast('Resultados removidos.', 'success');
+  };
+
+  // ─── Render: Resultados ───────────────────────────────────────────
+  window.indcageRenderResultados = function() {
+    ensureData();
+    const resultados = DATA.indicadoresCage.resultados;
+
+    // Populate filter selects
+    const allCodigos = [...new Set(resultados.map(r => r.codigo).filter(Boolean))].sort();
+    const allDivisoes = [...new Set(resultados.map(r => r.divisao).filter(Boolean))].sort();
+    const allAnos = [...new Set(resultados.map(r => r.periodo?.slice(0,4)).filter(Boolean))].sort().reverse();
+    const allPeriodos = [...new Set(resultados.map(r => r.periodo).filter(Boolean))].sort().reverse();
+
+    const fInd    = document.getElementById('indcage-res-filter-ind');
+    const fDiv    = document.getElementById('indcage-res-filter-div');
+    const fAno    = document.getElementById('indcage-res-filter-ano');
+    const fPer    = document.getElementById('indcage-res-filter-periodo');
+
+    _repopSelect(fInd, allCodigos, 'Todos', v => {
+      const lbl = getAllIndicators().find(i => i.codigo === v)?.enunciado;
+      return lbl ? v + ' — ' + lbl : v;
+    });
+    _repopSelect(fDiv, allDivisoes, 'Todas');
+    _repopSelect(fAno, allAnos, 'Todos os anos');
+    _repopSelect(fPer, allPeriodos, 'Todos os períodos', v => _periodoLabel(v));
+
+    const selInd = fInd?.value || '';
+    const selDiv = fDiv?.value || '';
+    const selAno = fAno?.value || '';
+    const selPer = fPer?.value || '';
+
+    let filtered = resultados.filter(r => {
+      if(selInd && r.codigo !== selInd) return false;
+      if(selDiv && r.divisao !== selDiv) return false;
+      if(selAno && !(r.periodo||'').startsWith(selAno)) return false;
+      if(selPer && r.periodo !== selPer) return false;
+      return true;
+    });
+
+    // Sort by periodo desc
+    filtered = filtered.slice().sort((a,b) => (b.periodo||'').localeCompare(a.periodo||''));
+
+    // KPIs do último período visível
+    _renderKpis(filtered, selPer, selInd);
+
+    // Charts (só quando um indicador específico está selecionado)
+    const chartsArea = document.getElementById('indcage-charts-area');
+    if(selInd && resultados.length > 0) {
+      if(chartsArea) chartsArea.style.display = 'grid';
+      _renderCharts(selInd, selDiv);
+    } else {
+      if(chartsArea) chartsArea.style.display = 'none';
+      _destroyCharts();
+    }
+
+    // Empty state
+    const emptyState = document.getElementById('indcage-empty-state');
+    const tableWrap  = document.getElementById('indcage-table-wrap');
+    if(resultados.length === 0) {
+      if(emptyState) emptyState.style.display = 'block';
+      if(tableWrap)  tableWrap.style.display  = 'none';
+    } else {
+      if(emptyState) emptyState.style.display = 'none';
+      if(tableWrap)  tableWrap.style.display  = 'block';
+    }
+
+    // Table
+    const tbody = document.getElementById('indcage-table-body');
+    const count = document.getElementById('indcage-table-count');
+    if(count) count.textContent = filtered.length + ' registro(s)';
+    if(!tbody) return;
+    if(filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#94a3b8;padding:24px;">Nenhum resultado para os filtros selecionados.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filtered.map(r => {
+      const pct = r.pctRealizado;
+      const pctClass = pct === null ? 'pct-cinza' : pct >= 100 ? 'pct-verde' : pct >= 80 ? 'pct-amarelo' : 'pct-vermelho';
+      const pctAcClass = r.pctRealizAcum === null ? 'pct-cinza' : r.pctRealizAcum >= 100 ? 'pct-verde' : r.pctRealizAcum >= 80 ? 'pct-amarelo' : 'pct-vermelho';
+      return `<tr>
+        <td style="white-space:nowrap;font-weight:600;">${_periodoLabel(r.periodo)}</td>
+        <td>${r.divisao || '—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${r.codigo || '—'}</td>
+        <td>${r.tipoNivel || '—'}</td>
+        <td style="max-width:220px;">${r.enunciado || '—'}</td>
+        <td style="text-align:right;">${r.meta !== null ? _fmtNum(r.meta) : '—'}</td>
+        <td style="text-align:right;">${r.realizado !== null ? _fmtNum(r.realizado) : '—'}</td>
+        <td style="text-align:center;">${pct !== null ? `<span class="indcage-pct-pill ${pctClass}">${_fmtNum(pct)}%</span>` : '—'}</td>
+        <td style="text-align:center;">${r.pctIndice !== null ? `<span class="indcage-pct-pill pct-cinza">${_fmtNum(r.pctIndice)}%</span>` : '—'}</td>
+        <td style="text-align:right;">${r.realizadoAcum !== null ? _fmtNum(r.realizadoAcum) : '—'}</td>
+        <td style="text-align:center;">${r.pctRealizAcum !== null ? `<span class="indcage-pct-pill ${pctAcClass}">${_fmtNum(r.pctRealizAcum)}%</span>` : '—'}</td>
+        <td style="max-width:180px;font-size:11px;color:#475569;">${r.analise2 || r.analise || '—'}</td>
+      </tr>`;
+    }).join('');
+  };
+
+  function _repopSelect(sel, values, allLabel, labelFn) {
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${allLabel}</option>`
+      + values.map(v => {
+          const lbl = labelFn ? labelFn(v) : v;
+          return `<option value="${v}" ${v===cur?'selected':''}>${lbl}</option>`;
+        }).join('');
+  }
+
+  function _renderKpis(filtered, selPer, selInd) {
+    const kpiRow = document.getElementById('indcage-kpi-row');
+    if(!kpiRow) return;
+    if(filtered.length === 0) { kpiRow.innerHTML = ''; return; }
+
+    // Agregar para o período/indicador selecionado
+    const avg = (arr, key) => {
+      const vals = arr.map(r => r[key]).filter(v => v !== null);
+      if(!vals.length) return null;
+      return vals.reduce((a,b)=>a+b,0) / vals.length;
+    };
+    const pctReal = avg(filtered, 'pctRealizado');
+    const pctInd  = avg(filtered, 'pctIndice');
+    const pctAcum = avg(filtered, 'pctRealizAcum');
+    const realizadoTotal = filtered.reduce((s,r) => s + (r.realizado||0), 0);
+    const metaTotal = filtered.reduce((s,r) => s + (r.meta||0), 0);
+
+    function kpiClass(v) { if(v===null) return ''; return v>=100?'verde':v>=80?'amarelo':'vermelho'; }
+    const periodo = selPer ? _periodoLabel(selPer) : (filtered[0]?.periodo ? _periodoLabel(filtered[0].periodo) : '—');
+
+    kpiRow.innerHTML = `
+      <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctReal)}">${pctReal!==null?_fmtNum(pctReal)+'%':'—'}</div><div class="indcage-kpi-label">% Realizado (média)</div><div class="indcage-kpi-sub">${periodo}</div></div>
+      <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctInd)}">${pctInd!==null?_fmtNum(pctInd)+'%':'—'}</div><div class="indcage-kpi-label">% Índice (média)</div><div class="indcage-kpi-sub">${periodo}</div></div>
+      <div class="indcage-kpi"><div class="indcage-kpi-value ${kpiClass(pctAcum)}">${pctAcum!==null?_fmtNum(pctAcum)+'%':'—'}</div><div class="indcage-kpi-label">% Realiz. Acumulado</div><div class="indcage-kpi-sub">${periodo}</div></div>
+      <div class="indcage-kpi"><div class="indcage-kpi-value" style="font-size:22px;">${_fmtNum(realizadoTotal)}</div><div class="indcage-kpi-label">Total Realizado</div><div class="indcage-kpi-sub">vs Meta: ${_fmtNum(metaTotal)}</div></div>
+    `;
+  }
+
+  // ─── Charts ───────────────────────────────────────────────────────
+  function _destroyCharts() {
+    if(_chartEvo) { _chartEvo.destroy(); _chartEvo = null; }
+    if(_chartYoy) { _chartYoy.destroy(); _chartYoy = null; }
+  }
+
+  function _renderCharts(codigo, divisao) {
+    ensureData();
+    _destroyCharts();
+    const all = DATA.indicadoresCage.resultados
+      .filter(r => r.codigo === codigo && (!divisao || r.divisao === divisao))
+      .sort((a,b) => (a.periodo||'').localeCompare(b.periodo||''));
+
+    if(all.length === 0) return;
+
+    // ── Chart 1: Evolução (últimos 18 meses) ──────────────────────
+    const last18 = all.slice(-18);
+    const labels = last18.map(r => _periodoLabel(r.periodo));
+    const realizado  = last18.map(r => r.pctRealizado);
+    const meta       = last18.map(r => r.pctIndice !== null ? r.pctIndice : (r.meta ? null : null));
+    const pctIndice  = last18.map(r => r.pctIndice);
+
+    const ctxEvo = document.getElementById('indcage-chart-evolucao');
+    if(ctxEvo) {
+      _chartEvo = new Chart(ctxEvo, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'), borderRadius:4, order:2 },
+            { label:'% Índice (meta)', data: pctIndice, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ font:{ size:11 } } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
+          scales:{ y:{ beginAtZero:true, ticks:{ callback: v => v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:9}, maxRotation:45} } }
+        }
+      });
+    }
+
+    // ── Chart 2: Year-over-year comparison ────────────────────────
+    // Agrupar por mês, mostrar anos distintos
+    const byYearMonth = {};
+    all.forEach(r => {
+      if(!r.periodo) return;
+      const [yr, mo] = r.periodo.split('-');
+      if(!yr || !mo) return;
+      if(!byYearMonth[yr]) byYearMonth[yr] = {};
+      byYearMonth[yr][mo] = r.pctRealizado;
+    });
+    const years = Object.keys(byYearMonth).sort().slice(-3); // max 3 anos
+    const months = [...new Set(all.map(r => r.periodo?.slice(5,7)).filter(Boolean))].sort();
+    const monthLabels = months.map(m => { const d=new Date(2000,parseInt(m)-1,1); return d.toLocaleString('pt-BR',{month:'short'}); });
+    const palette = ['#0a2540','#00a86b','#e8a020'];
+    const yoyDatasets = years.map((yr, yi) => ({
+      label: yr,
+      data: months.map(m => byYearMonth[yr]?.[m] ?? null),
+      backgroundColor: palette[yi] + 'cc',
+      borderColor: palette[yi],
+      borderWidth: 1.5,
+      borderRadius: 4
+    }));
+
+    const ctxYoy = document.getElementById('indcage-chart-yoy');
+    if(ctxYoy) {
+      _chartYoy = new Chart(ctxYoy, {
+        type: 'bar',
+        data: { labels: monthLabels, datasets: yoyDatasets },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ font:{size:11} } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
+          scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:10}} } }
+        }
+      });
+    }
+  }
+
+  // ─── Formatters ───────────────────────────────────────────────────
+  const _meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function _periodoLabel(p) {
+    if(!p) return '—';
+    const m = p.match(/^(\d{4})-(\d{2})$/);
+    if(m) return _meses[parseInt(m[2])-1] + '/' + m[1];
+    return p;
+  }
+  function _fmtNum(v) {
+    if(v === null || v === undefined) return '—';
+    if(Number.isInteger(v)) return v.toLocaleString('pt-BR');
+    return Number(v).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:2 });
+  }
+})(); // end Indicadores CAGE IIFE
 
 </script>
 
