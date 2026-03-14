@@ -1132,7 +1132,7 @@
           onfocus="openSearchModal()" oninput="runSearch(this.value)" autocomplete="off">
         <button class="search-clear" id="search-clear-btn" onclick="clearSearch()">✕</button>
       </div>
-      <button class="edit-toggle" id="new-pop-btn" onclick="openNovoPop()" style="background:rgba(245,158,11,.2);color:#fcd34d;display:none;" title="Criar novo processo">＋ Novo Processo</button>
+      <button class="edit-toggle" id="new-pop-btn" onclick="openNovoPop()" style="background:rgba(245,158,11,.2);color:#fcd34d;display:none;" title="Criar novo mapeamento">＋ Novo Mapeamento</button>
       <button class="edit-toggle" onclick="openBackupModal()" title="Exportar/Importar backup dos dados" style="background:rgba(96,165,250,.15);color:#93c5fd;">💾 Backup</button>
       <button class="edit-toggle" onclick="exportPptx()" id="ppt-btn" style="background:rgba(232,160,32,.22);color:#fcd34d;" title="Exportar apresentação PowerPoint">📊 Exportar PPT</button>
       <button class="edit-toggle" onclick="saveToCloud()" id="save-btn" style="background:rgba(0,168,107,.25);color:#4ade80;" title="Salvar na nuvem (Ctrl+S)">☁️ Salvar</button>
@@ -1799,7 +1799,10 @@
   <section id="d-indicadores" class="section">
     <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores listados como <strong>sugestões</strong> — metas pendentes de definição.</p></div>
-      <button class="btn-add-ind" id="d-add-ind" onclick="addIndicator('d')">＋ Novo Indicador</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-add-ind" id="d-add-ind" onclick="addIndicator('d')">＋ Novo Indicador</button>
+        <button class="btn-add-ind" onclick="openIndSisplanPicker('d')" style="background:#e0f2fe;color:#0369a1;border-color:#7dd3fc;">🔗 Vincular SISPLAN</button>
+      </div>
     </div></div>
     <div class="indicator-grid fade-up delay-1" id="d-indicator-grid"></div>
   </section>
@@ -2114,7 +2117,10 @@
   <section id="r-indicadores" class="section">
     <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores listados como <strong>sugestões</strong> — metas pendentes de definição.</p></div>
-      <button class="btn-add-ind" id="r-add-ind" onclick="addIndicator('r')">＋ Novo Indicador</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-add-ind" id="r-add-ind" onclick="addIndicator('r')">＋ Novo Indicador</button>
+        <button class="btn-add-ind" onclick="openIndSisplanPicker('r')" style="background:#e0f2fe;color:#0369a1;border-color:#7dd3fc;">🔗 Vincular SISPLAN</button>
+      </div>
     </div></div>
     <div class="indicator-grid fade-up delay-1" id="r-indicator-grid"></div>
   </section>
@@ -2512,8 +2518,8 @@ Fim"></textarea>
   <div class="npop-box">
 
     <div class="npop-header">
-      <h2>➕ Novo Processo</h2>
-      <p>Crie um novo Procedimento Operacional Padrão do zero ou importe a partir de um documento existente.</p>
+      <h2>➕ Novo Mapeamento</h2>
+      <p>Crie um novo mapeamento de processo do zero ou importe a partir de um documento existente.</p>
     </div>
 
     <!-- STEP 1: escolher método -->
@@ -3611,6 +3617,22 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
   </div>
 </div>
 
+<!-- SISPLAN INDICATOR PICKER MODAL -->
+<div class="modal-overlay" id="ind-sisplan-picker-modal">
+  <div class="modal" style="max-width:640px;">
+    <h3>🔗 Vincular Indicador do SISPLAN</h3>
+    <p>Selecione um indicador importado do SISPLAN para vincular a este mapeamento.</p>
+    <input type="hidden" id="ind-sisplan-picker-pop">
+    <div style="margin-bottom:12px;">
+      <input class="modal-input" id="ind-sisplan-picker-search" type="text" placeholder="Filtrar por código ou nome..." oninput="renderSisplanPickerList()" style="width:100%;">
+    </div>
+    <div id="ind-sisplan-picker-list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeIndSisplanPicker()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- MÓDULO: INDICADORES CAGE                                      -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -4432,7 +4454,7 @@ function renderStep(p, i) {
       const step = DATA[pp].steps[si];
       if(sf==='title'){step.title=val;renderTracker(pp);}
       else if(sf==='subtitle') step.subtitle=val;
-      else if(sf==='responsible') step.responsible=val;
+      else if(sf==='responsible') { step.responsible=val; renderRoles(pp); }
       else if(sf==='note') step.note=val;
       else if(sf==='dlabel') { if(step.decision) step.decision.label=val; }
       else if(sf==='dtext')  { if(step.decision) step.decision.text=val;  }
@@ -4664,6 +4686,69 @@ function saveIndModal(){
   ind.meta         = document.getElementById('im-meta').value.trim();
   renderIndicators(_indPop); closeIndModal(); markChanged();
   showToast('✅ Indicador salvo!','success');
+}
+
+// ═══ SISPLAN INDICATOR PICKER ════════════════
+function openIndSisplanPicker(p) {
+  document.getElementById('ind-sisplan-picker-pop').value = p;
+  document.getElementById('ind-sisplan-picker-search').value = '';
+  renderSisplanPickerList();
+  document.getElementById('ind-sisplan-picker-modal').classList.add('open');
+}
+function closeIndSisplanPicker() {
+  document.getElementById('ind-sisplan-picker-modal').classList.remove('open');
+}
+function renderSisplanPickerList() {
+  const q = (document.getElementById('ind-sisplan-picker-search').value || '').toLowerCase();
+  const inds = (DATA.indicadoresCage?.indicadores || []).filter(i =>
+    (i.fonte || '').toLowerCase().includes('sisplan') || (i.codigo || '').toLowerCase().includes('sisplan')
+    || (i.fonte || '').toLowerCase().includes('importado')
+  );
+  const filtered = inds.filter(i =>
+    !q || (i.codigo||'').toLowerCase().includes(q) || (i.enunciado||'').toLowerCase().includes(q)
+  );
+  const p = document.getElementById('ind-sisplan-picker-pop').value;
+  const list = document.getElementById('ind-sisplan-picker-list');
+  if(!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:32px;font-size:13px;">Nenhum indicador importado do SISPLAN encontrado.<br><small>Importe a planilha SISPLAN no módulo Indicadores primeiro.</small></div>';
+    return;
+  }
+  list.innerHTML = filtered.map(ind => `
+    <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='#0369a1'" onmouseout="this.style.borderColor='#e2e8f0'" onclick="confirmIndFromSisplan('${ind.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;color:#8898aa;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">${ind.codigo||'—'} · ${ind.divisao||''}</div>
+          <div style="font-size:13px;font-weight:600;color:#0a2540;line-height:1.35;">${ind.enunciado||'Sem título'}</div>
+          ${ind.meta ? `<div style="font-size:11px;color:#64748b;margin-top:3px;">Meta: ${ind.meta}</div>` : ''}
+        </div>
+        <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;flex-shrink:0;" onclick="event.stopPropagation();confirmIndFromSisplan('${ind.id}')">Vincular</button>
+      </div>
+    </div>`).join('');
+}
+function confirmIndFromSisplan(indId) {
+  const p = document.getElementById('ind-sisplan-picker-pop').value;
+  const ind = (DATA.indicadoresCage?.indicadores || []).find(i => i.id === indId);
+  if(!ind || !p) return;
+  // Map SISPLAN indicator fields to POP indicator fields
+  DATA[p].indicators.push({
+    icon: '📊',
+    title: ind.enunciado || ind.codigo || 'Indicador SISPLAN',
+    desc: ind.descricao || '',
+    tag: 'perc',
+    formula: ind.formula || '',
+    fonte: 'SISPLAN' + (ind.codigo ? ' – ' + ind.codigo : ''),
+    periodicidade: ind.periodicidade || 'Mensal',
+    responsavel: ind.responsavel || '',
+    meta: ind.meta || '',
+    sisplanId: ind.id
+  });
+  renderIndicators(p);
+  attachIndListeners(p);
+  markChanged();
+  closeIndSisplanPicker();
+  showToast('✅ Indicador SISPLAN vinculado!', 'success');
+  // Open modal to let user refine
+  openIndModal(p, DATA[p].indicators.length - 1);
 }
 
 // ═══ FAQ ══════════════════════════════════════
@@ -5043,11 +5128,12 @@ showSection = function(id, tab, silent) {
   hideBpmnIfNeeded();
   _origShowSection(id, tab, silent);
   const p = popPrefix(currentPop);
-  if(id==='visao-geral')     renderFicha(p);
-  if(id==='riscos')          renderRisks(p);
-  if(id==='plano-acao')      renderPa(p);
-  if(id==='reunioes')        renderMeetings(p);
-  if(id==='acompanhamento')  loadAcomp(p);
+  if(id==='visao-geral')        renderFicha(p);
+  if(id==='responsabilidades')  renderRoles(p);
+  if(id==='riscos')             renderRisks(p);
+  if(id==='plano-acao')         renderPa(p);
+  if(id==='reunioes')           renderMeetings(p);
+  if(id==='acompanhamento')     loadAcomp(p);
 };
 const _origSwitchPop = switchPop;
 switchPop = function(pop, tabEl) { hideBpmnIfNeeded(); _origSwitchPop(pop, tabEl); };
@@ -5226,7 +5312,7 @@ function closeNovoPop() {
 function _populateNpopPatSelect() {
   const sel = document.getElementById('nf-pat-vinc');
   if(!sel) return;
-  ensureData();
+  if(!DATA.pat) DATA.pat = [];
   const pat = DATA.pat || [];
   const statusLabel = { planejado:'Planejado', andamento:'Em Andamento', concluido:'Concluído', atrasado:'Atrasado', cancelado:'Cancelado' };
   sel.innerHTML = '<option value="">— Nenhum vínculo —</option>'
@@ -5475,6 +5561,7 @@ function mountNewPopTab(key, label, silent=false) {
       <div class="card fade-up" style="margin-bottom:20px;"><div class="card-body" style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:10px;"><span>💡</span><p style="font-size:13px;color:var(--text-secondary);">Indicadores de desempenho do processo.</p></div>
         <button class="btn-add-ind" id="${key}-add-ind" onclick="addIndicator('${key}')">＋ Novo Indicador</button>
+        <button class="btn-add-ind" onclick="openIndSisplanPicker('${key}')" style="background:#e0f2fe;color:#0369a1;border-color:#7dd3fc;">🔗 Vincular SISPLAN</button>
       </div></div>
       <div id="${key}-indicator-grid" class="indicator-grid"></div>
     </div>
@@ -5659,6 +5746,7 @@ function mountNewPopTab(key, label, silent=false) {
   try { renderRevisions(key); }  catch(e) { console.warn('renderRevisions',key,e); }
   try { renderSiglas(key); }     catch(e) { console.warn('renderSiglas',key,e); }
   try { renderMetrics(key); }    catch(e) { console.warn('renderMetrics',key,e); }
+  try { renderFicha(key); }      catch(e) { console.warn('renderFicha',key,e); }
 
   // 12. Switch and enable edit mode (skip when restoring from cloud)
   if(!silent) {
@@ -5888,6 +5976,7 @@ function saveActionModal() {
   const _step = DATA[_actP].steps[_actSi];
   syncActionToRole(_actP, text, _step.responsible);
   renderStep(_actP, _actSi);
+  renderRoles(_actP);
   closeActionModal();
   markChanged();
   showToast('✅ Ação salva!', 'success');
@@ -11698,6 +11787,19 @@ function openStatusModal(p) {
   document.getElementById('status-modal-fornecedores').value= m.fornecedores || '';
   document.getElementById('status-modal-clientes').value    = m.clientes     || '';
   document.getElementById('status-modal-sistemas').value    = m.sistemas     || '';
+  // Populate PAT select
+  (function() {
+    const sel = document.getElementById('status-modal-pat-vinc');
+    if(!sel) return;
+    if(!DATA.pat) DATA.pat = [];
+    const statusLabel = { planejado:'Planejado', andamento:'Em Andamento', concluido:'Concluído', atrasado:'Atrasado', cancelado:'Cancelado' };
+    sel.innerHTML = '<option value="">— Nenhum vínculo —</option>'
+      + DATA.pat.map(item => {
+          const info = [item.unidade, statusLabel[item.status] || item.status].filter(Boolean).join(' · ');
+          return `<option value="${item.id}">${item.titulo || 'Item sem título'}${info ? '  [' + info + ']' : ''}</option>`;
+        }).join('');
+    sel.value = m.patVinc || '';
+  })();
   openModal('status-map-modal');
 }
 
@@ -11734,6 +11836,20 @@ function saveStatusModal() {
   m.fornecedores = document.getElementById('status-modal-fornecedores').value.trim();
   m.clientes     = document.getElementById('status-modal-clientes').value.trim();
   m.sistemas     = document.getElementById('status-modal-sistemas').value.trim();
+  // PAT link
+  const newPatVinc = document.getElementById('status-modal-pat-vinc')?.value || '';
+  const oldPatVinc = m.patVinc || '';
+  m.patVinc = newPatVinc;
+  // Update popVinc on PAT items
+  if(!DATA.pat) DATA.pat = [];
+  if(oldPatVinc && oldPatVinc !== newPatVinc) {
+    const old = DATA.pat.find(i => i.id === oldPatVinc);
+    if(old && old.popVinc === p) old.popVinc = '';
+  }
+  if(newPatVinc) {
+    const nw = DATA.pat.find(i => i.id === newPatVinc);
+    if(nw) nw.popVinc = p;
+  }
   // Sync visible fields
   const bannerTitle = document.querySelector('#pop-' + (p === 'd' ? 'denuncias' : p === 'r' ? 'representacoes' : p) + ' .pop-banner-title');
   if(bannerTitle && newName) bannerTitle.textContent = newName;
@@ -14339,6 +14455,18 @@ function saveStatusModal() {
             <label class="gmod-label">Sistemas Utilizados</label>
             <input class="modal-input" id="status-modal-sistemas" type="text" placeholder="Ex: SAEWEB, SEI, FalaBR...">
           </div>
+        </div>
+      </div>
+
+      <!-- Vínculo com PAT -->
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">📋 Vínculo com o PAT</div>
+        <div>
+          <label class="gmod-label">Item do Plano Anual de Trabalho <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+          <select class="modal-input" id="status-modal-pat-vinc" style="width:100%;">
+            <option value="">— Nenhum vínculo —</option>
+          </select>
+          <div style="font-size:11px;color:#78716c;margin-top:5px;">Vincule este mapeamento a uma atividade cadastrada no PAT.</div>
         </div>
       </div>
 
