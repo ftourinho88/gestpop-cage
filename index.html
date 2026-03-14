@@ -12307,13 +12307,13 @@ function saveStatusModal() {
     const divs = [...new Set(all.map(i => i.divisao).filter(Boolean))].sort();
     const divSel = document.getElementById('indcage-filter-divisao');
     if(divSel) {
-      const cur = divSel.value;
       divSel.innerHTML = '<option value="">Todas as divisões</option>'
-        + divs.map(d => `<option value="${d}" ${d===cur?'selected':''}>${d}</option>`).join('');
+        + divs.map(d => `<option value="${d}">${d}</option>`).join('');
+      if(divisao) divSel.value = divisao;
     }
 
     const filtered = all.filter(ind => {
-      if(search && !(ind.codigo+' '+ind.enunciado).toLowerCase().includes(search)) return false;
+      if(search && !((ind.codigo||'') + ' ' + (ind.enunciado||'')).toLowerCase().includes(search)) return false;
       if(nivel && ind.nivel !== nivel) return false;
       if(divisao && ind.divisao !== divisao) return false;
       return true;
@@ -12827,8 +12827,8 @@ function saveStatusModal() {
 
     if(all.length === 0) return;
 
-    // Detectar se o indicador possui dados percentuais
-    const hasPercentage = all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined);
+    // Detectar se o indicador possui dados percentuais (0% em todos os períodos = sem dados percentuais)
+    const hasPercentage = all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined && r.pctRealizado !== 0);
 
     const cardEvo = document.getElementById('indcage-chart-card-evo');
     const cardYoy = document.getElementById('indcage-chart-card-yoy');
