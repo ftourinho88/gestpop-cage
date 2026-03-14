@@ -12754,9 +12754,10 @@ function saveStatusModal() {
       return;
     }
     tbody.innerHTML = filtered.map(r => {
+      const isPrazo = getAllIndicators().find(i => i.codigo === r.codigo)?.tag === 'time';
       const pct = r.pctRealizado;
-      const pctClass = pct === null ? 'pct-cinza' : pct >= 100 ? 'pct-verde' : pct >= 80 ? 'pct-amarelo' : 'pct-vermelho';
-      const pctAcClass = r.pctRealizAcum === null ? 'pct-cinza' : r.pctRealizAcum >= 100 ? 'pct-verde' : r.pctRealizAcum >= 80 ? 'pct-amarelo' : 'pct-vermelho';
+      const pctClass = pct === null ? 'pct-cinza' : isPrazo ? (pct <= 100 ? 'pct-verde' : pct <= 120 ? 'pct-amarelo' : 'pct-vermelho') : (pct >= 100 ? 'pct-verde' : pct >= 80 ? 'pct-amarelo' : 'pct-vermelho');
+      const pctAcClass = r.pctRealizAcum === null ? 'pct-cinza' : isPrazo ? (r.pctRealizAcum <= 100 ? 'pct-verde' : r.pctRealizAcum <= 120 ? 'pct-amarelo' : 'pct-vermelho') : (r.pctRealizAcum >= 100 ? 'pct-verde' : r.pctRealizAcum >= 80 ? 'pct-amarelo' : 'pct-vermelho');
       return `<tr>
         <td style="white-space:nowrap;font-weight:600;">${_periodoLabel(r.periodo)}</td>
         <td>${r.divisao || '—'}</td>
@@ -12800,7 +12801,8 @@ function saveStatusModal() {
     const realizadoTotal = filtered.reduce((s,r) => s + (r.realizado||0), 0);
     const metaTotal = filtered.reduce((s,r) => s + (r.meta||0), 0);
 
-    function kpiClass(v) { if(v===null) return ''; return v>=100?'verde':v>=80?'amarelo':'vermelho'; }
+    const isPrazo = selInd ? getAllIndicators().find(i => i.codigo === selInd)?.tag === 'time' : false;
+    function kpiClass(v) { if(v===null) return ''; return isPrazo ? (v<=100?'verde':v<=120?'amarelo':'vermelho') : (v>=100?'verde':v>=80?'amarelo':'vermelho'); }
     const periodo = selPer ? _periodoLabel(selPer) : (filtered[0]?.periodo ? _periodoLabel(filtered[0].periodo) : '—');
 
     kpiRow.innerHTML = `
@@ -12821,6 +12823,7 @@ function saveStatusModal() {
   function _renderCharts(codigo, divisao) {
     ensureData();
     _destroyCharts();
+    const isPrazo = DATA.indicadoresCage.indicadores.find(i => i.codigo === codigo)?.tag === 'time';
     const all = DATA.indicadoresCage.resultados
       .filter(r => r.codigo === codigo && (!divisao || r.divisao === divisao))
       .sort((a,b) => (a.periodo||'').localeCompare(b.periodo||''));
@@ -12853,7 +12856,7 @@ function saveStatusModal() {
           data: {
             labels,
             datasets: [
-              { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'), borderRadius:4, order:2 },
+              { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':isPrazo?(v<=100?'rgba(22,163,74,.7)':v<=120?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'):(v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)')), borderRadius:4, order:2 },
               { label:'% Índice (meta)', data: pctIndice, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
             ]
           },
@@ -12916,6 +12919,7 @@ function saveStatusModal() {
         const m = metaAbs[i];
         if(m === null || m === 0) return 'rgba(10,37,64,.7)';
         const ratio = v / m * 100;
+        if(isPrazo) return ratio <= 100 ? 'rgba(22,163,74,.7)' : ratio <= 120 ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
         return ratio >= 100 ? 'rgba(22,163,74,.7)' : ratio >= 80 ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
       });
 
