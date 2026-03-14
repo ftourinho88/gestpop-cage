@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>GestPROC · CAGE-RS — Gestão de Processos CAGE</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2300a86b'/%3E%3Ccircle cx='4' cy='16' r='3' stroke='white' stroke-width='2' fill='none'/%3E%3Crect x='10' y='11' width='12' height='10' rx='2' fill='white' opacity='.92'/%3E%3Ccircle cx='28' cy='16' r='3.5' stroke='white' stroke-width='3' fill='none'/%3E%3Cline x1='7' y1='16' x2='10' y2='16' stroke='white' stroke-width='2'/%3E%3Cline x1='22' y1='16' x2='24.5' y2='16' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
+<title>GesProc-RS — Gestão de Processos CAGE-RS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%230a2540'/%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='none' stroke='%2300a86b' stroke-width='2'/%3E%3Ctext x='16' y='22' font-family='Arial,sans-serif' font-size='13' font-weight='bold' fill='%2300a86b' text-anchor='middle'%3EEPP%3C/text%3E%3C/svg%3E">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
@@ -916,7 +916,7 @@
         <circle cx="19" cy="11" r="2.5" stroke="white" stroke-width="2.2"/>
       </svg>
     </div>
-    <div class="auth-title">GestPROC · CAGE-RS</div>
+    <div class="auth-title">GesProc-RS</div>
     <div class="auth-sub">Gestão de Processos CAGE<br>Faça login para acessar e sincronizar seus dados</div>
     <button class="auth-google-btn" onclick="signInGoogle()">
       <svg class="auth-google-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -935,14 +935,11 @@
 <header class="header">
   <div class="header-inner">
     <div class="header-brand">
-      <!-- Creative process-flow icon (replacing the G) -->
+      <!-- EPP icon in square -->
       <div class="header-logo">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="3" cy="11" r="2" stroke="white" stroke-width="1.4"/>
-          <line x1="5" y1="11" x2="7" y2="11" stroke="white" stroke-width="1.2"/>
-          <rect x="7" y="7.5" width="8" height="7" rx="1.5" fill="white" opacity="0.92"/>
-          <line x1="15" y1="11" x2="17" y2="11" stroke="white" stroke-width="1.2"/>
-          <circle cx="19" cy="11" r="2.5" stroke="white" stroke-width="2.2"/>
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="34" height="34" rx="5" fill="#0a2540" stroke="#00a86b" stroke-width="2"/>
+          <text x="18" y="24" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#00a86b" text-anchor="middle">EPP</text>
         </svg>
       </div>
       <!-- CAGE-RS institutional banner -->
@@ -955,11 +952,11 @@
         </div>
         <div class="cage-banner-text">
           <span class="cage-banner-title">CAGE-RS</span>
-          <span class="cage-banner-sub">Controladoria e Auditoria-Geral</span>
+          <span class="cage-banner-sub">Contadoria e Auditoria-Geral</span>
         </div>
       </div>
       <div class="header-divider-line"></div>
-      <div class="header-title" onclick="showHome()" style="cursor:pointer;" title="Ir para o início"><strong>GestPROC</strong>Gestão de Processos</div>
+      <div class="header-title" onclick="showHome()" style="cursor:pointer;" title="Ir para o início"><strong>GesProc-RS</strong></div>
     </div>
     <div class="header-meta">
       <div class="sync-indicator" id="sync-indicator" style="display:none;">
@@ -1039,6 +1036,7 @@
     <div class="nav-tab" onclick="showSection('riscos',this)">⚠️ Riscos</div>
     <div class="nav-tab" onclick="showSection('plano-acao',this)">✅ Plano de Ação</div>
     <div class="nav-tab" onclick="showSection('reunioes',this)">🤝 Reuniões</div>
+    <div class="nav-tab" onclick="showSection('acompanhamento',this)">📋 Acompanhamento</div>
     <div class="nav-tab nav-tab-bpmn" onclick="showBpmn(this)" id="tab-bpmn">🖼 Imagem BPMN</div>
     <div class="nav-tab nav-tab-fd" onclick="showFlowDesigner(this)" id="tab-fd">🎨 Desenhar Fluxo</div>
   </div>
@@ -1050,7 +1048,7 @@
 <div id="home-page" style="display:none;padding:40px 32px 60px;max-width:1100px;margin:0 auto;">
   <div style="margin-bottom:36px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:20px;">
     <div>
-      <div style="font-family:'DM Serif Display',serif;font-size:32px;color:#0a2540;line-height:1.2;">Bem-vindo ao <span style="color:#00a86b;">GestPROC</span></div>
+      <div style="font-family:'DM Serif Display',serif;font-size:32px;color:#0a2540;line-height:1.2;">Bem-vindo ao <span style="color:#00a86b;">GesProc-RS</span></div>
       <div style="font-size:15px;color:#64748b;margin-top:8px;">Gestão de Processos CAGE-RS — selecione um módulo para começar</div>
     </div>
     <!-- EPP Logo -->
@@ -1594,6 +1592,109 @@
       <div id="d-meet-list"></div>
     </div>
   </section>
+
+  <!-- ACOMPANHAMENTO -->
+  <section id="d-acompanhamento" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:20px;">
+        <div class="card-body" style="padding:16px 20px;">
+          <div style="font-size:15px;font-weight:600;color:#0a2540;margin-bottom:4px;">📋 Reuniões de Acompanhamento Pós-Mapeamento</div>
+          <div style="font-size:13px;color:var(--text-secondary);">Registro das reuniões de acompanhamento realizadas após o mapeamento do processo. São previstas no mínimo duas reuniões: uma com 6 meses e outra com 1 ano.</div>
+        </div>
+      </div>
+      <div id="d-acomp-list">
+        <!-- Reunião 1: 6 meses -->
+        <div class="card fade-up" style="margin-bottom:20px;" id="d-acomp-card-6m">
+          <div class="card-body" style="padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+              <div style="background:#0a2540;color:#00a86b;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #00a86b;">6 MESES</div>
+              <div style="font-size:15px;font-weight:600;color:#0a2540;">1ª Reunião de Acompanhamento</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                <input type="date" id="d-acomp-6m-data" class="modal-input" style="width:100%;" oninput="saveAcomp('d')">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                <select id="d-acomp-6m-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('d','6m');saveAcomp('d')">
+                  <option value="">— Selecione —</option>
+                  <option value="de_acordo">✅ De acordo</option>
+                  <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                  <option value="nao_implementado">❌ Não implementado</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+              <textarea id="d-acomp-6m-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div id="d-acomp-6m-justif-wrap" style="margin-bottom:16px;display:none;">
+              <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+              <textarea id="d-acomp-6m-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+              <textarea id="d-acomp-6m-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+              <textarea id="d-acomp-6m-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+              <textarea id="d-acomp-6m-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reunião 2: 1 ano -->
+        <div class="card fade-up" style="margin-bottom:20px;" id="d-acomp-card-1a">
+          <div class="card-body" style="padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+              <div style="background:#0a2540;color:#e8a020;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #e8a020;">1 ANO</div>
+              <div style="font-size:15px;font-weight:600;color:#0a2540;">2ª Reunião de Acompanhamento</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                <input type="date" id="d-acomp-1a-data" class="modal-input" style="width:100%;" oninput="saveAcomp('d')">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                <select id="d-acomp-1a-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('d','1a');saveAcomp('d')">
+                  <option value="">— Selecione —</option>
+                  <option value="de_acordo">✅ De acordo</option>
+                  <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                  <option value="nao_implementado">❌ Não implementado</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+              <textarea id="d-acomp-1a-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div id="d-acomp-1a-justif-wrap" style="margin-bottom:16px;display:none;">
+              <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+              <textarea id="d-acomp-1a-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+              <textarea id="d-acomp-1a-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+              <textarea id="d-acomp-1a-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+              <textarea id="d-acomp-1a-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('d')"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div><!-- /pop-denuncias -->
 
 
@@ -1804,6 +1905,109 @@
         </div>
       </div>
       <div id="r-meet-list"></div>
+    </div>
+  </section>
+
+  <!-- ACOMPANHAMENTO -->
+  <section id="r-acompanhamento" class="section">
+    <div class="section-inner">
+      <div class="card fade-up" style="margin-bottom:20px;">
+        <div class="card-body" style="padding:16px 20px;">
+          <div style="font-size:15px;font-weight:600;color:#0a2540;margin-bottom:4px;">📋 Reuniões de Acompanhamento Pós-Mapeamento</div>
+          <div style="font-size:13px;color:var(--text-secondary);">Registro das reuniões de acompanhamento realizadas após o mapeamento do processo. São previstas no mínimo duas reuniões: uma com 6 meses e outra com 1 ano.</div>
+        </div>
+      </div>
+      <div id="r-acomp-list">
+        <!-- Reunião 1: 6 meses -->
+        <div class="card fade-up" style="margin-bottom:20px;" id="r-acomp-card-6m">
+          <div class="card-body" style="padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+              <div style="background:#0a2540;color:#00a86b;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #00a86b;">6 MESES</div>
+              <div style="font-size:15px;font-weight:600;color:#0a2540;">1ª Reunião de Acompanhamento</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                <input type="date" id="r-acomp-6m-data" class="modal-input" style="width:100%;" oninput="saveAcomp('r')">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                <select id="r-acomp-6m-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('r','6m');saveAcomp('r')">
+                  <option value="">— Selecione —</option>
+                  <option value="de_acordo">✅ De acordo</option>
+                  <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                  <option value="nao_implementado">❌ Não implementado</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+              <textarea id="r-acomp-6m-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div id="r-acomp-6m-justif-wrap" style="margin-bottom:16px;display:none;">
+              <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+              <textarea id="r-acomp-6m-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+              <textarea id="r-acomp-6m-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+              <textarea id="r-acomp-6m-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+              <textarea id="r-acomp-6m-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reunião 2: 1 ano -->
+        <div class="card fade-up" style="margin-bottom:20px;" id="r-acomp-card-1a">
+          <div class="card-body" style="padding:20px 24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid #e2e8f0;">
+              <div style="background:#0a2540;color:#e8a020;font-weight:700;font-size:13px;padding:5px 12px;border-radius:20px;border:1.5px solid #e8a020;">1 ANO</div>
+              <div style="font-size:15px;font-weight:600;color:#0a2540;">2ª Reunião de Acompanhamento</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Data de Realização</label>
+                <input type="date" id="r-acomp-1a-data" class="modal-input" style="width:100%;" oninput="saveAcomp('r')">
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Situação da Implementação</label>
+                <select id="r-acomp-1a-situacao" class="modal-input" style="width:100%;" onchange="toggleAcompJustif('r','1a');saveAcomp('r')">
+                  <option value="">— Selecione —</option>
+                  <option value="de_acordo">✅ De acordo</option>
+                  <option value="parcialmente">⚠️ Parcialmente implementado</option>
+                  <option value="nao_implementado">❌ Não implementado</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Participantes</label>
+              <textarea id="r-acomp-1a-participantes" class="modal-input" rows="2" placeholder="Liste os participantes da reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div id="r-acomp-1a-justif-wrap" style="margin-bottom:16px;display:none;">
+              <label style="font-size:12px;font-weight:600;color:#c0392b;display:block;margin-bottom:6px;">Justificativa da Não Implementação / Implementação Parcial</label>
+              <textarea id="r-acomp-1a-justif" class="modal-input" rows="3" placeholder="Descreva os motivos da não implementação ou implementação parcial..." style="width:100%;resize:vertical;border-color:#fca5a5;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Inconformidades Identificadas</label>
+              <textarea id="r-acomp-1a-inconformidades" class="modal-input" rows="3" placeholder="Registre as inconformidades observadas em relação ao processo definido..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Recomendações de Melhorias</label>
+              <textarea id="r-acomp-1a-recomendacoes" class="modal-input" rows="3" placeholder="Registre as recomendações de melhorias identificadas..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Encaminhamentos</label>
+              <textarea id="r-acomp-1a-encaminhamentos" class="modal-input" rows="3" placeholder="Registre os encaminhamentos definidos na reunião..." style="width:100%;resize:vertical;" oninput="saveAcomp('r')"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </div><!-- /pop-representacoes -->
@@ -2213,8 +2417,8 @@ Fim"></textarea>
               <div style="padding-bottom:14px;padding-left:0;padding-top:4px;flex:1;">
                 <div style="font-size:13px;font-weight:600;color:var(--cage-blue);margin-bottom:4px;">Envie seu arquivo + copie este prompt</div>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;position:relative;">
-                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text"># PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
-Analise o documento de processo enviado (POP, manual de processo ou relatório de processo) e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS.
+                  <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;font-style:italic;white-space:pre-wrap;" id="npop-prompt-text"># PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESPROC-RS
+Analise o documento de processo enviado (POP, manual de processo ou relatório de processo) e extraia todas as informações estruturadas para o sistema GesProc-RS da CAGE-RS.
 Leia o documento INTEIRO antes de estruturar os dados. Nunca invente informações. Se um campo não existir no documento, retorne null ou lista vazia. Retorne APENAS JSON puro, sem explicações.
 
 # REGRA CRÍTICA — LIMPEZA
@@ -3841,10 +4045,11 @@ showSection = function(id, tab, silent) {
   hideBpmnIfNeeded();
   _origShowSection(id, tab, silent);
   const p = popPrefix(currentPop);
-  if(id==='visao-geral') renderFicha(p);
-  if(id==='riscos')     renderRisks(p);
-  if(id==='plano-acao') renderPa(p);
-  if(id==='reunioes')   renderMeetings(p);
+  if(id==='visao-geral')     renderFicha(p);
+  if(id==='riscos')          renderRisks(p);
+  if(id==='plano-acao')      renderPa(p);
+  if(id==='reunioes')        renderMeetings(p);
+  if(id==='acompanhamento')  loadAcomp(p);
 };
 const _origSwitchPop = switchPop;
 switchPop = function(pop, tabEl) { hideBpmnIfNeeded(); _origSwitchPop(pop, tabEl); };
@@ -5445,7 +5650,7 @@ async function loadFromCloud() {
       if(chip) chip.textContent = 'Sem dados salvos';
       // Renderizar mesmo sem dados do cloud para evitar tela em branco
       ['d','r'].forEach(p => {
-        try { sanitizePop(p); renderStep(p, DATA[p].currentStep); renderRoles(p); renderIndicators(p); } catch(e) {}
+        try { sanitizePop(p); renderStep(p, DATA[p].currentStep); renderRoles(p); renderIndicators(p); loadAcomp(p); } catch(e) {}
       });
       const homePage = document.getElementById('home-page');
       if(homePage && homePage.style.display !== 'none') homeRefresh();
@@ -5495,6 +5700,7 @@ async function loadFromCloud() {
         try { renderSiglas(p); }    catch(e) { console.warn('renderSiglas',p,e); }
         try { renderMetrics(p); }   catch(e) { console.warn('renderMetrics',p,e); }
         try { renderFicha(p); }     catch(e) { console.warn('renderFicha',p,e); }
+        try { loadAcomp(p); }       catch(e) { console.warn('loadAcomp',p,e); }
       } catch(e) { console.warn('Render error for', p, e); }
     });
 
@@ -6405,7 +6611,7 @@ function exportBackup() {
     const payload = {
       _version: 2,
       _exported: new Date().toISOString(),
-      _app: 'GestPROC · CAGE-RS',
+      _app: 'GesProc-RS',
       d:    DATA.d,
       r:    DATA.r,
       pat:  DATA.pat || [],
@@ -6714,7 +6920,7 @@ async function exportPptx() {
 async function buildPptx(D) {
   const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_16x9';
-  pres.title  = 'GestPROC · ' + (D.meta?.name || 'POP');
+  pres.title  = 'GesProc-RS · ' + (D.meta?.name || 'POP');
 
   const C = {
     navy:'0A2540', mid:'1A4A7A', green:'00A86B', gold:'E8A020',
@@ -6755,7 +6961,7 @@ async function buildPptx(D) {
     s.addShape(pres.ShapeType.rect, { x:0.3, y:0.1, w:0.52, h:0.52, fill:{ color:C.gold }, shadow:mks() });
     s.addText('⚖', { x:0.3, y:0.1, w:0.52, h:0.52, fontSize:16, align:'center', valign:'middle', margin:0 });
     s.addText('CAGE-RS', { x:0.92, y:0.08, w:3.5, h:0.3, fontSize:14, color:C.white, bold:true, valign:'middle', margin:0 });
-    s.addText('Controladoria e Auditoria-Geral do Estado do RS', { x:0.92, y:0.38, w:5, h:0.28, fontSize:8.5, color:'CADCFC', valign:'middle', margin:0 });
+    s.addText('Contadoria e Auditoria-Geral do Estado do RS', { x:0.92, y:0.38, w:5, h:0.28, fontSize:8.5, color:'CADCFC', valign:'middle', margin:0 });
     s.addText('Estado do Rio Grande do Sul', { x:6.5, y:0.08, w:3.3, h:0.56, fontSize:9, color:'8CB8FF', align:'right', valign:'middle', margin:0 });
     // Faixa verde lateral
     s.addShape(pres.ShapeType.rect, { x:0, y:0.77, w:0.25, h:4.855, fill:{ color:C.green } });
@@ -6968,7 +7174,7 @@ async function buildPptx(D) {
     s.background = { color: C.navy };
     s.addShape(pres.ShapeType.rect, { x:0, y:0, w:0.25, h:5.625, fill:{ color:C.green } });
     s.addShape(pres.ShapeType.ellipse, { x:6.5, y:2.5, w:5, h:5, fill:{ color:'FFFFFF', transparency:94 } });
-    s.addText('GestPROC · CAGE-RS', { x:0.5, y:1.5, w:8, h:0.5, fontSize:13, color:C.green, bold:true, charSpacing:2, margin:0 });
+    s.addText('GesProc-RS', { x:0.5, y:1.5, w:8, h:0.5, fontSize:13, color:C.green, bold:true, charSpacing:2, margin:0 });
     s.addText(nome, { x:0.5, y:2.1, w:8, h:1.0, fontSize:32, color:C.white, bold:true, margin:0 });
     s.addText('Procedimento Operacional Padrão', { x:0.5, y:3.2, w:8, h:0.4, fontSize:12, color:'8898BB', margin:0 });
     s.addText([
@@ -6981,12 +7187,12 @@ async function buildPptx(D) {
     s.addShape(pres.ShapeType.rect, { x:0.3, y:4.95, w:0.52, h:0.52, fill:{ color:C.gold }, shadow:mks() });
     s.addText('⚖', { x:0.3, y:4.95, w:0.52, h:0.52, fontSize:15, align:'center', valign:'middle', margin:0 });
     s.addText('CAGE-RS', { x:0.92, y:4.93, w:3, h:0.28, fontSize:13, color:C.white, bold:true, valign:'middle', margin:0 });
-    s.addText('Controladoria e Auditoria-Geral do Estado do Rio Grande do Sul', { x:0.92, y:5.22, w:6.5, h:0.28, fontSize:8, color:'CADCFC', valign:'middle', margin:0 });
+    s.addText('Contadoria e Auditoria-Geral do Estado do Rio Grande do Sul', { x:0.92, y:5.22, w:6.5, h:0.28, fontSize:8, color:'CADCFC', valign:'middle', margin:0 });
     s.addText('gestpoc.cage.rs.gov.br', { x:7, y:4.93, w:2.7, h:0.56, fontSize:8.5, color:'8CB8FF', align:'right', valign:'middle', margin:0 });
   }
 
   // ── SALVAR ───────────────────────────────────────────────────────────────
-  const fname = 'GestPROC_' + nome.replace(/[^a-zA-Z0-9]/g,'_') + '.pptx';
+  const fname = 'GesProc-RS_' + nome.replace(/[^a-zA-Z0-9]/g,'_') + '.pptx';
   await pres.writeFile({ fileName: fname });
   showToast('✅ PPT exportado: ' + fname, 'success');
 }
@@ -7285,6 +7491,43 @@ function deletePa(p,i) {
 // ═══ REUNIÕES ═════════════════════════════
 let _meetPop = 'd', _meetIdx = -1;
 const MEET_TYPES = { entendimento:'Entendimento', revisao:'Revisão', aprovacao:'Aprovação do Patrocinador', desenho:'Desenho', documentacao:'Elaboração de Documentação', auditoria:'Auditoria' };
+
+// ── ACOMPANHAMENTO ────────────────────────────────────────────────────────────
+function toggleAcompJustif(pop, period) {
+  const sel = document.getElementById(pop+'-acomp-'+period+'-situacao');
+  const wrap = document.getElementById(pop+'-acomp-'+period+'-justif-wrap');
+  if (!sel || !wrap) return;
+  wrap.style.display = (sel.value === 'parcialmente' || sel.value === 'nao_implementado') ? '' : 'none';
+}
+
+function saveAcomp(pop) {
+  if (!DATA[pop]) return;
+  const periods = ['6m','1a'];
+  const fields = ['data','situacao','participantes','justif','inconformidades','recomendacoes','encaminhamentos'];
+  const acomp = {};
+  periods.forEach(period => {
+    acomp[period] = {};
+    fields.forEach(f => {
+      const el = document.getElementById(pop+'-acomp-'+period+'-'+f);
+      if (el) acomp[period][f] = el.value;
+    });
+  });
+  DATA[pop].acompanhamento = acomp;
+  markUnsaved();
+}
+
+function loadAcomp(pop) {
+  const acomp = DATA[pop]?.acompanhamento || {};
+  const periods = ['6m','1a'];
+  const fields = ['data','situacao','participantes','justif','inconformidades','recomendacoes','encaminhamentos'];
+  periods.forEach(period => {
+    fields.forEach(f => {
+      const el = document.getElementById(pop+'-acomp-'+period+'-'+f);
+      if (el && acomp[period]?.[f] !== undefined) el.value = acomp[period][f];
+    });
+    toggleAcompJustif(pop, period);
+  });
+}
 
 function openMeetModal(p, idx=-1) {
   _meetPop = p; _meetIdx = idx;
@@ -8492,8 +8735,8 @@ async function npopExtractWithGemini(file) {
     msg.textContent = 'Enviando para o Gemini...';
 
     const prompt = document.getElementById('npop-prompt-text')?.textContent?.trim() ||
-`# PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESTPROC
-Analise o documento de processo enviado e extraia todas as informações estruturadas para o sistema GestPROC da CAGE-RS. Leia o documento INTEIRO antes de estruturar. Nunca invente informações. Retorne APENAS JSON puro.
+`# PROMPT COMPLETO — EXTRAÇÃO DE POP CAGE → GESPROC-RS
+Analise o documento de processo enviado e extraia todas as informações estruturadas para o sistema GesProc-RS da CAGE-RS. Leia o documento INTEIRO antes de estruturar. Nunca invente informações. Retorne APENAS JSON puro.
 
 SIGLAS: extraia TODAS as siglas do documento, cada uma como entrada separada em siglas[].
 EXECUTORES: crie uma entrada SEPARADA para cada executor — nunca concatene nomes com ";" em um único "name". Use o nome exato do executor no campo "actor" de cada action.
