@@ -8183,9 +8183,9 @@ function runSearch(raw) {
     });
   });
 
-  // Search Metodologias e Manuais (REPO_DOCS)
+  // Search Metodologias e Manuais (REPO_DOCS) — inclui conteúdo indexado de PDFs
   (REPO_DOCS||[]).forEach((doc, i) => {
-    const text = [doc.title||'', doc.desc||'', doc.cat||'', doc.fileName||''].join(' ').toLowerCase();
+    const text = [doc.title||'', doc.desc||'', doc.cat||'', doc.fileName||'', doc.textContent||''].join(' ').toLowerCase();
     if(text.includes(lower)) {
       results.push({ type:'repo', doc, idx: i });
     }
@@ -8224,16 +8224,22 @@ function runSearch(raw) {
             ${r.norma.name ? `<div class="search-result-a">${highlight(r.norma.name, q)}</div>` : ''}
             ${r.norma.url ? `<div style="font-size:11px;color:var(--cage-accent);margin-top:4px;">🔗 ${r.norma.url}</div>` : ''}
           </div>`;
-        if(r.type === 'repo') return `
+        if(r.type === 'repo') {
+          const inTitle = (r.doc.title||'').toLowerCase().includes(lower);
+          const inDesc  = (r.doc.desc||'').toLowerCase().includes(lower);
+          const inContent = !inTitle && !inDesc && (r.doc.textContent||'').toLowerCase().includes(lower);
+          return `
           <div class="search-result-item" onclick="goToRepoDoc('${r.doc.id}')">
             <div class="search-result-pop">📚 Metodologias & Manuais · ${r.doc.cat||'Documento'}</div>
             <div class="search-result-q">${highlight(r.doc.title||'', q)}</div>
             ${r.doc.desc ? `<div class="search-result-a">${highlight(r.doc.desc.substring(0,180)+(r.doc.desc.length>180?'…':''), q)}</div>` : ''}
+            ${inContent ? `<div style="font-size:11px;color:#374151;background:#f0fdf4;border-left:3px solid #00a86b;border-radius:0 4px 4px 0;padding:4px 8px;margin-top:4px;line-height:1.6;">🔍 Encontrado no conteúdo: ${repoGetExcerpt(r.doc.textContent, q)}</div>` : ''}
             <div style="font-size:11px;color:var(--cage-accent);margin-top:4px;">
               ${r.doc.fileName ? `📎 ${highlight(r.doc.fileName, q)}` : ''}
               ${r.doc.fileUrl ? ` · <a href="${r.doc.fileUrl}" target="_blank" onclick="event.stopPropagation()" style="color:inherit;text-decoration:underline;">Abrir arquivo</a>` : ''}
             </div>
           </div>`;
+        }
         return '';
       }).join('');
   };
