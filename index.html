@@ -5520,6 +5520,90 @@ function patCheckDeadlines() {
 
   // Auto-dismiss after 12s
   setTimeout(() => { if(banner) banner.style.opacity = '0'; setTimeout(() => banner?.remove(), 600); }, 12000);
+
+  // ── Auto-marcar itens PAT vencidos como "atrasado" ───────
+  let patChanged = false;
+  overdue.forEach(item => {
+    if(item.status !== 'atrasado') {
+      DATA.pat[item.idx].status = 'atrasado';
+      patChanged = true;
+    }
+  });
+  if(patChanged) { markChanged(); }
+}
+
+// ── Verificar prazos do Plano de Ação dos mapeamentos ───────────────────────
+function checkActionsDeadlines() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in7   = new Date(today); in7.setDate(in7.getDate() + 7);
+  const popKeys = ['d','r',...Object.keys(DATA).filter(k=>k.startsWith('pop_'))];
+
+  const overdueActs = [], soonActs = [];
+  let changed = false;
+
+  popKeys.forEach(pk => {
+    const pop = DATA[pk];
+    if(!pop || !Array.isArray(pop.actions_plan)) return;
+    const popName = pop.meta?.name || pk;
+    pop.actions_plan.forEach((act, i) => {
+      if(!act.prazo || ['concluido'].includes(act.status)) return;
+      const d = new Date(act.prazo + 'T00:00:00');
+      if(isNaN(d)) return;
+      if(d < today) {
+        if(act.status !== 'atrasado') {
+          DATA[pk].actions_plan[i].status = 'atrasado';
+          changed = true;
+        }
+        overdueActs.push({ ...act, popName, popKey: pk, idx: i });
+      } else if(d <= in7) {
+        const dias = Math.round((d - today) / 86400000);
+        soonActs.push({ ...act, popName, popKey: pk, idx: i, dias });
+      }
+    });
+  });
+
+  if(changed) markChanged();
+  if(!overdueActs.length && !soonActs.length) return;
+
+  // Banner de alertas de plano de ação
+  let banner = document.getElementById('actions-deadline-banner');
+  if(!banner) {
+    banner = document.createElement('div');
+    banner.id = 'actions-deadline-banner';
+    banner.style.cssText = 'position:fixed;top:70px;left:16px;z-index:1500;max-width:360px;display:flex;flex-direction:column;gap:8px;';
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = '';
+
+  overdueActs.slice(0,5).forEach(act => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:#fff7ed;border:1.5px solid #fb923c;border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(234,88,12,.15);';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#ea580c;text-transform:uppercase;letter-spacing:.05em;">⚙️ Ação Atrasada · ${act.popName}</div>
+        <div style="font-size:13px;font-weight:600;color:#9a3412;margin-top:2px;">${act.desc||'Ação sem descrição'}</div>
+        <div style="font-size:11px;color:#c2410c;margin-top:2px;">Prazo: ${new Date(act.prazo+'T00:00:00').toLocaleDateString('pt-BR')} · ${act.resp||'sem responsável'}</div>
+      </div>
+      <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;color:#ea580c;cursor:pointer;font-size:16px;padding:0 0 0 8px;">✕</button>
+    </div>`;
+    banner.appendChild(el);
+  });
+
+  soonActs.slice(0,3).forEach(act => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 14px;box-shadow:0 4px 16px rgba(22,163,74,.1);';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#16a34a;text-transform:uppercase;letter-spacing:.05em;">⚙️ Vence em ${act.dias===0?'hoje':act.dias+' dia'+(act.dias>1?'s':'')} · ${act.popName}</div>
+        <div style="font-size:13px;font-weight:600;color:#14532d;margin-top:2px;">${act.desc||'Ação sem descrição'}</div>
+        <div style="font-size:11px;color:#15803d;margin-top:2px;">Prazo: ${new Date(act.prazo+'T00:00:00').toLocaleDateString('pt-BR')} · ${act.resp||'sem responsável'}</div>
+      </div>
+      <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;color:#16a34a;cursor:pointer;font-size:16px;padding:0 0 0 8px;">✕</button>
+    </div>`;
+    banner.appendChild(el);
+  });
+
+  setTimeout(() => { if(banner) banner.style.opacity='0'; setTimeout(()=>banner?.remove(),600); }, 14000);
 }
 
 function openPatIfAllowed() {
@@ -6377,7 +6461,7 @@ async function loadFromCloud() {
     if(homePage && homePage.style.display !== 'none') homeRefresh();
     // Atualizar status automaticamente baseado nas datas
     checkAllAutoStatus();
-    setTimeout(() => patCheckDeadlines(), 800);
+    setTimeout(() => { patCheckDeadlines(); checkActionsDeadlines(); }, 800);
 
     setSyncStatus('synced');
     updateLastSaveChip(data);
@@ -8525,6 +8609,21 @@ function savePa() {
   renderPa(_paPop); markChanged();
 }
 function renderPa(p) {
+  // Atualiza status atrasado antes de renderizar
+  const today = new Date(); today.setHours(0,0,0,0);
+  const pa = DATA[p]?.actions_plan;
+  if(Array.isArray(pa)) {
+    let ch = false;
+    pa.forEach((act,i) => {
+      if(act.prazo && act.status !== 'concluido') {
+        const d = new Date(act.prazo+'T00:00:00');
+        if(!isNaN(d) && d < today && act.status !== 'atrasado') {
+          DATA[p].actions_plan[i].status = 'atrasado'; ch = true;
+        }
+      }
+    });
+    if(ch) markChanged();
+  }
   const el = document.getElementById(p + '-pa-tbody');
   if(!el) return;
   const items = DATA[p].actions_plan || [];
@@ -9112,15 +9211,17 @@ function arqShowProcessDetail(idx) {
       <div class="gmod-box" style="width:700px;max-height:90vh;overflow-y:auto;">
         <div class="gmod-head">
           <h3 id="arq-det-title">Processo</h3>
-          <button class="gmod-close" onclick="closeModal('arq-detail-modal')">✕</button>
+          <button class="gmod-close" onclick="arqCloseDetail()">✕</button>
         </div>
         <div class="gmod-body" id="arq-det-body"></div>
       </div>`;
     document.body.appendChild(modal);
+    // Fechar ao clicar no fundo
+    modal.addEventListener('click', e => { if(e.target === modal) arqCloseDetail(); });
   }
   document.getElementById('arq-det-title').textContent = r.subprocesso || r.processo;
   document.getElementById('arq-det-body').innerHTML = html;
-  modal.style.display = 'flex';
+  modal.classList.add('open');
 
   // Render mermaid if needed
   if(mapped && popData?.flowDiagram?.mermaid && !fluxoUrl) {
@@ -9132,6 +9233,11 @@ function arqShowProcessDetail(idx) {
       } catch(e) {}
     }
   }
+}
+
+function arqCloseDetail() {
+  const modal = document.getElementById('arq-detail-modal');
+  if(modal) modal.classList.remove('open');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -10143,10 +10249,17 @@ function eppRenderDashboard() {
     return (fimD && fimD >= qStart && fimD <= qEnd) ||
            (iniD && iniD >= qStart && iniD <= qEnd && (!fimD || fimD > qStart));
   });
+  // Itens ativos no trimestre = fim no trimestre OU iniciado antes do fim do trimestre e ainda em curso
+  const mapAtivos = mapItems.filter(p => {
+    const fimD = p.fim   ? new Date(p.fim+'T12:00:00Z')   : null;
+    const iniD = p.inicio ? new Date(p.inicio+'T12:00:00Z') : null;
+    return (fimD && fimD >= qStart && fimD <= qEnd) ||
+           (iniD && iniD <= qEnd && (!fimD || fimD >= qStart));
+  });
   const mapPrevistos  = mapTri.length;
   const mapConcluidos = mapTri.filter(p=>p.status==='concluido').length;
-  const mapExecucao   = mapItems.filter(p=>(p.status==='andamento'||p.status==='em_andamento')).length;
-  const mapPlanejados = mapItems.filter(p=>p.status==='planejado').length;
+  const mapExecucao   = mapAtivos.filter(p=>p.status==='andamento'||p.status==='em_andamento').length;
+  const mapPlanejados = mapAtivos.filter(p=>p.status==='planejado').length;
   const mapStatsGrid  = document.getElementById('epp-map-stats-grid');
   const mapTriLabel   = document.getElementById('epp-map-tri-label');
   if(mapTriLabel) mapTriLabel.textContent = 'Referência: ' + qNames[qCur-1] + ' · ' + year + ' — Atividades do PAT do tipo "Mapeamento de Processo"';
