@@ -10541,6 +10541,7 @@ function repoRender() {
       <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
         ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="btn btn-outline" style="font-size:12px;text-decoration:none;flex:1;text-align:center;">⬇ Baixar</a>` : ''}
         ${(d.fileType==='pdf' && d.fileUrl && !d.textContent) ? `<button class="btn btn-outline" onclick="repoIndexPdf('${d.id}')" style="font-size:12px;flex:1;" title="Indexar conteúdo para pesquisa">🔍 Indexar</button>` : ''}
+        ${(d.fileType==='pdf' && d.fileUrl && d.textContent) ? `<button class="btn btn-outline" onclick="repoIndexPdf('${d.id}')" style="font-size:12px;flex:1;" title="Reindexar conteúdo (páginas completas)">🔄 Reindexar</button>` : ''}
         ${(d.fileType==='pdf' && d.fileUrl && !(d.faqs && d.faqs.length)) ? `<button class="btn btn-outline" onclick="repoGenerateFaqsFromPdf('${d.id}')" id="repo-faq-btn-${d.id}" style="font-size:12px;flex:1;color:#2563eb;border-color:#93c5fd;" title="Gerar FAQs com IA">🤖 Gerar FAQs</button>` : ''}
         <button class="btn btn-outline" onclick="repoEditDoc('${d.id}')" style="font-size:12px;flex:1;">✏️ Editar</button>
         <button class="btn btn-outline" onclick="repoDeleteDoc('${d.id}')" style="font-size:12px;color:#e11d48;border-color:#fda4af;">🗑</button>
