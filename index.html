@@ -2700,6 +2700,18 @@ Fim"></textarea>
               </div>
             </div>
 
+            <!-- SEÇÃO: Vínculo com PAT -->
+            <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:12px 14px;">
+              <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">📋 Vínculo com o PAT</div>
+              <div>
+                <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:5px;">Item do Plano Anual de Trabalho <span style="color:#94a3b8;font-weight:400;">(opcional)</span></label>
+                <select class="modal-input" id="nf-pat-vinc" style="width:100%;">
+                  <option value="">— Nenhum vínculo —</option>
+                </select>
+                <div style="font-size:11px;color:#78716c;margin-top:5px;">Vincule este mapeamento a uma atividade já cadastrada no PAT. O campo <em>POP Vinculado</em> do item selecionado será atualizado automaticamente.</div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -5195,6 +5207,7 @@ function openNovoPop() {
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
+  _populateNpopPatSelect();
   resetNpopFile();
   document.getElementById('npop-json-paste').value = '';
   document.getElementById('npop-json-status').innerHTML = '';
@@ -5208,6 +5221,19 @@ function openNovoPop() {
 
 function closeNovoPop() {
   document.getElementById('npop-overlay').classList.remove('open');
+}
+
+function _populateNpopPatSelect() {
+  const sel = document.getElementById('nf-pat-vinc');
+  if(!sel) return;
+  ensureData();
+  const pat = DATA.pat || [];
+  const statusLabel = { planejado:'Planejado', andamento:'Em Andamento', concluido:'Concluído', atrasado:'Atrasado', cancelado:'Cancelado' };
+  sel.innerHTML = '<option value="">— Nenhum vínculo —</option>'
+    + pat.map(item => {
+        const info = [item.unidade, statusLabel[item.status] || item.status].filter(Boolean).join(' · ');
+        return `<option value="${item.id}">${item.titulo || 'Item sem título'}${info ? '  [' + info + ']' : ''}</option>`;
+      }).join('');
 }
 
 function selectNpopMethod(m) {
@@ -5315,6 +5341,7 @@ function confirmNovoPop() {
       fornecedores: document.getElementById('nf-fornecedores').value.trim(),
       clientes:     document.getElementById('nf-clientes').value.trim(),
       sistemas:     document.getElementById('nf-sistemas').value.trim(),
+      patVinc:      document.getElementById('nf-pat-vinc')?.value || '',
     });
   }
 }
@@ -5349,6 +5376,7 @@ function createBlankPop(info) {
       fornecedores: info.fornecedores || '',
       clientes:     info.clientes     || '',
       sistemas:     info.sistemas     || '',
+      patVinc:      info.patVinc      || '',
     },
     steps: [
       { title: 'Etapa 1', subtitle: '', responsible: 'Responsável', respClass: 'resp-green',
@@ -5364,9 +5392,17 @@ function createBlankPop(info) {
     revisions: [{ num:'0', date: today, desc:'Emissão Inicial.', author: info.elaborado || '' }]
   };
 
+  // Vincular o item do PAT a este novo POP (atualiza popVinc do item PAT)
+  if(info.patVinc) {
+    ensureData();
+    const patItem = (DATA.pat || []).find(p => p.id === info.patVinc);
+    if(patItem) patItem.popVinc = key;
+  }
+
   mountNewPopTab(key, info.nome || 'Novo POP');
   closeNovoPop();
-  showToast('✅ Novo POP criado! Ative o Modo Edição para preencher.', 'success');
+  const patMsg = info.patVinc ? ' Vínculo com o PAT registrado.' : '';
+  showToast('✅ Novo POP criado! Ative o Modo Edição para preencher.' + patMsg, 'success');
 }
 
 // ── Mount tab + DOM for a new pop ────────────
