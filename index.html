@@ -1215,6 +1215,16 @@
         <div class="epp-kpi-label">Processos com ganho calculado</div>
         <div class="epp-kpi-sub">Com métricas de volume e ciclo preenchidas</div>
       </div>
+      <div class="epp-kpi-card" style="border-left-color:#8b5cf6;">
+        <div class="epp-kpi-value" id="epp-kpi-valor-eco">—</div>
+        <div class="epp-kpi-label">Valor economizado / mês</div>
+        <div class="epp-kpi-sub" id="epp-kpi-valor-sub">
+          <span id="epp-valor-hora-display">Valor/hora não definido</span>
+          <span id="epp-valor-hora-edit-btn" style="display:none;">
+            &nbsp;·&nbsp;<a href="javascript:void(0)" onclick="eppSetValorHora()" style="color:#8b5cf6;font-weight:600;text-decoration:none;">✏️ definir</a>
+          </span>
+        </div>
+      </div>
     </div>
     <div id="epp-horas-detail" style="display:none;">
       <table class="epp-horas-table">
@@ -1269,6 +1279,13 @@
         <div class="epp-kpi-sub">Planejadas + em andamento + concluídas</div>
       </div>
     </div>
+  </div>
+
+  <!-- Block 3b: Mapeamentos do trimestre -->
+  <div class="epp-dash-section">
+    <div class="epp-dash-section-title">🗂 Mapeamentos — Desempenho do Trimestre</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px;" id="epp-map-tri-label">—</div>
+    <div class="epp-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;" id="epp-map-stats-grid"></div>
   </div>
 
   <!-- Block 4: Execução do PAT -->
@@ -5822,7 +5839,7 @@ async function checkEditorPermission() {
   document.getElementById('perm-panel').style.display = 'flex';
 }
 
-function applyPermissions() {
+function _applyPermissionsCore() {
   const banner  = document.getElementById('readonly-banner');
   const editBtn = document.getElementById('edit-toggle');
   const saveBtn = document.getElementById('save-btn');
@@ -5880,6 +5897,48 @@ function applyPermissions() {
       showAccessRequestOverlay();
     }
   }
+}
+
+// ── Viewer Preview (apenas admin) ──────────────────────────
+let _viewerPreviewActive = false;
+let _savedAdminState = null;
+
+function applyPermissions() {
+  // Show/hide the "Simular Visualizador" button only for real admins
+  const vBtn = document.getElementById('viewer-preview-btn');
+  if(vBtn) vBtn.style.display = (currentUserEmail === ADMIN_EMAIL && !_viewerPreviewActive) ? '' : 'none';
+  _applyPermissionsCore();
+}
+
+function eppToggleViewerPreview() {
+  if(_viewerPreviewActive) { eppExitViewerPreview(); return; }
+  // Save current state
+  _savedAdminState = { isEditor, isAdmin, isViewer };
+  _viewerPreviewActive = true;
+  isEditor = false;
+  isAdmin  = false;
+  isViewer = true;
+  document.getElementById('viewer-preview-banner').style.display = '';
+  const vBtn = document.getElementById('viewer-preview-btn');
+  if(vBtn) vBtn.style.display = 'none';
+  _applyPermissionsCore();
+  homeRefresh();
+  showToast('Modo visualizador ativado — veja o sistema como um usuário sem edição.', 'warn');
+}
+
+function eppExitViewerPreview() {
+  if(!_viewerPreviewActive || !_savedAdminState) return;
+  _viewerPreviewActive = false;
+  isEditor = _savedAdminState.isEditor;
+  isAdmin  = _savedAdminState.isAdmin;
+  isViewer = _savedAdminState.isViewer;
+  _savedAdminState = null;
+  document.getElementById('viewer-preview-banner').style.display = 'none';
+  const vBtn = document.getElementById('viewer-preview-btn');
+  if(vBtn) vBtn.style.display = '';
+  _applyPermissionsCore();
+  homeRefresh();
+  showToast('Modo admin restaurado.', 'success');
 }
 
 async function showAccessRequestOverlay() {
@@ -8397,7 +8456,7 @@ function arqRenderTable(filtered, all) {
     const toggleBg    = mapped ? '#dcfce7' : '#f1f5f9';
     const toggleColor = mapped ? '#16a34a' : '#94a3b8';
     const toggleLabel = mapped ? '✅ Sim'  : '○ Não';
-    return `<tr style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;${mapped ? 'border-left:3px solid #00a86b;' : ''}">
+    return `<tr onclick="arqShowProcessDetail(${realIdx})" style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;${mapped ? 'border-left:3px solid #00a86b;' : ''}cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='${rowColor?'#f8fafc':'white'}'">
       <td style="padding:10px 16px;font-weight:600;color:#0a2540;font-size:12px;">${r.macroprocesso}</td>
       <td style="padding:10px 16px;color:#1e293b;font-size:13px;">${r.processo}</td>
       <td style="padding:10px 16px;color:#475569;font-size:12px;">${r.subprocesso || '<span style="color:#cbd5e1;">—</span>'}</td>
@@ -8405,12 +8464,12 @@ function arqRenderTable(filtered, all) {
         <span style="background:${nat.bg};color:${nat.color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;">${r.natureza||''}</span>
       </td>
       <td style="padding:10px 16px;color:#64748b;font-size:12px;">${r.area||''}</td>
-      <td style="padding:10px 16px;text-align:center;">
+      <td style="padding:10px 16px;text-align:center;" onclick="event.stopPropagation()">
         <button onclick="arqToggleMapeado(${realIdx})"
           style="background:${toggleBg};color:${toggleColor};border:none;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;transition:all .2s;"
           title="Clique para alternar">${toggleLabel}</button>
       </td>
-      <td style="padding:10px 16px;text-align:center;">
+      <td style="padding:10px 16px;text-align:center;" onclick="event.stopPropagation()">
         <button onclick="arqShowForm(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Editar">✏️</button>
         <button onclick="arqDelete(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Excluir">🗑</button>
       </td>
@@ -8549,6 +8608,178 @@ function arqSaveToCloud() {
   saveToCloud();
 }
 
+
+// ── Detalhes de Processo (popup clicável) ─────────────────
+function arqFindLinkedPop(r) {
+  // Find a POP whose meta.processo or meta.subprocesso or meta.name matches
+  const keys = ['d','r',...Object.keys(DATA).filter(k=>k.startsWith('pop_'))];
+  return keys.find(k => {
+    const m = DATA[k]?.meta;
+    if(!m) return false;
+    const nameLC   = (m.name||'').toLowerCase();
+    const procLC   = (m.processo||'').toLowerCase();
+    const subLC    = (m.subprocesso||'').toLowerCase();
+    const rProcLC  = (r.processo||'').toLowerCase();
+    const rSubLC   = (r.subprocesso||'').toLowerCase();
+    return nameLC === rProcLC || nameLC === rSubLC ||
+           procLC === rProcLC || procLC === rSubLC  ||
+           (subLC  && (subLC === rProcLC || subLC === rSubLC));
+  });
+}
+
+function arqShowProcessDetail(idx) {
+  const r = arqGetData()[idx];
+  if(!r) return;
+
+  const nat = NAT_COLORS[r.natureza] || { bg:'#f1f5f9', color:'#475569' };
+  const mapped = !!r.mapeado;
+
+  // Find linked POP
+  const popKey = mapped ? arqFindLinkedPop(r) : null;
+  const popData = popKey ? DATA[popKey] : null;
+  const fluxoUrl = popData?.fluxoImgUrl || null;
+
+  // Helpers
+  const row = (label, val) => val ? `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+    <div style="width:140px;flex-shrink:0;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;padding-top:2px;">${label}</div>
+    <div style="font-size:13px;color:#1e293b;flex:1;">${val}</div>
+  </div>` : '';
+
+  const pill = (txt, bg, col) => `<span style="background:${bg};color:${col};font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin:2px;">${txt}</span>`;
+
+  // Mapped section
+  let mappedSection = '';
+  if(mapped && popData) {
+    const meta = popData.meta || {};
+    const risks = Array.isArray(popData.risks) ? popData.risks : [];
+    const normas = Array.isArray(popData.normas) ? popData.normas : [];
+    const steps = Array.isArray(popData.steps) ? popData.steps : [];
+
+    // Status badge
+    const statusLabels = { concluido:'Concluído', planejado:'Planejado', em_andamento:'Em Andamento', atrasado:'Atrasado', suspenso:'Suspenso' };
+    const statusColors = { concluido:'#dcfce7:#166534', planejado:'#dbeafe:#1e40af', em_andamento:'#fef9c3:#854d0e', atrasado:'#fee2e2:#991b1b', suspenso:'#f1f5f9:#64748b' };
+    const stParts = (statusColors[meta.statusMap]||'#f1f5f9:#64748b').split(':');
+    const stLabel = statusLabels[meta.statusMap] || meta.statusMap || '—';
+
+    // Risks matrix mini
+    const risksHtml = risks.length ? risks.map(rk => {
+      const score = (rk.impacto||1) * (rk.probabilidade||1);
+      const rCol = score >= 15 ? '#dc2626' : score >= 8 ? '#f59e0b' : '#16a34a';
+      return `<div style="background:#f8fafc;border-left:3px solid ${rCol};border-radius:4px;padding:6px 10px;margin-bottom:6px;font-size:12px;">
+        <strong style="color:#1e293b;">${rk.title||'Risco'}</strong>
+        ${rk.tipo==='oportunidade'?'<span style="font-size:10px;color:#16a34a;margin-left:6px;">▲ Oportunidade</span>':''}
+        <div style="color:#64748b;font-size:11px;margin-top:2px;">${rk.desc||''}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Impacto ${rk.impacto||'—'} × Prob. ${rk.probabilidade||'—'} = <strong style="color:${rCol};">${score}</strong></div>
+      </div>`;
+    }).join('') : '<div style="color:#94a3b8;font-size:12px;">Nenhum risco cadastrado</div>';
+
+    const normasHtml = normas.length ? normas.map(n =>
+      `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;"><strong>${n.titulo||n.referencia||'—'}</strong>${n.referencia?' · <span style="color:#64748b;">'+n.referencia+'</span>':''}${n.link?` <a href="${n.link}" target="_blank" style="color:#3b82f6;font-size:11px;">[↗]</a>`:''}</div>`
+    ).join('') : '<div style="color:#94a3b8;font-size:12px;">Nenhuma norma cadastrada</div>';
+
+    // Flowchart preview (mermaid code or image)
+    const flowDiag = popData.flowDiagram;
+    let fluxoSection = '';
+    if(fluxoUrl) {
+      fluxoSection = `<div style="margin-top:4px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;max-height:180px;text-align:center;background:#f8fafc;">
+        <img src="${fluxoUrl}" style="max-width:100%;max-height:180px;object-fit:contain;" alt="Fluxograma">
+      </div>`;
+    } else if(flowDiag?.mermaid) {
+      fluxoSection = `<div id="arq-det-mermaid" style="font-size:11px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;max-height:180px;overflow:auto;"></div>`;
+    } else {
+      fluxoSection = `<div style="color:#94a3b8;font-size:12px;">Fluxograma não disponível</div>`;
+    }
+
+    mappedSection = `
+      <div style="margin-top:20px;border-top:2px solid #e2e8f0;padding-top:16px;">
+        <div style="font-size:14px;font-weight:800;color:#0a2540;margin-bottom:12px;">📋 Dados do Mapeamento</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <span style="background:${stParts[0]};color:${stParts[1]};font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;">${stLabel}</span>
+          ${meta.sistemas ? pill('🖥 '+meta.sistemas,'#ede9fe','#5b21b6') : ''}
+        </div>
+        ${row('Área responsável', meta.area)}
+        ${row('Sistemas', meta.sistemas)}
+        ${row('Elaborado por', meta.elaborado)}
+        ${row('Equipe', meta.equipe)}
+        ${row('Início previsto', meta.dataInicio ? new Date(meta.dataInicio+'T12:00:00Z').toLocaleDateString('pt-BR') : '')}
+        ${row('Conclusão prevista', meta.dataPrevista ? new Date(meta.dataPrevista+'T12:00:00Z').toLocaleDateString('pt-BR') : '')}
+        ${steps.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+          ${pill(steps.length+' etapas','#dbeafe','#1e40af')}
+          ${(popData.roles||[]).length ? pill((popData.roles||[]).length+' funções','#ede9fe','#5b21b6') : ''}
+          ${(popData.indicators||[]).length ? pill((popData.indicators||[]).length+' indicadores','#dcfce7','#166534') : ''}
+        </div>` : ''}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#0a2540;margin-bottom:8px;">⚠️ Riscos e Oportunidades</div>
+            ${risksHtml}
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#0a2540;margin-bottom:8px;">📄 Normas e Referências</div>
+            ${normasHtml}
+            <div style="font-size:12px;font-weight:700;color:#0a2540;margin:12px 0 8px;">🗂 Fluxograma</div>
+            ${fluxoSection}
+          </div>
+        </div>
+      </div>`;
+  } else if(mapped && !popData) {
+    mappedSection = `<div style="margin-top:16px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px;font-size:13px;color:#854d0e;">
+      ✅ Processo marcado como mapeado, mas o POP correspondente não foi encontrado neste workspace.
+    </div>`;
+  }
+
+  const html = `
+    <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">${r.macroprocesso}</div>
+        <div style="font-size:20px;font-weight:800;color:#0a2540;line-height:1.2;">${r.processo}</div>
+        ${r.subprocesso ? `<div style="font-size:14px;color:#475569;margin-top:4px;">${r.subprocesso}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <span style="background:${nat.bg};color:${nat.color};font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;">${r.natureza||''}</span>
+        <span style="background:${mapped?'#dcfce7':'#f1f5f9'};color:${mapped?'#166534':'#64748b'};font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;">${mapped?'✅ Mapeado':'○ Não mapeado'}</span>
+      </div>
+    </div>
+    ${row('Área responsável', r.area)}
+    ${row('Gestor do processo', r.gerente)}
+    ${row('Objetivo', r.objetivo)}
+    ${row('Fornecedores', r.fornecedores)}
+    ${row('Entradas', r.entradas)}
+    ${row('Entregas / saídas', r.entregas)}
+    ${row('Clientes', r.clientes)}
+    ${mappedSection}`;
+
+  // Open modal
+  let modal = document.getElementById('arq-detail-modal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'arq-detail-modal';
+    modal.className = 'gmod-overlay';
+    modal.innerHTML = `
+      <div class="gmod-box" style="width:700px;max-height:90vh;overflow-y:auto;">
+        <div class="gmod-head">
+          <h3 id="arq-det-title">Processo</h3>
+          <button class="gmod-close" onclick="closeModal('arq-detail-modal')">✕</button>
+        </div>
+        <div class="gmod-body" id="arq-det-body"></div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('arq-det-title').textContent = r.subprocesso || r.processo;
+  document.getElementById('arq-det-body').innerHTML = html;
+  modal.style.display = 'flex';
+
+  // Render mermaid if needed
+  if(mapped && popData?.flowDiagram?.mermaid && !fluxoUrl) {
+    const mDiv = document.getElementById('arq-det-mermaid');
+    if(mDiv && window.mermaid) {
+      try {
+        const id = 'arq-mermaid-'+Date.now();
+        mermaid.render(id, popData.flowDiagram.mermaid).then(({svg}) => { if(mDiv) mDiv.innerHTML = svg; }).catch(()=>{});
+      } catch(e) {}
+    }
+  }
+}
 
 // ══════════════════════════════════════════════════════════════
 // HOME PAGE
@@ -9446,10 +9677,26 @@ function eppRenderDashboard() {
     return { key:k, nome: meta.name||k, vPre, vPos, cPre, cPos, mensal, anual: mensal*12 };
   }).filter(h => h.mensal > 0);
   const totalHorasAnual = horasList.reduce((s,h)=>s+h.anual, 0);
+  const totalHorasMensal = horasList.reduce((s,h)=>s+h.mensal, 0);
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('epp-kpi-horas-total', totalHorasAnual > 0 ? Math.round(totalHorasAnual).toLocaleString('pt-BR')+' h' : '—');
   setEl('epp-kpi-procs-redesenhados', horasList.length);
+
+  // Valor economizado por mês
+  const valorHora = parseFloat(DATA._valorHora) || null;
+  const valorEcoEl = document.getElementById('epp-kpi-valor-eco');
+  const valorSubEl = document.getElementById('epp-valor-hora-display');
+  const valorEditBtn = document.getElementById('epp-valor-hora-edit-btn');
+  if(valorEditBtn) valorEditBtn.style.display = isEditor ? '' : 'none';
+  if(valorHora && totalHorasMensal > 0) {
+    const valorTotal = totalHorasMensal * valorHora;
+    if(valorEcoEl) valorEcoEl.textContent = 'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2});
+    if(valorSubEl) valorSubEl.textContent = Math.round(totalHorasMensal).toLocaleString('pt-BR') + ' h/mês × R$ ' + valorHora.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}) + '/h';
+  } else {
+    if(valorEcoEl) valorEcoEl.textContent = totalHorasMensal > 0 ? Math.round(totalHorasMensal).toLocaleString('pt-BR')+' h/mês' : '—';
+    if(valorSubEl) valorSubEl.textContent = valorHora ? 'Sem processos com métricas' : 'Valor/hora não definido';
+  }
 
   const tbody = document.getElementById('epp-horas-tbody');
   if(tbody) {
@@ -9529,6 +9776,43 @@ function eppRenderDashboard() {
   setEl('epp-kpi-entrtri-label', qNames[qCur-1]);
   setEl('epp-kpi-total-ativ',    patItems.length);
 
+  // ── 3b. Mapeamentos do trimestre ───────────────────────────
+  const mapItems = patItems.filter(p => p.tipo === 'Mapeamento de Processo');
+  const mapTri   = mapItems.filter(p => {
+    if(!p.fim) return false;
+    const d = new Date(p.fim+'T12:00:00Z');
+    return d >= qStart && d <= qEnd;
+  });
+  // Also include items that started in the quarter (for "in execution")
+  const mapTriAll = mapItems.filter(p => {
+    const fimD  = p.fim   ? new Date(p.fim+'T12:00:00Z')   : null;
+    const iniD  = p.inicio ? new Date(p.inicio+'T12:00:00Z') : null;
+    return (fimD && fimD >= qStart && fimD <= qEnd) ||
+           (iniD && iniD >= qStart && iniD <= qEnd && (!fimD || fimD > qStart));
+  });
+  const mapPrevistos  = mapTri.length;
+  const mapConcluidos = mapTri.filter(p=>p.status==='concluido').length;
+  const mapExecucao   = mapItems.filter(p=>(p.status==='andamento'||p.status==='em_andamento')).length;
+  const mapPlanejados = mapItems.filter(p=>p.status==='planejado').length;
+  const mapStatsGrid  = document.getElementById('epp-map-stats-grid');
+  const mapTriLabel   = document.getElementById('epp-map-tri-label');
+  if(mapTriLabel) mapTriLabel.textContent = 'Referência: ' + qNames[qCur-1] + ' · ' + year + ' — Atividades do PAT do tipo "Mapeamento de Processo"';
+  if(mapStatsGrid) {
+    const cards = [
+      { label:'Previstos no trimestre', val:mapPrevistos,  col:'#3b82f6', sub:'Com data prevista no '+qNames[qCur-1].split(' ')[0]+' Tri' },
+      { label:'Concluídos no trimestre', val:mapConcluidos, col:'#15803d', sub:'Finalizados dentro do trimestre' },
+      { label:'Em execução',             val:mapExecucao,   col:'#f59e0b', sub:'Status "Em Andamento" no PAT' },
+      { label:'Apenas planejados',       val:mapPlanejados, col:'#94a3b8', sub:'Status "Planejado" — não iniciados' },
+    ];
+    mapStatsGrid.innerHTML = cards.map(c=>
+      '<div class="epp-kpi-card" style="border-left-color:'+c.col+';padding:14px 16px;">'+
+        '<div class="epp-kpi-value" style="font-size:28px;color:'+c.col+';">'+c.val+'</div>'+
+        '<div class="epp-kpi-label" style="font-size:11px;">'+c.label+'</div>'+
+        '<div class="epp-kpi-sub">'+c.sub+'</div>'+
+      '</div>'
+    ).join('');
+  }
+
   // ── 4. Execução do PAT ─────────────────────────────────────
   const pctPat = patItems.length ? Math.round(concluidos.length/patItems.length*100) : 0;
   setEl('epp-pct-pat',   pctPat+'%');
@@ -9572,6 +9856,17 @@ function eppRenderDashboard() {
       '</div>';
     }).join('');
   }
+}
+
+function eppSetValorHora() {
+  if(!isEditor) return;
+  const cur = DATA._valorHora ? String(DATA._valorHora) : '';
+  const val = prompt('Informe o valor da hora (R$/h) para cálculo do valor economizado:\n(Deixe em branco para remover)', cur);
+  if(val === null) return;
+  const num = parseFloat(val.replace(',','.'));
+  DATA._valorHora = isNaN(num) ? null : num;
+  markChanged();
+  eppRenderDashboard();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -11097,7 +11392,13 @@ function saveStatusModal() {
 <!-- FAB BOTTOM RIGHT -->
 <div class="perm-panel" id="perm-panel" style="display:none;">
   <div class="history-chip" id="last-save-chip">Carregando...</div>
+  <button class="perm-fab" id="viewer-preview-btn" onclick="eppToggleViewerPreview()" title="Simular perfil de visualizador" style="display:none;background:#8b5cf6;font-size:13px;padding:0 14px;border-radius:20px;height:40px;width:auto;">👁 Simular</button>
   <button class="perm-fab" onclick="openPermModal()" title="Gerenciar acesso e histórico">👥</button>
+</div>
+<!-- Banner de preview de visualizador -->
+<div id="viewer-preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:3000;background:#8b5cf6;color:white;text-align:center;padding:8px 16px;font-size:13px;font-weight:700;letter-spacing:.03em;">
+  👁 MODO VISUALIZADOR — Você está simulando o perfil de um usuário sem permissão de edição.
+  <button onclick="eppExitViewerPreview()" style="margin-left:16px;background:white;color:#8b5cf6;border:none;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;cursor:pointer;">↩ Voltar ao Admin</button>
 </div>
 
 <!-- MODAL PERMISSÕES -->
