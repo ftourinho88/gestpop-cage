@@ -3675,13 +3675,17 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
 
     <!-- Charts -->
     <div id="indcage-charts-area" class="indcage-charts-row" style="display:none;">
-      <div class="indcage-chart-card">
+      <div class="indcage-chart-card" id="indcage-chart-card-evo">
         <div class="indcage-chart-title">📈 Evolução do Indicador (últimos 18 meses)</div>
         <div class="indcage-chart-wrap"><canvas id="indcage-chart-evolucao"></canvas></div>
       </div>
-      <div class="indcage-chart-card">
+      <div class="indcage-chart-card" id="indcage-chart-card-yoy">
         <div class="indcage-chart-title">📊 Comparativo Ano a Ano (mesmo mês)</div>
         <div class="indcage-chart-wrap"><canvas id="indcage-chart-yoy"></canvas></div>
+      </div>
+      <div class="indcage-chart-card" id="indcage-chart-card-abs" style="display:none;grid-column:1/-1;">
+        <div class="indcage-chart-title">📊 Evolução — Número Absoluto vs Meta (últimos 18 meses)</div>
+        <div class="indcage-chart-wrap"><canvas id="indcage-chart-absoluto"></canvas></div>
       </div>
     </div>
 
@@ -12211,6 +12215,7 @@ function saveStatusModal() {
   let _editId = null;   // ID do indicador sendo editado (null = novo)
   let _chartEvo = null;  // Chart.js instance - evolução
   let _chartYoy = null;  // Chart.js instance - year-over-year
+  let _chartAbs = null;  // Chart.js instance - número absoluto
 
   // ─── Data init ────────────────────────────────────────────────────
   function ensureData() {
@@ -12810,6 +12815,7 @@ function saveStatusModal() {
   function _destroyCharts() {
     if(_chartEvo) { _chartEvo.destroy(); _chartEvo = null; }
     if(_chartYoy) { _chartYoy.destroy(); _chartYoy = null; }
+    if(_chartAbs) { _chartAbs.destroy(); _chartAbs = null; }
   }
 
   function _renderCharts(codigo, divisao) {
@@ -12821,66 +12827,116 @@ function saveStatusModal() {
 
     if(all.length === 0) return;
 
-    // ── Chart 1: Evolução (últimos 18 meses) ──────────────────────
-    const last18 = all.slice(-18);
-    const labels = last18.map(r => _periodoLabel(r.periodo));
-    const realizado  = last18.map(r => r.pctRealizado);
-    const meta       = last18.map(r => r.pctIndice !== null ? r.pctIndice : (r.meta ? null : null));
-    const pctIndice  = last18.map(r => r.pctIndice);
+    // Detectar se o indicador possui dados percentuais
+    const hasPercentage = all.some(r => r.pctRealizado !== null && r.pctRealizado !== undefined);
 
-    const ctxEvo = document.getElementById('indcage-chart-evolucao');
-    if(ctxEvo) {
-      _chartEvo = new Chart(ctxEvo, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'), borderRadius:4, order:2 },
-            { label:'% Índice (meta)', data: pctIndice, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
-          ]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ labels:{ font:{ size:11 } } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
-          scales:{ y:{ beginAtZero:true, ticks:{ callback: v => v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:9}, maxRotation:45} } }
-        }
+    const cardEvo = document.getElementById('indcage-chart-card-evo');
+    const cardYoy = document.getElementById('indcage-chart-card-yoy');
+    const cardAbs = document.getElementById('indcage-chart-card-abs');
+
+    if(hasPercentage) {
+      // ── Exibir gráficos percentuais, ocultar gráfico absoluto ──
+      if(cardEvo) cardEvo.style.display = '';
+      if(cardYoy) cardYoy.style.display = '';
+      if(cardAbs) cardAbs.style.display = 'none';
+
+      // ── Chart 1: Evolução (últimos 18 meses) ──────────────────────
+      const last18 = all.slice(-18);
+      const labels = last18.map(r => _periodoLabel(r.periodo));
+      const realizado = last18.map(r => r.pctRealizado);
+      const pctIndice = last18.map(r => r.pctIndice);
+
+      const ctxEvo = document.getElementById('indcage-chart-evolucao');
+      if(ctxEvo) {
+        _chartEvo = new Chart(ctxEvo, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label:'% Realizado', data: realizado, backgroundColor: realizado.map(v => v===null?'#cbd5e1':v>=100?'rgba(22,163,74,.7)':v>=80?'rgba(234,179,8,.7)':'rgba(220,38,38,.7)'), borderRadius:4, order:2 },
+              { label:'% Índice (meta)', data: pctIndice, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
+            ]
+          },
+          options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ labels:{ font:{ size:11 } } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback: v => v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:9}, maxRotation:45} } }
+          }
+        });
+      }
+
+      // ── Chart 2: Year-over-year comparison ────────────────────────
+      const byYearMonth = {};
+      all.forEach(r => {
+        if(!r.periodo) return;
+        const [yr, mo] = r.periodo.split('-');
+        if(!yr || !mo) return;
+        if(!byYearMonth[yr]) byYearMonth[yr] = {};
+        byYearMonth[yr][mo] = r.pctRealizado;
       });
-    }
+      const years = Object.keys(byYearMonth).sort().slice(-3);
+      const months = [...new Set(all.map(r => r.periodo?.slice(5,7)).filter(Boolean))].sort();
+      const monthLabels = months.map(m => { const d=new Date(2000,parseInt(m)-1,1); return d.toLocaleString('pt-BR',{month:'short'}); });
+      const palette = ['#0a2540','#00a86b','#e8a020'];
+      const yoyDatasets = years.map((yr, yi) => ({
+        label: yr,
+        data: months.map(m => byYearMonth[yr]?.[m] ?? null),
+        backgroundColor: palette[yi] + 'cc',
+        borderColor: palette[yi],
+        borderWidth: 1.5,
+        borderRadius: 4
+      }));
 
-    // ── Chart 2: Year-over-year comparison ────────────────────────
-    // Agrupar por mês, mostrar anos distintos
-    const byYearMonth = {};
-    all.forEach(r => {
-      if(!r.periodo) return;
-      const [yr, mo] = r.periodo.split('-');
-      if(!yr || !mo) return;
-      if(!byYearMonth[yr]) byYearMonth[yr] = {};
-      byYearMonth[yr][mo] = r.pctRealizado;
-    });
-    const years = Object.keys(byYearMonth).sort().slice(-3); // max 3 anos
-    const months = [...new Set(all.map(r => r.periodo?.slice(5,7)).filter(Boolean))].sort();
-    const monthLabels = months.map(m => { const d=new Date(2000,parseInt(m)-1,1); return d.toLocaleString('pt-BR',{month:'short'}); });
-    const palette = ['#0a2540','#00a86b','#e8a020'];
-    const yoyDatasets = years.map((yr, yi) => ({
-      label: yr,
-      data: months.map(m => byYearMonth[yr]?.[m] ?? null),
-      backgroundColor: palette[yi] + 'cc',
-      borderColor: palette[yi],
-      borderWidth: 1.5,
-      borderRadius: 4
-    }));
+      const ctxYoy = document.getElementById('indcage-chart-yoy');
+      if(ctxYoy) {
+        _chartYoy = new Chart(ctxYoy, {
+          type: 'bar',
+          data: { labels: monthLabels, datasets: yoyDatasets },
+          options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ labels:{ font:{size:11} } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:10}} } }
+          }
+        });
+      }
 
-    const ctxYoy = document.getElementById('indcage-chart-yoy');
-    if(ctxYoy) {
-      _chartYoy = new Chart(ctxYoy, {
-        type: 'bar',
-        data: { labels: monthLabels, datasets: yoyDatasets },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ labels:{ font:{size:11} } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw)+'%':'—') } } },
-          scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>v+'%', font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:10}} } }
-        }
+    } else {
+      // ── Sem dados percentuais: exibir gráfico de número absoluto ──
+      if(cardEvo) cardEvo.style.display = 'none';
+      if(cardYoy) cardYoy.style.display = 'none';
+      if(cardAbs) cardAbs.style.display = '';
+
+      const last18 = all.slice(-18);
+      const labels = last18.map(r => _periodoLabel(r.periodo));
+      const realizadoAbs = last18.map(r => r.realizado !== undefined ? r.realizado : null);
+      const metaAbs = last18.map(r => r.meta !== undefined ? r.meta : null);
+
+      const bgColors = realizadoAbs.map((v, i) => {
+        if(v === null) return '#cbd5e1';
+        const m = metaAbs[i];
+        if(m === null || m === 0) return 'rgba(10,37,64,.7)';
+        const ratio = v / m * 100;
+        return ratio >= 100 ? 'rgba(22,163,74,.7)' : ratio >= 80 ? 'rgba(234,179,8,.7)' : 'rgba(220,38,38,.7)';
       });
+
+      const ctxAbs = document.getElementById('indcage-chart-absoluto');
+      if(ctxAbs) {
+        _chartAbs = new Chart(ctxAbs, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label:'Realizado', data: realizadoAbs, backgroundColor: bgColors, borderRadius:4, order:2 },
+              { label:'Meta', data: metaAbs, type:'line', borderColor:'#0a2540', backgroundColor:'rgba(10,37,64,.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, order:1 }
+            ]
+          },
+          options: {
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ labels:{ font:{ size:11 } } }, tooltip:{ callbacks:{ label: ctx => ctx.dataset.label+': '+(ctx.raw!==null?_fmtNum(ctx.raw):'—') } } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback: v => _fmtNum(v), font:{size:10} }, grid:{color:'rgba(0,0,0,.05)'} }, x:{ ticks:{font:{size:9}, maxRotation:45} } }
+          }
+        });
+      }
     }
   }
 
