@@ -10401,7 +10401,7 @@ async function repoExtractPdfText(source) {
     }
     const pdf = await pdfjsLib.getDocument({ data }).promise;
     let text = '';
-    const maxPages = Math.min(pdf.numPages, 50);
+    const maxPages = pdf.numPages; // sem limite de páginas
     for(let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -10439,6 +10439,43 @@ async function repoIndexPdf(id) {
   repoRender();
   saveToCloud();
   showToast(text ? '✅ PDF indexado! Agora é pesquisável.' : '⚠️ Não foi possível extrair texto deste PDF.', text ? 'success' : 'warn');
+}
+
+// Gera FAQs por IA a partir do PDF completo (via Gemini Vision)
+async function repoGenerateFaqsFromPdf(id) {
+  const d = REPO_DOCS.find(x => x.id === id);
+  if(!d || !d.fileUrl) return;
+  const btn = document.getElementById('repo-faq-btn-' + id);
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Gerando FAQs…'; }
+  showToast('⏳ Gerando FAQs com IA, aguarde…', 'info');
+  try {
+    const resp = await fetch(d.fileUrl);
+    if(!resp.ok) throw new Error('Não foi possível baixar o PDF');
+    const blob = await resp.blob();
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(blob);
+    });
+    const mimeType = 'application/pdf';
+    const prompt = `Você é um especialista em processos e gestão pública. Analise o documento PDF completo enviado e gere entre 5 e 10 perguntas frequentes (FAQ) realistas que usuários, servidores ou gestores fariam sobre este documento.\n\nRegras:\n- Leia o documento INTEIRO antes de gerar as perguntas\n- As perguntas devem ser práticas e relevantes ao conteúdo real do documento\n- As respostas devem ser claras, objetivas e baseadas apenas no conteúdo do documento\n- Nunca invente informações que não estejam no documento\n\nRetorne APENAS JSON puro (sem markdown, sem \`\`\`):\n[{"q":"pergunta","a":"resposta"},...]`;
+    const text = await callGeminiProxy(prompt, { data: base64, mimeType });
+    let clean = text.trim();
+    const jsonMatch = clean.match(/\[[\s\S]*\]/);
+    if(jsonMatch) clean = jsonMatch[0];
+    else clean = clean.replace(/```json|```/g, '').trim();
+    const faqs = JSON.parse(clean);
+    if(!Array.isArray(faqs) || faqs.length === 0) throw new Error('Formato inválido');
+    d.faqs = faqs.filter(f => f.q && f.a);
+    repoRender();
+    saveToCloud();
+    showToast(`✅ ${d.faqs.length} FAQs geradas com sucesso!`, 'success');
+  } catch(e) {
+    console.error(e);
+    showToast('Erro ao gerar FAQs: ' + e.message, 'warn');
+    if(btn) { btn.disabled = false; btn.textContent = '🤖 Gerar FAQs'; }
+  }
 }
 
 function repoRender() {
@@ -10480,10 +10517,25 @@ function repoRender() {
         if(!inContent) return '';
         return `<div style="font-size:11px;color:#374151;background:#f0fdf4;border-left:3px solid #00a86b;border-radius:0 6px 6px 0;padding:6px 10px;line-height:1.6;">🔍 Encontrado no conteúdo: ${repoGetExcerpt(d.textContent, sq)}</div>`;
       })()}
+      ${(d.faqs && d.faqs.length > 0) ? `
+      <details style="margin-top:4px;">
+        <summary style="font-size:12px;font-weight:600;color:#2563eb;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;">
+          <span>💬 FAQs geradas por IA (${d.faqs.length})</span>
+        </summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          ${d.faqs.map((f,i) => `
+          <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;border-left:3px solid #2563eb;">
+            <div style="font-size:12px;font-weight:600;color:#0a2540;margin-bottom:4px;">${i+1}. ${f.q}</div>
+            <div style="font-size:12px;color:#374151;line-height:1.5;">${f.a}</div>
+          </div>`).join('')}
+          <button class="btn btn-outline" onclick="repoGenerateFaqsFromPdf('${d.id}')" id="repo-faq-btn-${d.id}" style="font-size:11px;color:#2563eb;border-color:#93c5fd;">🔄 Regenerar FAQs</button>
+        </div>
+      </details>` : ''}
       <div style="font-size:11px;color:#94a3b8;">${d.fileName || ''} · ${new Date(d.uploadedAt).toLocaleDateString('pt-BR')}${d.textContent ? ' · <span style="color:#00a86b;">✓ indexado</span>' : ''}</div>
       <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
         ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="btn btn-outline" style="font-size:12px;text-decoration:none;flex:1;text-align:center;">⬇ Baixar</a>` : ''}
         ${(d.fileType==='pdf' && d.fileUrl && !d.textContent) ? `<button class="btn btn-outline" onclick="repoIndexPdf('${d.id}')" style="font-size:12px;flex:1;" title="Indexar conteúdo para pesquisa">🔍 Indexar</button>` : ''}
+        ${(d.fileType==='pdf' && d.fileUrl && !(d.faqs && d.faqs.length)) ? `<button class="btn btn-outline" onclick="repoGenerateFaqsFromPdf('${d.id}')" id="repo-faq-btn-${d.id}" style="font-size:12px;flex:1;color:#2563eb;border-color:#93c5fd;" title="Gerar FAQs com IA">🤖 Gerar FAQs</button>` : ''}
         <button class="btn btn-outline" onclick="repoEditDoc('${d.id}')" style="font-size:12px;flex:1;">✏️ Editar</button>
         <button class="btn btn-outline" onclick="repoDeleteDoc('${d.id}')" style="font-size:12px;color:#e11d48;border-color:#fda4af;">🗑</button>
       </div>
