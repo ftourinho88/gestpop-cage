@@ -20,6 +20,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -10381,12 +10382,71 @@ function repoDetectType(fileName) {
   return 'outro';
 }
 
+// ── PDF.js: configura worker ───────────────────────────────────────────────
+if(typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+}
+
+// Extrai texto de um PDF (File ou URL string). Retorna string vazia em caso de erro.
+async function repoExtractPdfText(source) {
+  if(typeof pdfjsLib === 'undefined') return '';
+  try {
+    let data;
+    if(source instanceof File) {
+      data = await source.arrayBuffer();
+    } else {
+      const resp = await fetch(source);
+      data = await resp.arrayBuffer();
+    }
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    let text = '';
+    const maxPages = Math.min(pdf.numPages, 50);
+    for(let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(s => s.str).join(' ') + '\n';
+    }
+    return text.trim();
+  } catch(e) {
+    console.warn('[Repo] Extração de texto PDF falhou:', e);
+    return '';
+  }
+}
+
+// Retorna trecho com termo destacado para exibição nos cards
+function repoGetExcerpt(text, q) {
+  if(!text || !q) return '';
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if(idx < 0) return '';
+  const start = Math.max(0, idx - 80);
+  const end   = Math.min(text.length, idx + q.length + 80);
+  let excerpt = text.slice(start, end).replace(/\s+/g, ' ').trim();
+  if(start > 0) excerpt = '…' + excerpt;
+  if(end < text.length) excerpt += '…';
+  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return excerpt.replace(re, '<mark style="background:#fef08a;padding:0 2px;border-radius:2px;">$1</mark>');
+}
+
+// Indexa PDF já salvo (busca via URL) e persiste textContent
+async function repoIndexPdf(id) {
+  const d = REPO_DOCS.find(x => x.id === id);
+  if(!d || !d.fileUrl) return;
+  showToast('⏳ Indexando PDF, aguarde…', 'info');
+  const text = await repoExtractPdfText(d.fileUrl);
+  d.textContent = text;
+  repoRender();
+  saveToCloud();
+  showToast(text ? '✅ PDF indexado! Agora é pesquisável.' : '⚠️ Não foi possível extrair texto deste PDF.', text ? 'success' : 'warn');
+}
+
 function repoRender() {
   const q = (document.getElementById('repo-search')?.value || '').toLowerCase();
   const ftype = document.getElementById('repo-filter-type')?.value || '';
   const fcat  = document.getElementById('repo-filter-cat')?.value || '';
   let docs = REPO_DOCS.filter(d => {
-    if(q && !d.title.toLowerCase().includes(q) && !(d.desc||'').toLowerCase().includes(q)) return false;
+    if(q && !d.title.toLowerCase().includes(q) && !(d.desc||'').toLowerCase().includes(q) && !(d.textContent||'').toLowerCase().includes(q)) return false;
     if(ftype && d.fileType !== ftype) return false;
     if(fcat && d.cat !== fcat) return false;
     return true;
@@ -10411,9 +10471,19 @@ function repoRender() {
         </div>
       </div>
       ${d.desc ? `<div style="font-size:12px;color:#64748b;line-height:1.5;">${d.desc}</div>` : ''}
-      <div style="font-size:11px;color:#94a3b8;">${d.fileName || ''} · ${new Date(d.uploadedAt).toLocaleDateString('pt-BR')}</div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
+      ${(()=>{
+        const sq = (document.getElementById('repo-search')?.value||'').trim();
+        if(!sq || !d.textContent) return '';
+        const inContent = d.textContent.toLowerCase().includes(sq.toLowerCase())
+          && !d.title.toLowerCase().includes(sq.toLowerCase())
+          && !(d.desc||'').toLowerCase().includes(sq.toLowerCase());
+        if(!inContent) return '';
+        return `<div style="font-size:11px;color:#374151;background:#f0fdf4;border-left:3px solid #00a86b;border-radius:0 6px 6px 0;padding:6px 10px;line-height:1.6;">🔍 Encontrado no conteúdo: ${repoGetExcerpt(d.textContent, sq)}</div>`;
+      })()}
+      <div style="font-size:11px;color:#94a3b8;">${d.fileName || ''} · ${new Date(d.uploadedAt).toLocaleDateString('pt-BR')}${d.textContent ? ' · <span style="color:#00a86b;">✓ indexado</span>' : ''}</div>
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
         ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="btn btn-outline" style="font-size:12px;text-decoration:none;flex:1;text-align:center;">⬇ Baixar</a>` : ''}
+        ${(d.fileType==='pdf' && d.fileUrl && !d.textContent) ? `<button class="btn btn-outline" onclick="repoIndexPdf('${d.id}')" style="font-size:12px;flex:1;" title="Indexar conteúdo para pesquisa">🔍 Indexar</button>` : ''}
         <button class="btn btn-outline" onclick="repoEditDoc('${d.id}')" style="font-size:12px;flex:1;">✏️ Editar</button>
         <button class="btn btn-outline" onclick="repoDeleteDoc('${d.id}')" style="font-size:12px;color:#e11d48;border-color:#fda4af;">🗑</button>
       </div>
@@ -10505,6 +10575,12 @@ async function repoSaveDoc() {
       fileType = repoDetectType(repoPendingFile.name);
       bar.style.width = '100%';
       msg.textContent = 'Upload concluído!';
+
+      // Extrai texto do PDF para pesquisa interna
+      if(fileType === 'pdf') {
+        msg.textContent = 'Indexando texto do PDF…';
+        var _extractedText = await repoExtractPdfText(repoPendingFile);
+      }
     } catch(err) {
       prog.style.display = 'none';
       bar.style.width = '0%';
@@ -10524,8 +10600,9 @@ async function repoSaveDoc() {
     filePath:   filePath  || (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.filePath  : ''),
     fileName:   fileName  || (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.fileName  : ''),
     fileSize:   fileSize  || (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.fileSize  : ''),
-    fileType:   fileType  !== 'outro' ? fileType : (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.fileType : 'outro'),
-    uploadedAt: repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.uploadedAt : new Date().toISOString(),
+    fileType:    fileType  !== 'outro' ? fileType : (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.fileType : 'outro'),
+    uploadedAt:  repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.uploadedAt : new Date().toISOString(),
+    textContent: (typeof _extractedText !== 'undefined' ? _extractedText : null) ?? (repoEditingId ? REPO_DOCS.find(x=>x.id===repoEditingId)?.textContent : null),
   };
 
   if(repoEditingId) {

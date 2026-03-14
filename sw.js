@@ -1,7 +1,7 @@
 // ─── Service Worker — processoscage ───────────────────────────────────────────
 // Para forçar atualização em todos os usuários: incremente CACHE_VERSION abaixo.
-// Exemplo: 'gestpop-v2' → 'gestpop-v3'
-const CACHE_VERSION = 'gestpop-v2';
+// Exemplo: 'processoscage-v1' → 'processoscage-v2'
+const CACHE_VERSION = 'processoscage-v1';
 
 // ── Install: ativa imediatamente sem esperar abas antigas fecharem ────────────
 self.addEventListener('install', () => {
