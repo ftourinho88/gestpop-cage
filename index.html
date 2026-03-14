@@ -3619,7 +3619,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
     <div class="indcage-import-bar">
       <div style="flex:1;min-width:200px;">
         <div style="font-size:13px;font-weight:700;color:#0a2540;">📥 Importar Planilha SISPLAN</div>
-        <div style="font-size:11px;color:#64748b;margin-top:2px;">Colunas esperadas: Divisão, Código, Tipo Nível, Enunciado, Período Aval., Justificativa, Análise, % Índice, Meta, Realizado, % Realizado, Análise, Realizado Acúm., % Realiz. Acúm.</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px;">Colunas esperadas: 🧰️ Divisão · ☑️ Indicador · 🔤 Enunciado Ind. · 🔡 Descrição Ind. · 📅 Período · 〽️ % Índice · 💹 Meta · ✔️ Realizado · 〽️ % Realizado · 🔡 Análise · ✔️ Realizado Acúm. · 〽️ % Realiz. Acúm.</div>
       </div>
       <label class="btn btn-primary" style="font-size:12px;padding:8px 16px;cursor:pointer;margin:0;">
         📂 Escolher Arquivo Excel
@@ -3631,6 +3631,10 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
 
     <!-- Filters -->
     <div class="indcage-filter-bar">
+      <div class="indcage-filter-group" style="flex:1;min-width:200px;">
+        <label class="indcage-filter-label">🔍 Buscar por texto</label>
+        <input id="indcage-res-search" type="text" class="indcage-filter-select" placeholder="Buscar por indicador, enunciado, descrição…" style="width:100%;padding:7px 10px;font-size:13px;" oninput="indcageRenderResultados()">
+      </div>
       <div class="indcage-filter-group">
         <label class="indcage-filter-label">Indicador</label>
         <select id="indcage-res-filter-ind" class="indcage-filter-select" onchange="indcageRenderResultados()">
@@ -3655,6 +3659,12 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
           <option value="">Todos os períodos</option>
         </select>
       </div>
+    </div>
+
+    <!-- Dados básicos do indicador selecionado -->
+    <div id="indcage-ind-info" style="display:none;background:#f0f7ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">☑️ Dados do Indicador Selecionado</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 20px;" id="indcage-ind-info-body"></div>
     </div>
 
     <!-- KPIs do período selecionado -->
@@ -3683,8 +3693,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
           <tr>
             <th>Período</th>
             <th>Divisão</th>
-            <th>Código</th>
-            <th>Tipo/Nível</th>
+            <th>Indicador</th>
             <th>Enunciado</th>
             <th>Meta</th>
             <th>Realizado</th>
@@ -12444,22 +12453,28 @@ function saveStatusModal() {
         // Map column indices
         const col = {};
         headers.forEach((h, i) => {
-          if(h.includes('divis'))      col.divisao = i;
-          if(h.includes('digo') || (h.includes('cod') && !h.includes('per'))) col.codigo = i;
+          if(h.includes('divis')) col.divisao = i;
+          // '☑️ Indicador' → 'indicador' (novo) ou 'Código' → 'digo'/'cod' (legado)
+          if(h.includes('digo') || (h.includes('cod') && !h.includes('per')) || (h.includes('indicador') && !h.includes('enunciado'))) col.codigo = i;
           if(h.includes('tipo') || h.includes('nivel') || h.includes('nvel')) col.tipoNivel = i;
-          if(h.includes('enunciado') || h.includes('indicador')) col.enunciado = i;
+          // '🔤 Enunciado Ind.' → 'enunciado' (novo) ou 'Enunciado' (legado)
+          if(h.includes('enunciado')) col.enunciado = i;
+          // '🔡 Descrição Ind.' → 'descrição'/'descri' (novo)
+          if(h.includes('descri')) col.descricao = i;
           if(h.includes('period') || h.includes('aval')) col.periodo = i;
-          if(h.includes('justificativa'))  col.justificativa = i;
+          if(h.includes('justificativa')) col.justificativa = i;
           if(h.includes('ndice') || h.includes('indice')) col.pctIndice = i;
           if(h.includes('meta') && col.meta === undefined) col.meta = i;
-          if(h.includes('realizado') && !h.includes('acum') && !h.includes('cumul') && col.realizado === undefined) col.realizado = i;
-          if(h.includes('realizado') && !h.includes('acum') && h.includes('%') && col.pctRealizado === undefined) col.pctRealizado = i;
-          if((h.includes('acum') || h.includes('cumul')) && !h.includes('%') && col.realizadoAcum === undefined) col.realizadoAcum = i;
-          if((h.includes('acum') || h.includes('cumul')) && h.includes('%') && col.pctRealizAcum === undefined) col.pctRealizAcum = i;
+          // Excluir colunas com 'acum'/'acúm' para não confundir com realizado simples
+          if(h.includes('realizado') && !h.includes('acum') && !h.includes('acúm') && !h.includes('cumul') && !h.includes('%') && col.realizado === undefined) col.realizado = i;
+          if(h.includes('realizado') && !h.includes('acum') && !h.includes('acúm') && !h.includes('cumul') && h.includes('%') && col.pctRealizado === undefined) col.pctRealizado = i;
+          if((h.includes('acum') || h.includes('acúm') || h.includes('cumul')) && !h.includes('%') && col.realizadoAcum === undefined) col.realizadoAcum = i;
+          if((h.includes('acum') || h.includes('acúm') || h.includes('cumul')) && h.includes('%') && col.pctRealizAcum === undefined) col.pctRealizAcum = i;
         });
         // Análise columns: find by position among remaining 'analise' cols
+        // Suporta tanto 'Analise' (sem acento) quanto 'Análise' (com acento → 'nális')
         const analiseIdxs = [];
-        headers.forEach((h, i) => { if(h.includes('anali') || h.includes('anlise')) analiseIdxs.push(i); });
+        headers.forEach((h, i) => { if(h.includes('anali') || h.includes('anlise') || h.includes('nális') || h.includes('álise')) analiseIdxs.push(i); });
         if(analiseIdxs.length >= 1) col.analise  = analiseIdxs[0];
         if(analiseIdxs.length >= 2) col.analise2 = analiseIdxs[1];
         // % Realizado — if not found by %, find after realizado column
@@ -12483,6 +12498,7 @@ function saveStatusModal() {
             codigo,
             tipoNivel:     col.tipoNivel    !== undefined ? String(r[col.tipoNivel]).trim()     : '',
             enunciado,
+            descricao:     col.descricao    !== undefined ? String(r[col.descricao]).trim()     : '',
             periodo,
             justificativa: col.justificativa!== undefined ? String(r[col.justificativa]).trim(): '',
             analise:       col.analise      !== undefined ? String(r[col.analise]).trim()       : '',
@@ -12515,6 +12531,7 @@ function saveStatusModal() {
               id: 'ic_auto_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
               codigo: nr.codigo,
               enunciado: nr.enunciado,
+              descricao: nr.descricao || '',
               sisplan: '',
               nivel: _guessNivel(nr.tipoNivel),
               divisao: nr.divisao,
@@ -12633,14 +12650,44 @@ function saveStatusModal() {
     const selDiv = fDiv?.value || '';
     const selAno = fAno?.value || '';
     const selPer = fPer?.value || '';
+    const selSearch = (document.getElementById('indcage-res-search')?.value || '').toLowerCase().trim();
 
     let filtered = resultados.filter(r => {
       if(selInd && r.codigo !== selInd) return false;
       if(selDiv && r.divisao !== selDiv) return false;
       if(selAno && !(r.periodo||'').startsWith(selAno)) return false;
       if(selPer && r.periodo !== selPer) return false;
+      if(selSearch) {
+        const haystack = [r.codigo, r.enunciado, r.descricao, r.divisao, r.analise].filter(Boolean).join(' ').toLowerCase();
+        if(!haystack.includes(selSearch)) return false;
+      }
       return true;
     });
+
+    // Painel de dados básicos do indicador selecionado
+    const infoPanel = document.getElementById('indcage-ind-info');
+    const infoBody  = document.getElementById('indcage-ind-info-body');
+    if(selInd && infoPanel && infoBody) {
+      const sample = resultados.filter(r => r.codigo === selInd).sort((a,b) => (b.periodo||'').localeCompare(a.periodo||''))[0];
+      if(sample) {
+        const fields = [
+          { label: '☑️ Indicador',     value: sample.codigo },
+          { label: '🔤 Enunciado',      value: sample.enunciado },
+          { label: '🔡 Descrição',      value: sample.descricao },
+          { label: '🧰️ Divisão',       value: sample.divisao },
+        ].filter(f => f.value);
+        infoBody.innerHTML = fields.map(f => `
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">${f.label}</div>
+            <div style="font-size:13px;color:#0a2540;font-weight:500;">${f.value}</div>
+          </div>`).join('');
+        infoPanel.style.display = 'block';
+      } else {
+        infoPanel.style.display = 'none';
+      }
+    } else if(infoPanel) {
+      infoPanel.style.display = 'none';
+    }
 
     // Sort by periodo desc
     filtered = filtered.slice().sort((a,b) => (b.periodo||'').localeCompare(a.periodo||''));
@@ -12675,7 +12722,7 @@ function saveStatusModal() {
     if(count) count.textContent = filtered.length + ' registro(s)';
     if(!tbody) return;
     if(filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#94a3b8;padding:24px;">Nenhum resultado para os filtros selecionados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:24px;">Nenhum resultado para os filtros selecionados.</td></tr>`;
       return;
     }
     tbody.innerHTML = filtered.map(r => {
@@ -12686,7 +12733,6 @@ function saveStatusModal() {
         <td style="white-space:nowrap;font-weight:600;">${_periodoLabel(r.periodo)}</td>
         <td>${r.divisao || '—'}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${r.codigo || '—'}</td>
-        <td>${r.tipoNivel || '—'}</td>
         <td style="max-width:220px;">${r.enunciado || '—'}</td>
         <td style="text-align:right;">${r.meta !== null ? _fmtNum(r.meta) : '—'}</td>
         <td style="text-align:right;">${r.realizado !== null ? _fmtNum(r.realizado) : '—'}</td>
@@ -12694,7 +12740,7 @@ function saveStatusModal() {
         <td style="text-align:center;">${r.pctIndice !== null ? `<span class="indcage-pct-pill pct-cinza">${_fmtNum(r.pctIndice)}%</span>` : '—'}</td>
         <td style="text-align:right;">${r.realizadoAcum !== null ? _fmtNum(r.realizadoAcum) : '—'}</td>
         <td style="text-align:center;">${r.pctRealizAcum !== null ? `<span class="indcage-pct-pill ${pctAcClass}">${_fmtNum(r.pctRealizAcum)}%</span>` : '—'}</td>
-        <td style="max-width:180px;font-size:11px;color:#475569;">${r.analise2 || r.analise || '—'}</td>
+        <td style="max-width:180px;font-size:11px;color:#475569;">${r.analise || '—'}</td>
       </tr>`;
     }).join('');
   };
