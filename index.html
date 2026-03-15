@@ -10405,8 +10405,9 @@ function homeRefresh() {
   const data = arqGetData();
 
   // Stats
-  const macros = new Set(data.map(r => r.macroprocesso)).size;
-  const procs  = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
+  const macros      = new Set(data.map(r => r.macroprocesso)).size;
+  const procs       = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
+  const procsMapeados = new Set(data.filter(r => r.mapeado === true).map(r => r.macroprocesso + '|' + r.processo)).size;
   const popKeys = Object.keys(DATA).filter(k => k.startsWith('pop_'));
 
   const allPopKeys   = ['d', 'r', ...popKeys];
@@ -10418,7 +10419,7 @@ function homeRefresh() {
   const auditConcluidasN = (DATA.audits.plans||[]).filter(p => p.status === 'concluida').length;
 
   document.getElementById('home-stats').innerHTML = [
-    { label: 'POPs cadastrados',        val: popKeys.length,    color: '#00a86b' },
+    { label: 'Processos mapeados',        val: procsMapeados,     color: '#00a86b' },
     { label: 'Macroprocessos',          val: macros,            color: '#0a2540' },
     { label: 'Processos',               val: procs,             color: '#8b5cf6' },
     { label: 'Subprocessos',            val: subprocN,          color: '#0369a1' },
