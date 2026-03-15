@@ -1281,12 +1281,6 @@
       <div class="home-card-desc">Planeje auditorias, execute checklists inteligentes, registre não conformidades e acompanhe planos de ação.</div>
       <div class="home-card-footer" id="home-audit-count">—</div>
     </div>
-    <div class="home-card" onclick="showAuditModule()" style="border-top:4px solid #15803d;">
-      <div class="home-card-icon" style="background:#f0fdf4;color:#15803d;">✅</div>
-      <div class="home-card-title">Processos Auditados</div>
-      <div class="home-card-desc">Auditorias concluídas com relatório final e não conformidades tratadas.</div>
-      <div class="home-card-footer" id="home-audited-count">—</div>
-    </div>
     <div class="home-card" onclick="showIndCageModule()" style="border-top:4px solid #e8a020;">
       <div class="home-card-icon" style="background:#fffbeb;color:#e8a020;">📈</div>
       <div class="home-card-title">Indicadores CAGE</div>
@@ -10359,15 +10353,18 @@ function homeRefresh() {
   const faqN         = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.faqs?.length  || 0), 0);
   const riscosN      = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.risks?.length || 0), 0);
   const indicadoresN = DATA.indicadoresCage?.indicadores?.length || 0;
+  auditEnsure();
+  const auditConcluidasN = (DATA.audits.plans||[]).filter(p => p.status === 'concluida').length;
 
   document.getElementById('home-stats').innerHTML = [
-    { label: 'POPs cadastrados',   val: popKeys.length, color: '#00a86b' },
-    { label: 'Macroprocessos',     val: macros,         color: '#0a2540' },
-    { label: 'Processos',          val: procs,          color: '#8b5cf6' },
-    { label: 'Subprocessos',       val: subprocN,       color: '#0369a1' },
-    { label: 'FAQs cadastradas',   val: faqN,           color: '#d97706' },
-    { label: 'Riscos mapeados',    val: riscosN,        color: '#dc2626' },
-    { label: 'Indicadores',        val: indicadoresN,   color: '#7c3aed' },
+    { label: 'POPs cadastrados',        val: popKeys.length,    color: '#00a86b' },
+    { label: 'Macroprocessos',          val: macros,            color: '#0a2540' },
+    { label: 'Processos',               val: procs,             color: '#8b5cf6' },
+    { label: 'Subprocessos',            val: subprocN,          color: '#0369a1' },
+    { label: 'FAQs cadastradas',        val: faqN,              color: '#d97706' },
+    { label: 'Riscos mapeados',         val: riscosN,           color: '#dc2626' },
+    { label: 'Indicadores',             val: indicadoresN,      color: '#7c3aed' },
+    { label: 'Auditorias concluídas',   val: auditConcluidasN,  color: '#15803d' },
   ].map(s => `<div style="background:white;border-radius:10px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
     <div style="font-size:12px;color:#64748b;">${s.label}</div>
@@ -10384,12 +10381,6 @@ function homeRefresh() {
     const planCount = DATA.audits.plans.length;
     const ncCount = DATA.audits.nonconformities.filter(nc=>nc.status==='aberta').length;
     auditCountEl.textContent = planCount + ' plano(s)' + (ncCount ? ' · ' + ncCount + ' NC(s) abertas' : '');
-  }
-  const auditedCountEl = document.getElementById('home-audited-count');
-  if(auditedCountEl) {
-    auditEnsure();
-    const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
-    auditedCountEl.textContent = concluidos + ' auditoria' + (concluidos!==1?'s':'') + ' concluída' + (concluidos!==1?'s':'');
   }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
