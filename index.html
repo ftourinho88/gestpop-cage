@@ -1167,7 +1167,7 @@
   <div class="sidebar-head">
     <div class="sidebar-title">Processos</div>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showHome();" style="margin-bottom:8px;background:rgba(0,168,107,.15);color:#6ee7b7;border-color:rgba(0,168,107,.3);">🏠 Página Inicial</button>
-    <button class="sidebar-pat-btn" onclick="closeSidebar();showRepoModule();" style="margin-bottom:4px;background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.3);">📚 Metodologia e Manuais</button>
+    <button class="sidebar-pat-btn" onclick="closeSidebar();showRepoModule();" style="margin-bottom:4px;background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.3);">📚 Documentos e Manuais</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showDropsModule();" style="margin-bottom:4px;background:rgba(14,165,233,.12);color:#7dd3fc;border-color:rgba(14,165,233,.3);">💧 Drops de Conhecimento</button>
     <button class="sidebar-pat-btn" onclick="closeSidebar();showAuditModule();" style="margin-bottom:8px;background:rgba(220,38,38,.12);color:#fca5a5;border-color:rgba(220,38,38,.3);">🔍 Auditoria de Processos</button>
         <button class="sidebar-pat-btn" onclick="closeSidebar();openEppIfAllowed();" style="margin-bottom:4px;background:rgba(59,130,246,.12);color:#93c5fd;border-color:rgba(59,130,246,.3);">🏢 Gestão Escritório de Processos</button>
@@ -1265,7 +1265,7 @@
     </div>
     <div class="home-card" onclick="showRepoModule()" style="border-top:4px solid #e11d48;">
       <div class="home-card-icon" style="background:#fff1f2;color:#e11d48;">📚</div>
-      <div class="home-card-title">Metodologia e Manuais</div>
+      <div class="home-card-title">Documentos e Manuais</div>
       <div class="home-card-desc">Repositório de documentos do escritório de processos: PDFs, Word, apresentações e imagens.</div>
       <div class="home-card-footer" id="home-repo-count">—</div>
     </div>
@@ -1280,6 +1280,12 @@
       <div class="home-card-title">Auditoria de Processos</div>
       <div class="home-card-desc">Planeje auditorias, execute checklists inteligentes, registre não conformidades e acompanhe planos de ação.</div>
       <div class="home-card-footer" id="home-audit-count">—</div>
+    </div>
+    <div class="home-card" onclick="showAuditModule()" style="border-top:4px solid #15803d;">
+      <div class="home-card-icon" style="background:#f0fdf4;color:#15803d;">✅</div>
+      <div class="home-card-title">Processos Auditados</div>
+      <div class="home-card-desc">Auditorias concluídas com relatório final e não conformidades tratadas.</div>
+      <div class="home-card-footer" id="home-audited-count">—</div>
     </div>
     <div class="home-card" onclick="showIndCageModule()" style="border-top:4px solid #e8a020;">
       <div class="home-card-icon" style="background:#fffbeb;color:#e8a020;">📈</div>
@@ -2842,7 +2848,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
 <div id="repo-module" style="display:none;padding:32px 24px 60px;max-width:1100px;margin:0 auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;">
     <div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:#0a2540;margin:0 0 4px;">📚 Metodologia e Manuais</h2>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:26px;color:#0a2540;margin:0 0 4px;">📚 Documentos e Manuais</h2>
       <div style="font-size:13px;color:#64748b;">Repositório de documentos do Escritório de Processos</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -3061,6 +3067,8 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
     <button class="audit-tab"        data-tab="exec"     onclick="auditTab('exec',this)">▶ Execução</button>
     <button class="audit-tab"        data-tab="nc"       onclick="auditTab('nc',this)">⚠️ Não Conformidades</button>
     <button class="audit-tab"        data-tab="actions"  onclick="auditTab('actions',this)">✅ Plano de Ação</button>
+    <button class="audit-tab"        data-tab="trail"    onclick="auditTab('trail',this)">🕐 Trilha</button>
+    <button class="audit-tab"        data-tab="heatmap"  onclick="auditTab('heatmap',this)">🗺 Matriz de Riscos</button>
   </div>
 
   <!-- Tab: Planos -->
@@ -3130,6 +3138,39 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
       <div style="font-size:48px;margin-bottom:12px;">✅</div>
       <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhuma ação cadastrada</div>
       <div style="font-size:13px;">Registre não conformidades e crie ações corretivas</div>
+    </div>
+  </div>
+
+  <!-- Tab: Trilha de Auditoria -->
+  <div id="audit-tab-trail" class="audit-tab-panel" style="display:none;">
+    <div style="font-size:14px;font-weight:600;color:#0a2540;margin-bottom:20px;">Trilha de Auditoria — Linha do Tempo</div>
+    <div id="audit-trail-list" style="position:relative;padding-left:32px;">
+      <div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:#e2e8f0;border-radius:2px;"></div>
+    </div>
+    <div id="audit-trail-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">🕐</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Nenhum evento registrado</div>
+      <div style="font-size:13px;">A trilha aparece conforme planos, execuções e NCs são criados</div>
+    </div>
+  </div>
+
+  <!-- Tab: Matriz de Riscos -->
+  <div id="audit-tab-heatmap" class="audit-tab-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:600;color:#0a2540;">Matriz de Riscos por Processo / Etapa</div>
+      <div style="font-size:12px;color:#64748b;">Incidência de não conformidades por etapa do processo</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;font-size:12px;align-items:center;">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#dcfce7;border-radius:3px;border:1px solid #86efac;"></span> 0 NCs</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#fef9c3;border-radius:3px;border:1px solid #fde047;"></span> 1-2 NCs</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#fed7aa;border-radius:3px;border:1px solid #fb923c;"></span> 3-4 NCs</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#fecaca;border-radius:3px;border:1px solid #f87171;"></span> 5+ NCs</span>
+    </div>
+    <div id="audit-heatmap-body"></div>
+    <div id="audit-heatmap-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:48px;margin-bottom:12px;">🗺</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Sem dados suficientes</div>
+      <div style="font-size:13px;">Registre não conformidades vinculadas a processos para visualizar a matriz</div>
     </div>
   </div>
 </div>
@@ -3230,6 +3271,11 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
         <div style="grid-column:1/-1;">
           <label class="audit-label">Observações Gerais</label>
           <textarea class="modal-input" id="ae-obs" rows="2" placeholder="Observações da execução..." style="resize:vertical;min-height:60px;"></textarea>
+        </div>
+        <div style="grid-column:1/-1;">
+          <label class="audit-label">📂 Amostra — Expedientes/Demandas Analisados</label>
+          <textarea class="modal-input" id="ae-amostra" rows="3" placeholder="Liste os expedientes, protocolos, demandas ou solicitações selecionados para análise amostral. Ex: Processo nº 001/2025, Protocolo 12345, Solicitação SEI 6789..." style="resize:vertical;min-height:72px;font-family:monospace;font-size:12px;"></textarea>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Registre os números de identificação dos expedientes utilizados como base da auditoria.</div>
         </div>
       </div>
       <!-- Checklist -->
@@ -8165,7 +8211,7 @@ function runSearch(raw) {
     resultsEl.innerHTML = `<div class="search-empty">
       <div class="search-empty-icon">🔍</div>
       <div style="font-size:14px;font-weight:600;color:var(--cage-blue);">Busca Global</div>
-      <div style="font-size:13px;margin-top:6px;">Pesquise em FAQs, Normas e Metodologias e Manuais de todos os processos.</div>
+      <div style="font-size:13px;margin-top:6px;">Pesquise em FAQs, Normas e Documentos e Manuais de todos os processos.</div>
     </div>`;
     countEl.textContent = '';
     return;
@@ -8266,7 +8312,7 @@ function runSearch(raw) {
             : `goToRepoDoc('${r.doc.id}')`;
           return `
           <div class="search-result-item" onclick="${clickAction}">
-            <div class="search-result-pop">📚 Metodologias & Manuais · ${r.doc.cat||'Documento'}</div>
+            <div class="search-result-pop">📚 Documentos & Manuais · ${r.doc.cat||'Documento'}</div>
             <div class="search-result-q">${highlight(r.doc.title||'', q)}</div>
             ${r.doc.desc ? `<div class="search-result-a">${highlight(r.doc.desc.substring(0,180)+(r.doc.desc.length>180?'…':''), q)}</div>` : ''}
             ${inContent ? `<div style="font-size:11px;color:#374151;background:#f0fdf4;border-left:3px solid #00a86b;border-radius:0 4px 4px 0;padding:4px 8px;margin-top:4px;line-height:1.6;">🔍 Clique para ver o trecho completo no documento</div>` : ''}
@@ -8283,7 +8329,7 @@ function runSearch(raw) {
   resultsEl.innerHTML =
     renderSection(faqResults,     `FAQs (${faqResults.length})`) +
     renderSection(normaResults,   `Normas & Revisões (${normaResults.length})`) +
-    renderSection(repoResults,    `Metodologias & Manuais (${repoResults.length})`) +
+    renderSection(repoResults,    `Documentos & Manuais (${repoResults.length})`) +
     renderSection(repoFaqResults, `FAQs de Manuais (${repoFaqResults.length})`);
 }
 
@@ -10333,6 +10379,13 @@ function homeRefresh() {
     const ncCount = DATA.audits.nonconformities.filter(nc=>nc.status==='aberta').length;
     auditCountEl.textContent = planCount + ' plano(s)' + (ncCount ? ' · ' + ncCount + ' NC(s) abertas' : '');
   }
+  const auditedCountEl = document.getElementById('home-audited-count');
+  if(auditedCountEl) {
+    auditEnsure();
+    const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
+    const total = DATA.audits.plans.length;
+    auditedCountEl.textContent = concluidos + ' processo' + (concluidos!==1?'s':'') + ' auditado' + (concluidos!==1?'s':'') + (total ? ' de ' + total : '');
+  }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
     const icData = DATA.indicadoresCage;
@@ -10696,7 +10749,11 @@ function repoRender() {
       <div style="width:100%;height:160px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;flex-shrink:0;">
         ${d.thumbnail
           ? `<img src="${d.thumbnail}" style="width:100%;height:100%;object-fit:contain;background:#f8fafc;" alt="Capa">`
-          : `<span style="font-size:52px;opacity:.4;">${repoGetFileIcon(d.fileType)}</span>`}
+          : d.fileType==='image' && d.fileUrl
+            ? `<img src="${d.fileUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${d.title}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : d.fileType==='word'
+              ? `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8f0fe 0%,#d2e3fc 100%);gap:6px;"><div style="font-size:40px;color:#1a56db;">W</div><div style="font-size:11px;font-weight:700;color:#1a56db;letter-spacing:.05em;">${(d.fileName||'').split('.').pop().toUpperCase()}</div></div>`
+              : `<span style="font-size:52px;opacity:.4;">${repoGetFileIcon(d.fileType)}</span>`}
         ${(d.fileType==='pdf' && d.fileUrl && !d.thumbnail) ? `<button onclick="repoRefreshThumbnail('${d.id}')" title="Gerar miniatura da capa" style="position:absolute;bottom:6px;right:6px;background:rgba(255,255,255,.85);border:1px solid #e2e8f0;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer;color:#374151;">🖼 Gerar capa</button>` : ''}
       </div>
       <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
@@ -11355,6 +11412,8 @@ function auditTab(tab, el) {
   if(tab === 'exec')    auditRenderExec();
   if(tab === 'nc')      auditRenderNc();
   if(tab === 'actions') auditRenderActions();
+  if(tab === 'trail')   auditRenderTrail();
+  if(tab === 'heatmap') auditRenderHeatmap();
 }
 
 function _auditBadge(status) {
@@ -11387,9 +11446,15 @@ function auditRenderPlans() {
     const patBadge  = patItem
       ? '<span style="background:#ede9fe;color:#6d28d9;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;">📅 PTA: '+patItem.titulo+'</span>'
       : '';
+    const procLink = p.processo
+      ? '<button onclick="event.stopPropagation();auditGoToProcess(\''+p.processo+'\')" title="Ver mapeamento do processo" style="background:none;border:none;padding:0;cursor:pointer;font-size:12px;color:#2563eb;text-decoration:underline;font-weight:600;">🔗 Ver mapeamento</button>'
+      : '';
     return '<div class="audit-card" onclick="auditOpenPlanModal(\''+p.id+'\')">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">'+
-        '<div class="audit-card-title">📋 '+(p.processoNome||p.processo||'(sem processo)')+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:2px;">'+
+          '<div class="audit-card-title">📋 '+(p.processoNome||p.processo||'(sem processo)')+'</div>'+
+          (procLink ? '<div>'+procLink+'</div>' : '')+
+        '</div>'+
         _auditBadge(p.status||'planejada')+
       '</div>'+
       (patBadge ? '<div style="margin-bottom:8px;">'+patBadge+'</div>' : '')+
@@ -11514,6 +11579,7 @@ function auditRenderExec() {
         (nc ? '<span style="color:#dc2626;">⚠️ '+nc+' NC(s)</span>' : '')+
       '</div>'+
       (e.observacoes ? '<div style="font-size:12px;color:#64748b;margin-top:6px;">'+e.observacoes+'</div>' : '')+
+      (e.amostra ? '<div style="font-size:11px;color:#2563eb;background:#eff6ff;border-radius:6px;padding:5px 9px;margin-top:6px;white-space:pre-wrap;font-family:monospace;">📂 Amostra: '+e.amostra+'</div>' : '')+
       '</div>';
   }).join('');
 }
@@ -11525,9 +11591,10 @@ function auditOpenExecModal(id) {
   const planSel = document.getElementById('ae-plan');
   planSel.innerHTML = '<option value="">— Selecione o plano —</option>' +
     DATA.audits.plans.map(p=>'<option value="'+p.id+'"'+(exec?.planId===p.id?' selected':'')+'>'+( p.processoNome||p.objetivo)+'</option>').join('');
-  document.getElementById('ae-data').value   = exec?.dataExecucao || '';
-  document.getElementById('ae-status').value = exec?.status       || 'em_andamento';
-  document.getElementById('ae-obs').value    = exec?.observacoes  || '';
+  document.getElementById('ae-data').value    = exec?.dataExecucao || '';
+  document.getElementById('ae-status').value  = exec?.status       || 'em_andamento';
+  document.getElementById('ae-obs').value     = exec?.observacoes  || '';
+  document.getElementById('ae-amostra').value = exec?.amostra      || '';
   _auditTempChecklist = exec?.checklist ? JSON.parse(JSON.stringify(exec.checklist)) : [];
   if(!_auditTempChecklist.length && exec?.planId) auditAutoChecklist(exec.planId);
   auditRenderChecklistEditor();
@@ -11548,12 +11615,60 @@ function auditAutoChecklist(planId) {
   const popData = DATA[plan.processo];
   if(!popData) return;
   const items = [];
-  (popData.steps||[]).forEach((s,i) => {
-    items.push({ id:'ci_'+Date.now()+'_'+i, item:'Etapa '+(i+1), pergunta:'A etapa "'+(s.title||'Etapa '+(i+1))+'" é executada conforme o POP?', tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+  const _mk = (label, q) => ({ id:'ci_'+Date.now()+'_'+Math.random().toString(36).slice(2), item:label, pergunta:q, tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+
+  // Funções para detectar papéis/contextos no texto de uma etapa
+  const _has = (text, words) => words.some(w => (text||'').toLowerCase().includes(w));
+
+  (popData.steps||[]).forEach((s, i) => {
+    const title  = s.title   || 'Etapa '+(i+1);
+    const resp   = s.responsible || '';
+    const sub    = s.subtitle || '';
+    const note   = s.note    || '';
+    const full   = [title, resp, sub, note].join(' ');
+    const label  = 'Etapa '+(i+1);
+
+    // Perguntas contextuais baseadas no responsável / conteúdo da etapa
+    if(_has(resp, ['adjunto','adj.'])) {
+      items.push(_mk(label, `Os expedientes da etapa "${title}" estão sendo encaminhados para aprovação pelo Adjunto?`));
+    } else if(_has(resp, ['diretor','diretora'])) {
+      items.push(_mk(label, `Os expedientes da etapa "${title}" estão sendo devidamente aprovados pelo(a) Diretor(a)?`));
+    } else if(_has(resp, ['chefe','gerente','coordenador','coordenadora'])) {
+      items.push(_mk(label, `A etapa "${title}" está sendo supervisionada e aprovada pelo(a) responsável hierárquico?`));
+    } else if(_has(resp, ['protocolo','autuação','autuador'])) {
+      items.push(_mk(label, `O registro/autuação na etapa "${title}" está sendo realizado dentro do prazo e com os dados corretos?`));
+    } else if(_has(resp, ['técnico','analista','servidor'])) {
+      items.push(_mk(label, `O(A) técnico(a) responsável está executando a etapa "${title}" conforme os procedimentos definidos?`));
+    } else {
+      items.push(_mk(label, `A etapa "${title}" é executada conforme o procedimento estabelecido no POP?`));
+    }
+
+    // Pergunta de decisão/aprovação se a etapa tiver um nó de decisão
+    if(s.decision && (s.decision.label || s.decision.text)) {
+      const dLabel = s.decision.label || s.decision.text || 'decisão';
+      items.push(_mk(label+' – Decisão', `O critério para a decisão "${dLabel}" na etapa "${title}" está sendo aplicado corretamente?`));
+    }
+
+    // Pergunta sobre prazo se a etapa mencionar prazo/despacho/urgência
+    if(_has(full, ['prazo','despacho','urgente','urgência','até','dias'])) {
+      items.push(_mk(label+' – Prazo', `Os prazos legais/regulamentares da etapa "${title}" estão sendo cumpridos?`));
+    }
+
+    // Pergunta sobre documentação se mencionar documento/ofício/nota
+    if(_has(full, ['ofício','nota','memorando','despacho','documento','formulário','relatório'])) {
+      items.push(_mk(label+' – Documentação', `Os documentos exigidos na etapa "${title}" estão sendo elaborados/arquivados corretamente?`));
+    }
   });
-  (popData.indicators||[]).forEach((ind,i) => {
-    items.push({ id:'ci_ind_'+i, item:'Indicador', pergunta:'O indicador "'+(ind.name||'Indicador '+(i+1))+'" está sendo medido?', tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
+
+  // Indicadores de desempenho
+  (popData.indicators||[]).forEach((ind, i) => {
+    items.push(_mk('Indicador '+(i+1), `O indicador "${ind.name||'Indicador '+(i+1)}" está sendo medido e registrado conforme a periodicidade definida?`));
+    if(ind.meta) items.push(_mk('Indicador '+(i+1)+' – Meta', `A meta do indicador "${ind.name||'Indicador '+(i+1)}" (${ind.meta}) está sendo atingida?`));
   });
+
+  // Pergunta geral de conformidade ao final
+  items.push(_mk('Conformidade geral', `O processo "${popData.meta?.name||plan.processoNome||'auditado'}" como um todo está em conformidade com o POP vigente e as normas aplicáveis?`));
+
   _auditTempChecklist = items;
 }
 
@@ -11592,6 +11707,7 @@ function auditSaveExec() {
     dataExecucao:  document.getElementById('ae-data').value,
     status:        document.getElementById('ae-status').value,
     observacoes:   document.getElementById('ae-obs').value.trim(),
+    amostra:       document.getElementById('ae-amostra').value.trim(),
     checklist:     _auditTempChecklist,
     criadoEm:      _auditEditExecId ? (DATA.audits.executions.find(e=>e.id===_auditEditExecId)?.criadoEm||new Date().toISOString()) : new Date().toISOString(),
   };
@@ -11774,6 +11890,140 @@ function auditDeleteAction() {
 }
 
 function auditNewAction() { auditOpenPlanModal(); }
+
+function auditGoToProcess(key) {
+  if(!key || !DATA[key]) { showToast('Processo não encontrado.', 'warn'); return; }
+  hideAllModules();
+  hideHome();
+  // Navega para o mapeamento do processo (mesmo fluxo do sidebar)
+  if(typeof showPop === 'function') showPop(key);
+  else if(typeof loadPop === 'function') loadPop(key);
+  else { showToast('Abra o processo "' + (DATA[key]?.meta?.name||key) + '" pelo menu lateral.', 'info'); showHome(); }
+}
+
+// ── TRILHA DE AUDITORIA ──────────────────────────────────────────
+function auditRenderTrail() {
+  auditEnsure();
+  const list  = document.getElementById('audit-trail-list');
+  const empty = document.getElementById('audit-trail-empty');
+  if(!list) return;
+
+  // Coletar todos os eventos cronológicos
+  const events = [];
+  (DATA.audits.plans||[]).forEach(p => {
+    events.push({ ts: p.criadoEm, type:'plan', icon:'📋', color:'#0a2540',
+      title:'Plano criado: ' + (p.processoNome||p.objetivo||'Plano'),
+      detail: (p.auditor ? '👤 ' + p.auditor : '') + (p.dataPrevista ? ' · 📅 ' + _fmtDate(p.dataPrevista) : ''),
+      badge: p.status, badgeClass: p.status });
+  });
+  (DATA.audits.executions||[]).forEach(e => {
+    const plan = (DATA.audits.plans||[]).find(p=>p.id===e.planId);
+    const conf = (e.checklist||[]).filter(c=>c.conformidade==='conforme').length;
+    const nc   = (e.checklist||[]).filter(c=>c.conformidade==='nao_conforme').length;
+    const tot  = (e.checklist||[]).length;
+    events.push({ ts: e.criadoEm, type:'exec', icon:'▶', color:'#1a4a7a',
+      title:'Execução: ' + (plan?.processoNome||plan?.objetivo||'Auditoria'),
+      detail: `✅ ${conf}/${tot} conformes` + (nc ? ` · ⚠️ ${nc} NC(s)` : '') + (e.dataExecucao ? ' · ' + _fmtDate(e.dataExecucao) : ''),
+      badge: e.status, badgeClass: e.status });
+  });
+  (DATA.audits.nonconformities||[]).forEach(nc => {
+    const GR = { leve:'#ca8a04', moderada:'#ea580c', critica:'#dc2626' };
+    events.push({ ts: nc.criadoEm, type:'nc', icon:'⚠️', color: GR[nc.gravidade]||'#ea580c',
+      title:'NC registrada: ' + (nc.processo||nc.etapa||'Não Conformidade'),
+      detail: (nc.gravidade ? nc.gravidade.charAt(0).toUpperCase()+nc.gravidade.slice(1) : '') +
+              (nc.descricao ? ' · ' + nc.descricao.substring(0,100) + (nc.descricao.length>100?'…':'') : ''),
+      badge: nc.status, badgeClass: nc.status });
+  });
+  (DATA.audits.actions||[]).forEach(a => {
+    const overdue = a.prazo && a.status!=='concluida' && a.status!=='cancelada' && new Date(a.prazo+'T23:59:59') < new Date();
+    events.push({ ts: a.criadoEm, type:'action', icon:'✅', color: overdue ? '#dc2626' : '#15803d',
+      title:'Ação: ' + (a.acao||'').substring(0,80),
+      detail: (a.responsavel ? '👤 ' + a.responsavel : '') + (a.prazo ? ' · 🏁 ' + _fmtDate(a.prazo) : '') + (overdue ? ' · ⏰ ATRASADA' : ''),
+      badge: a.status, badgeClass: a.status });
+  });
+
+  if(!events.length) { list.innerHTML='<div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:#e2e8f0;border-radius:2px;"></div>'; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  // Ordenar do mais recente para o mais antigo
+  events.sort((a,b) => new Date(b.ts||0) - new Date(a.ts||0));
+
+  const BADGE_COLORS = {
+    planejada:'#1d4ed8', em_execucao:'#0369a1', concluida:'#15803d', cancelada:'#6b7280',
+    aberta:'#dc2626', em_tratamento:'#d97706', fechada:'#15803d',
+    em_andamento:'#0369a1', pendente:'#d97706', concluido:'#15803d'
+  };
+
+  list.innerHTML = '<div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:#e2e8f0;border-radius:2px;"></div>' +
+    events.map(ev => {
+      const dt = ev.ts ? new Date(ev.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      const badgeColor = BADGE_COLORS[ev.badge] || '#64748b';
+      return `<div style="position:relative;margin-bottom:20px;background:white;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+        <div style="position:absolute;left:-26px;top:14px;width:12px;height:12px;border-radius:50%;background:${ev.color};border:2px solid white;box-shadow:0 0 0 2px ${ev.color}22;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+          <div style="font-size:13px;font-weight:700;color:#0a2540;">${ev.icon} ${ev.title}</div>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${badgeColor}22;color:${badgeColor};white-space:nowrap;">${ev.badge||''}</span>
+        </div>
+        ${ev.detail ? `<div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5;">${ev.detail}</div>` : ''}
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;">🕐 ${dt}</div>
+      </div>`;
+    }).join('');
+}
+
+// ── MATRIZ DE RISCOS (HEATMAP) ───────────────────────────────────
+function auditRenderHeatmap() {
+  auditEnsure();
+  const body  = document.getElementById('audit-heatmap-body');
+  const empty = document.getElementById('audit-heatmap-empty');
+  if(!body) return;
+
+  // Agrupa NCs por processo e etapa
+  const ncs = DATA.audits.nonconformities || [];
+  if(!ncs.length) { body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  // Reúne todos os processos auditados com NCs
+  const byProc = {}; // { processoNome: { etapaLabel: { leve, moderada, critica, total } } }
+  ncs.forEach(nc => {
+    const proc  = nc.processo || nc.planId
+      ? ((DATA.audits.plans||[]).find(p=>p.id===nc.planId)?.processoNome || nc.processo || 'Sem processo')
+      : 'Sem processo';
+    const etapa = nc.etapa || 'Geral';
+    if(!byProc[proc]) byProc[proc] = {};
+    if(!byProc[proc][etapa]) byProc[proc][etapa] = { leve:0, moderada:0, critica:0, total:0 };
+    byProc[proc][etapa][nc.gravidade || 'leve']++;
+    byProc[proc][etapa].total++;
+  });
+
+  const heatColor = n => n === 0 ? '#f0fdf4' : n <= 2 ? '#fef9c3' : n <= 4 ? '#fed7aa' : '#fecaca';
+  const heatBorder = n => n === 0 ? '#86efac' : n <= 2 ? '#fde047' : n <= 4 ? '#fb923c' : '#f87171';
+  const heatText = n => n === 0 ? '#15803d' : n <= 2 ? '#854d0e' : n <= 4 ? '#9a3412' : '#991b1b';
+
+  let html = '';
+  Object.entries(byProc).forEach(([proc, etapas]) => {
+    const etapaList = Object.entries(etapas).sort((a,b) => b[1].total - a[1].total);
+    const procTotal = etapaList.reduce((s,[,v]) => s+v.total, 0);
+    html += `<div style="margin-bottom:28px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;color:#0a2540;">📋 ${proc}</div>
+        <span style="background:#fecaca;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;">${procTotal} NC${procTotal!==1?'s':''} total</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    etapaList.forEach(([etapa, counts]) => {
+      const n = counts.total;
+      html += `<div style="background:${heatColor(n)};border:2px solid ${heatBorder(n)};border-radius:10px;padding:12px 16px;min-width:130px;flex:1;max-width:200px;cursor:default;" title="${etapa}: ${n} NC(s) · ${counts.critica} crítica(s) · ${counts.moderada} moderada(s) · ${counts.leve} leve(s)">
+        <div style="font-size:12px;font-weight:700;color:${heatText(n)};margin-bottom:6px;word-break:break-word;">${etapa}</div>
+        <div style="font-size:22px;font-weight:800;color:${heatText(n)};line-height:1;">${n}</div>
+        <div style="font-size:10px;color:${heatText(n)};margin-top:4px;opacity:.8;">NC${n!==1?'s':''}</div>
+        ${counts.critica ? `<div style="font-size:10px;color:#dc2626;margin-top:4px;font-weight:600;">🔴 ${counts.critica} crítica${counts.critica!==1?'s':''}</div>` : ''}
+        ${counts.moderada ? `<div style="font-size:10px;color:#ea580c;margin-top:2px;">🟠 ${counts.moderada} moderada${counts.moderada!==1?'s':''}</div>` : ''}
+        ${counts.leve ? `<div style="font-size:10px;color:#ca8a04;margin-top:2px;">🟡 ${counts.leve} leve${counts.leve!==1?'s':''}</div>` : ''}
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  body.innerHTML = html;
+}
 
 // ── EXPORTAÇÃO RELATÓRIO WORD ───────────────────────────────
 function auditExportRelatorioWord(planId) {
@@ -14452,7 +14702,7 @@ function saveStatusModal() {
   <div class="search-modal">
     <div class="search-modal-head">
       <span>🔍</span>
-      <input id="search-modal-input" placeholder="Buscar em FAQs, Normas e Metodologias..."
+      <input id="search-modal-input" placeholder="Buscar em FAQs, Normas e Documentos..."
         oninput="runSearch(this.value)" autofocus>
       <span class="search-modal-count" id="search-count"></span>
       <button class="search-modal-close" onclick="closeSearchModal()">✕</button>
