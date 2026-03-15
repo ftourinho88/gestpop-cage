@@ -727,7 +727,7 @@
   .home-card-desc { font-size: 13px; color: #64748b; line-height: 1.5; flex: 1; }
   .home-card-footer { font-size: 12px; color: #94a3b8; font-weight: 500; margin-top: 4px; }
   .home-card-editor-badge { color: #3b82f6; }
-  #home-stats > div { background: white; border-radius: 10px; padding: 14px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); min-width: 120px; }
+  #home-stats > div { background: white; border-radius: 10px; padding: 10px 14px; box-shadow: 0 2px 8px rgba(0,0,0,.06); flex: 1 1 0; min-width: 0; }
 
 
 /* ═══ RESPONSIVIDADE MOBILE ═══════════════════════════════ */
@@ -765,8 +765,8 @@
   }
   #home-page > div:first-child > div:first-child { font-size: 22px !important; }
   #home-page > div:first-child > div:last-child  { font-size: 13px !important; }
-  #home-stats { gap: 8px !important; flex-wrap: wrap !important; }
-  #home-stats > div { flex: 1 1 calc(50% - 8px) !important; min-width: 0 !important; padding: 10px 12px !important; }
+  #home-stats { gap: 6px !important; flex-wrap: wrap !important; }
+  #home-stats > div { flex: 1 1 calc(50% - 6px) !important; min-width: 0 !important; padding: 8px 10px !important; }
 
   /* Home cards grid — 1 coluna em mobile */
   #home-page > div:nth-child(2) {
@@ -1225,7 +1225,7 @@
       <div id="epp-logo-editor-hint" style="display:none;position:absolute;top:4px;right:6px;font-size:10px;color:#94a3b8;">✎</div>
     </div>
   </div>
-  <div id="home-stats" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:36px;"></div>
+  <div id="home-stats" style="display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:36px;"></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
     <div class="home-card" onclick="showHomePops()" style="border-top:4px solid #00a86b;">
       <div class="home-card-icon" style="background:#f0faf5;color:#00a86b;">📋</div>
@@ -1257,7 +1257,7 @@
       <div class="home-card-desc">Plano Anual de Trabalho e Dashboard de desempenho do EPP — indicadores de impacto, cobertura e PAT.</div>
       <div class="home-card-footer home-card-editor-badge">🔒 Apenas editores</div>
     </div>
-    <div class="home-card" onclick="document.getElementById('search-btn')?.click()" style="border-top:4px solid #64748b;">
+    <div class="home-card" onclick="openSearchModal()" style="border-top:4px solid #64748b;">
       <div class="home-card-icon" style="background:#f8fafc;color:#64748b;">🔍</div>
       <div class="home-card-title">Busca Global</div>
       <div class="home-card-desc">Pesquise em todos os POPs — FAQs, normas, responsáveis e procedimentos.</div>
@@ -10365,9 +10365,9 @@ function homeRefresh() {
     { label: 'Riscos mapeados',         val: riscosN,           color: '#dc2626' },
     { label: 'Indicadores',             val: indicadoresN,      color: '#7c3aed' },
     { label: 'Auditorias concluídas',   val: auditConcluidasN,  color: '#15803d' },
-  ].map(s => `<div style="background:white;border-radius:10px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
-    <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
-    <div style="font-size:12px;color:#64748b;">${s.label}</div>
+  ].map(s => `<div style="background:white;border-radius:10px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex:1 1 0;min-width:0;white-space:nowrap;">
+    <div style="font-size:22px;font-weight:700;color:${s.color};">${s.val}</div>
+    <div style="font-size:11px;color:#64748b;">${s.label}</div>
   </div>`).join('');
 
   // Count labels
