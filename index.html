@@ -10407,7 +10407,7 @@ function homeRefresh() {
   // Stats
   const macros      = new Set(data.map(r => r.macroprocesso)).size;
   const procs       = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
-  const procsMapeados = new Set(data.filter(r => r.mapeado === true).map(r => r.macroprocesso + '|' + r.processo)).size;
+  const procsMapeados = data.filter(r => r.mapeado === true).length;
   const popKeys = Object.keys(DATA).filter(k => k.startsWith('pop_'));
 
   const allPopKeys   = ['d', 'r', ...popKeys];
