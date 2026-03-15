@@ -1268,6 +1268,12 @@
       <div class="home-card-desc">Gerencie indicadores de desempenho, importe resultados do SISPLAN e acompanhe a evolução e comparativos anuais.</div>
       <div class="home-card-footer" id="home-indcage-count">—</div>
     </div>
+    <div class="home-card" onclick="showBpmnFromHome()" style="border-top:4px solid #6366f1;">
+      <div class="home-card-icon" style="background:#eef2ff;color:#6366f1;">🏗️</div>
+      <div class="home-card-title">Modelador BPMN 2.0</div>
+      <div class="home-card-desc">Editor visual de processos no padrão BPMN 2.0 com paleta completa, swimlanes, gateways e exportação de diagramas.</div>
+      <div class="home-card-footer">bpmn-js · BPMN 2.0 ISO/IEC 19510</div>
+    </div>
     <div class="home-card" onclick="window.open('https://forms.office.com/Pages/ResponsePage.aspx?id=Cwm9g251AkqlEuXqAsAwQbvi0Bx7w-FOk8Rk-2iAB21UMFlRV0szV09JTlBMSzEzNlVJS1Y4UjA5Qy4u&origin=Invitation&channel=1','_blank')" style="border-top:4px solid #ec4899;">
       <div class="home-card-icon" style="background:#fdf2f8;color:#ec4899;">💡</div>
       <div class="home-card-title">Caixinha de Ideias</div>
@@ -10543,6 +10549,22 @@ showPatModule = function(show=true) {
 };
 const _origShowArq = showArqModule;
 showArqModule = function(show=true) { if(show) hideHome(); _origShowArq(show); };
+
+// ── Atalho da home para o Modelador BPMN 2.0 ─────────────────────
+function showBpmnFromHome() {
+  // Usa o primeiro POP disponível (d, r ou pop_*) como contexto
+  if (!currentPop) {
+    const pops = ['d', 'r', ...Object.keys(DATA).filter(k => k.startsWith('pop_'))];
+    if (pops.length) {
+      // Simula seleção do primeiro POP sem mudar a navegação visual
+      currentPop = pops[0] === 'd' ? 'denuncias' : pops[0] === 'r' ? 'representacoes' : pops[0];
+    }
+  }
+  const tab = document.getElementById('tab-fd');
+  showFlowDesigner(tab);
+  // Abre diretamente no modo BPMN
+  if (typeof fdSetMode === 'function') fdSetMode('bpmn');
+}
 
 // ══════════════════════════════════════════════════════════════
 // NOVO POP — Smart autocomplete from CAGE_PROCESSOS
