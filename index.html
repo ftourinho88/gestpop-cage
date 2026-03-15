@@ -9757,6 +9757,7 @@ function arqRenderTable(filtered, all) {
           title="Clique para alternar">${toggleLabel}</button>
       </td>
       <td style="padding:10px 16px;text-align:center;" onclick="event.stopPropagation()">
+        ${!mapped ? `<button onclick="arqAbrirMapeamento(${realIdx})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;" title="Iniciar mapeamento deste processo">📝 Mapear</button>` : ''}
         <button onclick="arqShowForm(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Editar">✏️</button>
         <button onclick="arqDelete(${realIdx})" style="background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;" title="Excluir">🗑</button>
       </td>
@@ -9895,6 +9896,47 @@ function arqSaveToCloud() {
   saveToCloud();
 }
 
+
+// ── Abrir form de mapeamento pré-preenchido com dados da Arquitetura ──
+function arqAbrirMapeamento(idx) {
+  const r = arqGetData()[idx];
+  if(!r) return;
+
+  // Fecha modais da arquitetura
+  arqCloseDetail();
+  showArqModule(false);
+
+  // Abre o form de novo POP e aguarda o DOM estar pronto
+  openNovoPop();
+  setTimeout(() => {
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+
+    // Hierarquia
+    setVal('nf-macro',       r.macroprocesso);
+    npopUpdateProcessoList();   // popula lista de processos do macro selecionado
+    setVal('nf-processo',    r.processo);
+    npopUpdateSubprocessoList(); // popula subprocessos e dispara npopAutoFill
+    if(r.subprocesso) setVal('nf-subprocesso', r.subprocesso);
+
+    // npopAutoFill preenche desc/input/output/fornecedores/clientes a partir do CAGE_PROCESSOS
+    // mas chamamos diretamente para garantir (sem depender do evento)
+    npopAutoFill();
+
+    // Nome: subprocesso ou processo (só se ainda vazio)
+    const nomeEl = document.getElementById('nf-nome');
+    if(nomeEl && !nomeEl.value) nomeEl.value = r.subprocesso || r.processo;
+
+    showToast('✅ Dados do processo pré-preenchidos a partir da Arquitetura!', 'success');
+  }, 120);
+}
+
+// ── Abrir POP vinculado a partir da Arquitetura ──
+function arqAbrirPopVinculado(popKey) {
+  arqCloseDetail();
+  showArqModule(false);
+  hideHome();
+  switchPop(popKey);
+}
 
 // ── Detalhes de Processo (popup clicável) ─────────────────
 function arqFindLinkedPop(r) {
@@ -10042,7 +10084,19 @@ function arqShowProcessDetail(idx) {
     ${row('Entradas', r.entradas)}
     ${row('Entregas / saídas', r.entregas)}
     ${row('Clientes', r.clientes)}
-    ${mappedSection}`;
+    ${mappedSection}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;gap:10px;flex-wrap:wrap;">
+      ${!mapped || !popData ? `
+        <button onclick="arqAbrirMapeamento(${idx})"
+          style="background:#00a86b;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          📝 Mapear este processo
+        </button>` : ''}
+      ${popData ? `
+        <button onclick="arqAbrirPopVinculado('${popKey}')"
+          style="background:#1a4a7a;color:white;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          📋 Abrir POP vinculado
+        </button>` : ''}
+    </div>`;
 
   // Open modal
   let modal = document.getElementById('arq-detail-modal');
