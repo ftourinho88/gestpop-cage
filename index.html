@@ -1281,12 +1281,6 @@
       <div class="home-card-desc">Planeje auditorias, execute checklists inteligentes, registre não conformidades e acompanhe planos de ação.</div>
       <div class="home-card-footer" id="home-audit-count">—</div>
     </div>
-    <div class="home-card" onclick="showAuditModule()" style="border-top:4px solid #15803d;">
-      <div class="home-card-icon" style="background:#f0fdf4;color:#15803d;">✅</div>
-      <div class="home-card-title">Processos Auditados</div>
-      <div class="home-card-desc">Auditorias concluídas com relatório final e não conformidades tratadas.</div>
-      <div class="home-card-footer" id="home-audited-count">—</div>
-    </div>
     <div class="home-card" onclick="showIndCageModule()" style="border-top:4px solid #e8a020;">
       <div class="home-card-icon" style="background:#fffbeb;color:#e8a020;">📈</div>
       <div class="home-card-title">Indicadores CAGE</div>
@@ -10359,15 +10353,18 @@ function homeRefresh() {
   const faqN         = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.faqs?.length  || 0), 0);
   const riscosN      = allPopKeys.reduce((sum, k) => sum + (DATA[k]?.risks?.length || 0), 0);
   const indicadoresN = DATA.indicadoresCage?.indicadores?.length || 0;
+  auditEnsure();
+  const auditConcluidasN = (DATA.audits.plans||[]).filter(p => p.status === 'concluida').length;
 
   document.getElementById('home-stats').innerHTML = [
-    { label: 'POPs cadastrados',   val: popKeys.length, color: '#00a86b' },
-    { label: 'Macroprocessos',     val: macros,         color: '#0a2540' },
-    { label: 'Processos',          val: procs,          color: '#8b5cf6' },
-    { label: 'Subprocessos',       val: subprocN,       color: '#0369a1' },
-    { label: 'FAQs cadastradas',   val: faqN,           color: '#d97706' },
-    { label: 'Riscos mapeados',    val: riscosN,        color: '#dc2626' },
-    { label: 'Indicadores',        val: indicadoresN,   color: '#7c3aed' },
+    { label: 'POPs cadastrados',        val: popKeys.length,    color: '#00a86b' },
+    { label: 'Macroprocessos',          val: macros,            color: '#0a2540' },
+    { label: 'Processos',               val: procs,             color: '#8b5cf6' },
+    { label: 'Subprocessos',            val: subprocN,          color: '#0369a1' },
+    { label: 'FAQs cadastradas',        val: faqN,              color: '#d97706' },
+    { label: 'Riscos mapeados',         val: riscosN,           color: '#dc2626' },
+    { label: 'Indicadores',             val: indicadoresN,      color: '#7c3aed' },
+    { label: 'Auditorias concluídas',   val: auditConcluidasN,  color: '#15803d' },
   ].map(s => `<div style="background:white;border-radius:10px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
     <div style="font-size:26px;font-weight:700;color:${s.color};">${s.val}</div>
     <div style="font-size:12px;color:#64748b;">${s.label}</div>
@@ -10384,12 +10381,6 @@ function homeRefresh() {
     const planCount = DATA.audits.plans.length;
     const ncCount = DATA.audits.nonconformities.filter(nc=>nc.status==='aberta').length;
     auditCountEl.textContent = planCount + ' plano(s)' + (ncCount ? ' · ' + ncCount + ' NC(s) abertas' : '');
-  }
-  const auditedCountEl = document.getElementById('home-audited-count');
-  if(auditedCountEl) {
-    auditEnsure();
-    const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
-    auditedCountEl.textContent = concluidos + ' auditoria' + (concluidos!==1?'s':'') + ' concluída' + (concluidos!==1?'s':'');
   }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
@@ -11616,11 +11607,9 @@ function auditExecPlanChange() {
   const planId = document.getElementById('ae-plan').value;
   const hint = document.getElementById('ae-checklist-hint');
   if(hint) hint.style.display = planId ? 'none' : 'block';
-  // Gera automaticamente só se o checklist ainda estiver vazio
-  if(!_auditTempChecklist.length && planId) { auditAutoChecklist(planId); auditRenderChecklistEditor(); }
 }
 
-function auditGerarChecklistBtn() {
+async function auditGerarChecklistBtn() {
   const planId = document.getElementById('ae-plan').value;
   if(!planId) {
     const hint = document.getElementById('ae-checklist-hint');
@@ -11629,73 +11618,111 @@ function auditGerarChecklistBtn() {
   }
   const plan = DATA.audits.plans.find(p=>p.id===planId);
   if(!plan?.processo) { showToast('O plano selecionado não possui processo vinculado.', 'warn'); return; }
-  if(_auditTempChecklist.length && !confirm('Isso irá substituir o checklist atual. Continuar?')) return;
-  auditAutoChecklist(planId);
-  auditRenderChecklistEditor();
-  showToast('✅ Checklist gerado com ' + _auditTempChecklist.length + ' itens!', 'success');
+  if(_auditTempChecklist.length && !confirm('Isso irá substituir o checklist atual com perguntas geradas pela IA. Continuar?')) return;
+
+  // Botão com loading
+  const btn = document.querySelector('[onclick="auditGerarChecklistBtn()"]');
+  const originalText = btn ? btn.innerHTML : '';
+  if(btn) { btn.innerHTML = '⏳ Gerando...'; btn.disabled = true; }
+
+  try {
+    await auditAutoChecklist(planId);
+    auditRenderChecklistEditor();
+    showToast('✅ Checklist gerado com ' + _auditTempChecklist.length + ' itens pela IA!', 'success');
+  } catch(e) {
+    showToast('Erro ao gerar checklist: ' + e.message, 'error');
+  } finally {
+    if(btn) { btn.innerHTML = originalText; btn.disabled = false; }
+  }
 }
 
-function auditAutoChecklist(planId) {
+async function auditAutoChecklist(planId) {
   const plan = DATA.audits.plans.find(p=>p.id===planId);
   if(!plan?.processo) return;
-  const popData = DATA[plan.processo];
-  if(!popData) return;
-  const items = [];
+  const D = DATA[plan.processo];
+  if(!D) return;
+
   const _mk = (label, q) => ({ id:'ci_'+Date.now()+'_'+Math.random().toString(36).slice(2), item:label, pergunta:q, tipo:'sim_nao', resposta:null, conformidade:'', observacao:'' });
 
-  // Funções para detectar papéis/contextos no texto de uma etapa
-  const _has = (text, words) => words.some(w => (text||'').toLowerCase().includes(w));
+  // Monta contexto completo do processo para o Gemini
+  const procName = D.meta?.name || plan.processoNome || 'Processo';
+  const objetivo = D.meta?.desc || D.objetivo || '';
 
-  (popData.steps||[]).forEach((s, i) => {
-    const title  = s.title   || 'Etapa '+(i+1);
-    const resp   = s.responsible || '';
-    const sub    = s.subtitle || '';
-    const note   = s.note    || '';
-    const full   = [title, resp, sub, note].join(' ');
-    const label  = 'Etapa '+(i+1);
+  const stepsCtx = (D.steps||[]).map((s,i) => {
+    const acoes = (s.actions||[]).map(a => {
+      const txt  = typeof a === 'string' ? a : (a.text||'');
+      const tipo = typeof a === 'object' ? (a.type||'') : '';
+      const ator = typeof a === 'object' ? (a.actor||'') : '';
+      return `    - [${tipo}] ${txt}${ator?' (executado por: '+ator+')':''}`;
+    }).join('\n');
+    const decisao = s.decision?.label || s.decision?.text ? `  Ponto de decisão: "${s.decision?.label||s.decision?.text}"` : '';
+    return `Etapa ${i+1}: ${s.title}
+  Responsável: ${s.responsible||'não especificado'}
+  Subtítulo: ${s.subtitle||''}
+  Ações:\n${acoes}
+  ${decisao}
+  Observação: ${s.note||''}`;
+  }).join('\n\n');
 
-    // Perguntas contextuais baseadas no responsável / conteúdo da etapa
-    if(_has(resp, ['adjunto','adj.'])) {
-      items.push(_mk(label, `Os expedientes da etapa "${title}" estão sendo encaminhados para aprovação pelo Adjunto?`));
-    } else if(_has(resp, ['diretor','diretora'])) {
-      items.push(_mk(label, `Os expedientes da etapa "${title}" estão sendo devidamente aprovados pelo(a) Diretor(a)?`));
-    } else if(_has(resp, ['chefe','gerente','coordenador','coordenadora'])) {
-      items.push(_mk(label, `A etapa "${title}" está sendo supervisionada e aprovada pelo(a) responsável hierárquico?`));
-    } else if(_has(resp, ['protocolo','autuação','autuador'])) {
-      items.push(_mk(label, `O registro/autuação na etapa "${title}" está sendo realizado dentro do prazo e com os dados corretos?`));
-    } else if(_has(resp, ['técnico','analista','servidor'])) {
-      items.push(_mk(label, `O(A) técnico(a) responsável está executando a etapa "${title}" conforme os procedimentos definidos?`));
-    } else {
-      items.push(_mk(label, `A etapa "${title}" é executada conforme o procedimento estabelecido no POP?`));
-    }
+  const rolesCtx = (D.roles||[]).map(r =>
+    `${r.name}${r.title?' ('+r.title+')':''}: ${(r.duties||[]).join('; ')}`
+  ).join('\n');
 
-    // Pergunta de decisão/aprovação se a etapa tiver um nó de decisão
-    if(s.decision && (s.decision.label || s.decision.text)) {
-      const dLabel = s.decision.label || s.decision.text || 'decisão';
-      items.push(_mk(label+' – Decisão', `O critério para a decisão "${dLabel}" na etapa "${title}" está sendo aplicado corretamente?`));
-    }
+  const normasCtx = (D.normas||D.norms||[]).map(n => `${n.code||''} – ${n.name||''}`).join('\n');
 
-    // Pergunta sobre prazo se a etapa mencionar prazo/despacho/urgência
-    if(_has(full, ['prazo','despacho','urgente','urgência','até','dias'])) {
-      items.push(_mk(label+' – Prazo', `Os prazos legais/regulamentares da etapa "${title}" estão sendo cumpridos?`));
-    }
+  const indicCtx = (D.indicators||[]).map((ind,i) =>
+    `Indicador ${i+1}: ${ind.title||ind.name||''} — fórmula: ${ind.formula||''}, meta: ${ind.meta||''}, periodicidade: ${ind.periodicidade||''}`
+  ).join('\n');
 
-    // Pergunta sobre documentação se mencionar documento/ofício/nota
-    if(_has(full, ['ofício','nota','memorando','despacho','documento','formulário','relatório'])) {
-      items.push(_mk(label+' – Documentação', `Os documentos exigidos na etapa "${title}" estão sendo elaborados/arquivados corretamente?`));
-    }
-  });
+  const prompt = `Você é um especialista em auditoria de processos e controle interno na administração pública. Analise o mapeamento completo do processo abaixo e gere um checklist de auditoria com perguntas específicas, práticas e diretamente baseadas no conteúdo real do processo.
 
-  // Indicadores de desempenho
-  (popData.indicators||[]).forEach((ind, i) => {
-    items.push(_mk('Indicador '+(i+1), `O indicador "${ind.name||'Indicador '+(i+1)}" está sendo medido e registrado conforme a periodicidade definida?`));
-    if(ind.meta) items.push(_mk('Indicador '+(i+1)+' – Meta', `A meta do indicador "${ind.name||'Indicador '+(i+1)}" (${ind.meta}) está sendo atingida?`));
-  });
+PROCESSO: ${procName}
+OBJETIVO: ${objetivo}
 
-  // Pergunta geral de conformidade ao final
-  items.push(_mk('Conformidade geral', `O processo "${popData.meta?.name||plan.processoNome||'auditado'}" como um todo está em conformidade com o POP vigente e as normas aplicáveis?`));
+=== ETAPAS DO PROCESSO ===
+${stepsCtx || '(não mapeadas)'}
 
-  _auditTempChecklist = items;
+=== ATORES / RESPONSÁVEIS ===
+${rolesCtx || '(não informados)'}
+
+=== NORMAS APLICÁVEIS ===
+${normasCtx || '(não informadas)'}
+
+=== INDICADORES ===
+${indicCtx || '(não informados)'}
+
+INSTRUÇÕES PARA GERAÇÃO DO CHECKLIST:
+- Gere entre 8 e 16 perguntas de auditoria
+- Cada pergunta deve ser ESPECÍFICA ao processo, nunca genérica
+- Para cada etapa com responsável identificado, crie perguntas sobre conformidade daquele executor
+- Para pontos de decisão, crie perguntas sobre os critérios e evidências usados
+- Para etapas com aprovação/despacho/assinatura, pergunte se o fluxo de autorização está sendo seguido
+- Para indicadores, pergunte sobre medição, registro e metas
+- Para normas, pergunte sobre aderência às normas aplicáveis
+- Varie os tipos de verificação: conformidade, prazo, documentação, evidência, responsabilidade
+- Escreva as perguntas em português brasileiro, na forma afirmativa ou interrogativa direta
+- O campo "label" deve identificar o tema (ex: "Etapa 3 – Aprovação", "Indicador 1", "Norma X")
+
+Retorne APENAS JSON puro (sem markdown, sem \`\`\`):
+[{"label":"tema da pergunta","pergunta":"pergunta completa de auditoria"},...]`;
+
+  try {
+    const text = await callGemini(prompt);
+    let clean = text.trim();
+    const match = clean.match(/\[[\s\S]*\]/);
+    if(match) clean = match[0];
+    else clean = clean.replace(/```json|```/g,'').trim();
+    const items = JSON.parse(clean);
+    _auditTempChecklist = items.map(it => _mk(it.label||'Item', it.pergunta||''));
+  } catch(e) {
+    // Fallback para geração básica se Gemini falhar
+    console.warn('auditAutoChecklist Gemini error:', e);
+    const fallback = [];
+    (D.steps||[]).forEach((s,i) => fallback.push(_mk('Etapa '+(i+1), `A etapa "${s.title||'Etapa '+(i+1)}" está sendo executada conforme o POP?`)));
+    (D.indicators||[]).forEach((ind,i) => fallback.push(_mk('Indicador '+(i+1), `O indicador "${ind.title||ind.name||'Indicador '+(i+1)}" está sendo medido conforme definido?`)));
+    _auditTempChecklist = fallback;
+    throw new Error('Gemini indisponível — checklist básico gerado. Detalhe: ' + e.message);
+  }
 }
 
 function auditRenderChecklistEditor() {
