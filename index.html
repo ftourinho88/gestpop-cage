@@ -10389,11 +10389,7 @@ function homeRefresh() {
   if(auditedCountEl) {
     auditEnsure();
     const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
-    const total      = DATA.audits.plans.length;
-    const emExec     = DATA.audits.plans.filter(p => p.status === 'em_execucao').length;
-    if(!total)       auditedCountEl.textContent = 'Nenhuma auditoria planejada';
-    else if(!concluidos && emExec) auditedCountEl.textContent = emExec + ' em execução · 0 concluídas';
-    else             auditedCountEl.textContent = concluidos + ' concluída' + (concluidos!==1?'s':'') + ' de ' + total + ' planejada' + (total!==1?'s':'');
+    auditedCountEl.textContent = concluidos + ' auditoria' + (concluidos!==1?'s':'') + ' concluída' + (concluidos!==1?'s':'');
   }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
