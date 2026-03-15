@@ -3280,9 +3280,15 @@ VALIDAÇÃO FINAL OBRIGATÓRIA:
       </div>
       <!-- Checklist -->
       <div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
           <label class="audit-label" style="margin-bottom:0;">Checklist de Auditoria</label>
-          <button class="btn btn-outline" onclick="auditAddChecklistItem()" style="font-size:11px;padding:4px 10px;">＋ Item</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="auditGerarChecklistBtn()" style="font-size:11px;padding:4px 12px;color:#1e40af;border-color:#93c5fd;font-weight:600;">🤖 Gerar do processo</button>
+            <button class="btn btn-outline" onclick="auditAddChecklistItem()" style="font-size:11px;padding:4px 10px;">＋ Item manual</button>
+          </div>
+        </div>
+        <div id="ae-checklist-hint" style="font-size:11px;color:#64748b;margin-bottom:8px;background:#f8fafc;border-radius:6px;padding:6px 10px;display:none;">
+          ℹ️ Selecione um plano de auditoria acima e clique em <strong>🤖 Gerar do processo</strong> para gerar o checklist automaticamente com base no mapeamento do processo.
         </div>
         <div id="ae-checklist" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
@@ -10383,8 +10389,7 @@ function homeRefresh() {
   if(auditedCountEl) {
     auditEnsure();
     const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
-    const total = DATA.audits.plans.length;
-    auditedCountEl.textContent = concluidos + ' processo' + (concluidos!==1?'s':'') + ' auditado' + (concluidos!==1?'s':'') + (total ? ' de ' + total : '');
+    auditedCountEl.textContent = concluidos + ' auditoria' + (concluidos!==1?'s':'') + ' concluída' + (concluidos!==1?'s':'');
   }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
@@ -11600,13 +11605,34 @@ function auditOpenExecModal(id) {
   auditRenderChecklistEditor();
   document.getElementById('audit-exec-modal-title').textContent = id ? '✏️ Editar Execução' : '▶ Nova Execução de Auditoria';
   document.getElementById('ae-delete-btn').style.display = id ? 'inline-block' : 'none';
+  // Mostra hint se não há plano selecionado e checklist vazio
+  const hint = document.getElementById('ae-checklist-hint');
+  if(hint) hint.style.display = (!id && !_auditTempChecklist.length) ? 'block' : 'none';
   document.getElementById('audit-exec-modal').style.display='flex';
 }
 function auditCloseExecModal() { document.getElementById('audit-exec-modal').style.display='none'; }
 
 function auditExecPlanChange() {
   const planId = document.getElementById('ae-plan').value;
+  const hint = document.getElementById('ae-checklist-hint');
+  if(hint) hint.style.display = planId ? 'none' : 'block';
+  // Gera automaticamente só se o checklist ainda estiver vazio
   if(!_auditTempChecklist.length && planId) { auditAutoChecklist(planId); auditRenderChecklistEditor(); }
+}
+
+function auditGerarChecklistBtn() {
+  const planId = document.getElementById('ae-plan').value;
+  if(!planId) {
+    const hint = document.getElementById('ae-checklist-hint');
+    if(hint) hint.style.display = 'block';
+    showToast('Selecione um plano de auditoria primeiro.', 'warn'); return;
+  }
+  const plan = DATA.audits.plans.find(p=>p.id===planId);
+  if(!plan?.processo) { showToast('O plano selecionado não possui processo vinculado.', 'warn'); return; }
+  if(_auditTempChecklist.length && !confirm('Isso irá substituir o checklist atual. Continuar?')) return;
+  auditAutoChecklist(planId);
+  auditRenderChecklistEditor();
+  showToast('✅ Checklist gerado com ' + _auditTempChecklist.length + ' itens!', 'success');
 }
 
 function auditAutoChecklist(planId) {
@@ -11892,13 +11918,12 @@ function auditDeleteAction() {
 function auditNewAction() { auditOpenPlanModal(); }
 
 function auditGoToProcess(key) {
-  if(!key || !DATA[key]) { showToast('Processo não encontrado.', 'warn'); return; }
-  hideAllModules();
+  if(!key || !DATA[key]) { showToast('Processo não encontrado nos dados locais.', 'warn'); return; }
+  // Fecha o módulo de auditoria e abre o mapeamento do processo
+  const auditMod = document.getElementById('audit-module');
+  if(auditMod) auditMod.style.display = 'none';
   hideHome();
-  // Navega para o mapeamento do processo (mesmo fluxo do sidebar)
-  if(typeof showPop === 'function') showPop(key);
-  else if(typeof loadPop === 'function') loadPop(key);
-  else { showToast('Abra o processo "' + (DATA[key]?.meta?.name||key) + '" pelo menu lateral.', 'info'); showHome(); }
+  switchPop(key);
 }
 
 // ── TRILHA DE AUDITORIA ──────────────────────────────────────────
