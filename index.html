@@ -9926,7 +9926,10 @@ function arqDelete(idx) {
 // Toggle mapeado manualmente
 function arqToggleMapeado(idx) {
   const data = arqGetData();
-  data[idx].mapeado = !data[idx].mapeado;
+  const newVal = !data[idx].mapeado;
+  data[idx].mapeado = newVal;
+  // Se o usuário explicitamente desmarcou, bloquear o auto-sync para não remarcar
+  data[idx].mapeadoLocked = !newVal;
   DATA._arqOverrides = data;
   arqSaveToCloud();
   arqInit();
@@ -9969,6 +9972,8 @@ function arqSyncFromPops() {
       const nameMatch = (m.name||'').toLowerCase() === (r.subprocesso||r.processo||'').toLowerCase();
       return nameMatch && m.statusMap === 'concluido';
     });
+    // Respeitar bloqueio manual: se usuário explicitamente desmarcou, não remarcar
+    if(r.mapeadoLocked === true) return;
     if(match && !r.mapeado) { r.mapeado = true; changed = true; }
     else if(concluido && !r.mapeado) { r.mapeado = true; changed = true; }
   });
