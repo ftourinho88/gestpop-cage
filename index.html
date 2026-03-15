@@ -10389,8 +10389,11 @@ function homeRefresh() {
   if(auditedCountEl) {
     auditEnsure();
     const concluidos = DATA.audits.plans.filter(p => p.status === 'concluida').length;
-    const total = DATA.audits.plans.length;
-    auditedCountEl.textContent = concluidos + ' processo' + (concluidos!==1?'s':'') + ' auditado' + (concluidos!==1?'s':'') + (total ? ' de ' + total : '');
+    const total      = DATA.audits.plans.length;
+    const emExec     = DATA.audits.plans.filter(p => p.status === 'em_execucao').length;
+    if(!total)       auditedCountEl.textContent = 'Nenhuma auditoria planejada';
+    else if(!concluidos && emExec) auditedCountEl.textContent = emExec + ' em execução · 0 concluídas';
+    else             auditedCountEl.textContent = concluidos + ' concluída' + (concluidos!==1?'s':'') + ' de ' + total + ' planejada' + (total!==1?'s':'');
   }
   const indcageCountEl = document.getElementById('home-indcage-count');
   if(indcageCountEl) {
@@ -11919,13 +11922,12 @@ function auditDeleteAction() {
 function auditNewAction() { auditOpenPlanModal(); }
 
 function auditGoToProcess(key) {
-  if(!key || !DATA[key]) { showToast('Processo não encontrado.', 'warn'); return; }
-  hideAllModules();
+  if(!key || !DATA[key]) { showToast('Processo não encontrado nos dados locais.', 'warn'); return; }
+  // Fecha o módulo de auditoria e abre o mapeamento do processo
+  const auditMod = document.getElementById('audit-module');
+  if(auditMod) auditMod.style.display = 'none';
   hideHome();
-  // Navega para o mapeamento do processo (mesmo fluxo do sidebar)
-  if(typeof showPop === 'function') showPop(key);
-  else if(typeof loadPop === 'function') loadPop(key);
-  else { showToast('Abra o processo "' + (DATA[key]?.meta?.name||key) + '" pelo menu lateral.', 'info'); showHome(); }
+  switchPop(key);
 }
 
 // ── TRILHA DE AUDITORIA ──────────────────────────────────────────
