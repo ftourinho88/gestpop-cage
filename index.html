@@ -2651,7 +2651,7 @@ Fim"></textarea>
                   </div>
                   <div>
                     <label>Patrocinador</label>
-                    <input class="modal-input" id="nf-patrocinador" type="text" placeholder="Gestor que apoia o projeto">
+                    <select class="modal-input" id="nf-patrocinador"><option value="">— selecione —</option></select>
                   </div>
                 </div>
                 <div class="npop-row">
@@ -6097,6 +6097,69 @@ function closeSidebar() {
 const MACROPROCESSOS = ['Auditoria', 'Contabilidade', 'Controle', 'Gestão Estratégica', 'Comunicação e Relacionamento Institucional', 'Orientação', 'Transparência', 'Promoção da Integridade', 'Gestão de Dados', 'Gestão Administrativa', 'Gestão de TIC', 'Gestão de Pessoas'];
 const MACRO_ICONS = {'Auditoria': '🔍', 'Contabilidade': '📒', 'Controle': '🎛', 'Gestão Estratégica': '🧭', 'Comunicação e Relacionamento Institucional': '📣', 'Orientação': '💡', 'Transparência': '🔎', 'Promoção da Integridade': '🛡', 'Gestão de Dados': '📊', 'Gestão Administrativa': '🏢', 'Gestão de TIC': '💻', 'Gestão de Pessoas': '👥'};
 
+// ── Patrocinadores ──────────────────────────────────────────────────────────
+const PATROCINADORES_DEFAULT = [
+  'Adjunto de Gestão e Tecnologia',
+  'Adjunto de Controle, Auditoria e Integridade',
+  'Adjunto de Contabilidade',
+  'Coordenador de Gestão Estratégica',
+];
+function getPatrocinadores() { return DATA.patrocinadores || PATROCINADORES_DEFAULT; }
+function patrocinadoresSelectHTML(selected='') {
+  return ['', ...getPatrocinadores()].map(p =>
+    `<option value="${p}"${p===selected?' selected':''}>${p||'— selecione —'}</option>`
+  ).join('');
+}
+function populatePatrocinadoresSelect(id, selected='') {
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = patrocinadoresSelectHTML(selected);
+}
+function showPatrocinadoresModal() {
+  patRenderList();
+  const m = document.getElementById('pat-mgmt-modal');
+  if(m) { m.style.display = 'flex'; }
+}
+function closePatrocinadoresModal() {
+  const m = document.getElementById('pat-mgmt-modal');
+  if(m) m.style.display = 'none';
+}
+function patRenderList() {
+  const list = getPatrocinadores();
+  const el = document.getElementById('pat-mgmt-list');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">Nenhum patrocinador cadastrado.</div>';
+    return;
+  }
+  el.innerHTML = list.map((p, i) =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8fafc;border-radius:8px;margin-bottom:8px;font-size:13px;color:#1e293b;">
+      <span>${p}</span>
+      ${isEditor ? `<button onclick="patRemove(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;" title="Remover">✕</button>` : ''}
+    </div>`
+  ).join('');
+}
+function patAddNew() {
+  if(!isEditor) { showToast('🔒 Apenas editores podem editar.','warn'); return; }
+  const input = document.getElementById('pat-mgmt-new');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!DATA.patrocinadores) DATA.patrocinadores = [...PATROCINADORES_DEFAULT];
+  if(DATA.patrocinadores.includes(val)) { showToast('Já cadastrado.','warn'); return; }
+  DATA.patrocinadores.push(val);
+  input.value = '';
+  patRenderList();
+  saveToCloud();
+  showToast('✅ Patrocinador adicionado!','success');
+}
+function patRemove(idx) {
+  if(!isEditor) { showToast('🔒 Apenas editores podem editar.','warn'); return; }
+  if(!DATA.patrocinadores) DATA.patrocinadores = [...PATROCINADORES_DEFAULT];
+  DATA.patrocinadores.splice(idx, 1);
+  patRenderList();
+  saveToCloud();
+  showToast('Patrocinador removido.','success');
+}
+
 function renderSidebar() {
   // Processos mapeados não são exibidos na sidebar — navegação via Página Inicial
   const el = document.getElementById('sidebar-list');
@@ -6946,7 +7009,8 @@ async function saveToCloud(attempt=1) {
     newPops:         newPopKeys.map(k => ({ key: k, data: _stripTransient(DATA[k]) })),
     repoDocs:        REPO_DOCS || [],
     drops:           DROPS     || [],
-    indicadoresCage: DATA.indicadoresCage || { indicadores: [], resultados: [] }
+    indicadoresCage: DATA.indicadoresCage || { indicadores: [], resultados: [] },
+    patrocinadores:  DATA.patrocinadores  || null,
   };
 
   try {
@@ -7101,6 +7165,7 @@ async function loadFromCloud() {
       DATA._arqOverrides = payload.arqOverrides;
       _arqData = null;
     }
+    if(Array.isArray(payload.patrocinadores)) DATA.patrocinadores = payload.patrocinadores;
     if(payload.indicadoresCage && typeof payload.indicadoresCage === 'object') {
       DATA.indicadoresCage = {
         indicadores: Array.isArray(payload.indicadoresCage.indicadores) ? payload.indicadoresCage.indicadores : [],
@@ -9628,6 +9693,7 @@ function arqApplyFilter() {
   const nat     = document.getElementById('arq-filter-natureza').value.toLowerCase();
   const area    = (document.getElementById('arq-filter-area')?.value || '').toLowerCase();
   const mapeado = document.getElementById('arq-filter-mapeado')?.value || '';
+  const critico = document.getElementById('arq-filter-critico')?.value || '';
   const search  = (document.getElementById('arq-filter-search').value || '').toLowerCase();
 
   let filtered = data.filter(r => {
@@ -9635,9 +9701,10 @@ function arqApplyFilter() {
     const matchNat     = !nat     || (r.natureza||'').toLowerCase() === nat;
     const matchArea    = !area    || (r.area||'').toLowerCase() === area;
     const matchMapeado = !mapeado || (mapeado === 'sim' ? !!r.mapeado : !r.mapeado);
+    const matchCritico = !critico || (critico === 'sim' ? !!r.critico : !r.critico);
     const matchSearch  = !search  || [r.macroprocesso, r.processo, r.subprocesso, r.area, r.gerente]
       .some(v => (v||'').toLowerCase().includes(search));
-    return matchMacro && matchNat && matchArea && matchMapeado && matchSearch;
+    return matchMacro && matchNat && matchArea && matchMapeado && matchCritico && matchSearch;
   });
 
   // Apply sort
@@ -9661,6 +9728,7 @@ function arqClearFilter() {
   document.getElementById('arq-filter-search').value   = '';
   const a = document.getElementById('arq-filter-area');    if(a) a.value = '';
   const m = document.getElementById('arq-filter-mapeado'); if(m) m.value = '';
+  const c = document.getElementById('arq-filter-critico'); if(c) c.value = '';
   _arqSort = { col: null, dir: 1 };
   document.querySelectorAll('.arq-th-sort .sort-arrow').forEach(el => el.textContent = ' ↕');
   arqApplyFilter();
@@ -9740,10 +9808,14 @@ function arqRenderTable(filtered, all) {
     const nat     = NAT_COLORS[r.natureza] || { bg: '#f1f5f9', color: '#475569' };
     const realIdx = all.indexOf(r);
     const mapped  = !!r.mapeado;
+    const critico = !!r.critico;
     const toggleBg    = mapped ? '#dcfce7' : '#f1f5f9';
     const toggleColor = mapped ? '#16a34a' : '#94a3b8';
     const toggleLabel = mapped ? '✅ Sim'  : '○ Não';
-    return `<tr onclick="arqShowProcessDetail(${realIdx})" style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;${mapped ? 'border-left:3px solid #00a86b;' : ''}cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='${rowColor?'#f8fafc':'white'}'">
+    const critBg    = critico ? '#fee2e2' : '#f1f5f9';
+    const critColor = critico ? '#dc2626' : '#94a3b8';
+    const critLabel = critico ? '⚠️ Sim'  : '○ Não';
+    return `<tr onclick="arqShowProcessDetail(${realIdx})" style="background:${rowColor ? '#f8fafc' : 'white'};border-bottom:1px solid #f1f5f9;${critico ? 'border-left:3px solid #dc2626;' : mapped ? 'border-left:3px solid #00a86b;' : ''}cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='${rowColor?'#f8fafc':'white'}'">
       <td style="padding:10px 16px;font-weight:600;color:#0a2540;font-size:12px;">${r.macroprocesso}</td>
       <td style="padding:10px 16px;color:#1e293b;font-size:13px;text-decoration:underline;text-underline-offset:2px;">${r.processo}</td>
       <td style="padding:10px 16px;color:#475569;font-size:12px;text-decoration:underline;text-underline-offset:2px;">${r.subprocesso || '<span style="color:#cbd5e1;text-decoration:none;">—</span>'}</td>
@@ -9751,6 +9823,11 @@ function arqRenderTable(filtered, all) {
         <span style="background:${nat.bg};color:${nat.color};font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;">${r.natureza||''}</span>
       </td>
       <td style="padding:10px 16px;color:#64748b;font-size:12px;">${r.area||''}</td>
+      <td style="padding:10px 16px;text-align:center;" onclick="event.stopPropagation()">
+        <button onclick="arqToggleCritico(${realIdx})"
+          style="background:${critBg};color:${critColor};border:none;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;transition:all .2s;"
+          title="Clique para alternar">${critLabel}</button>
+      </td>
       <td style="padding:10px 16px;text-align:center;" onclick="event.stopPropagation()">
         <button onclick="arqToggleMapeado(${realIdx})"
           style="background:${toggleBg};color:${toggleColor};border:none;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;transition:all .2s;"
@@ -9783,11 +9860,13 @@ function arqShowForm(idx = null) {
     document.getElementById('arq-f-entradas').value = r.entradas      || '';
     document.getElementById('arq-f-entregas').value = r.entregas      || '';
     document.getElementById('arq-f-clientes').value = r.clientes      || '';
+    document.getElementById('arq-f-critico').checked = !!r.critico;
   } else {
     title.textContent = 'Novo Processo';
     ['macro','processo','sub','area','gerente','objetivo','entradas','entregas','clientes'].forEach(f =>
       document.getElementById('arq-f-' + f).value = '');
     document.getElementById('arq-f-natureza').value = 'FINALÍSTICO';
+    document.getElementById('arq-f-critico').checked = false;
   }
   modal.style.display = 'flex';
 }
@@ -9801,7 +9880,11 @@ function arqSaveForm() {
   const proc  = document.getElementById('arq-f-processo').value.trim();
   if(!macro || !proc) { showToast('Macroprocesso e Processo são obrigatórios.', 'warn'); return; }
 
+  const data = arqGetData();
+  const idxVal = document.getElementById('arq-form-idx').value;
+  const existing = idxVal !== '' ? (data[parseInt(idxVal)] || {}) : {};
   const entry = {
+    ...existing,
     macroprocesso: macro,
     processo:      proc,
     subprocesso:   document.getElementById('arq-f-sub').value.trim(),
@@ -9812,10 +9895,9 @@ function arqSaveForm() {
     entradas:      document.getElementById('arq-f-entradas').value.trim(),
     entregas:      document.getElementById('arq-f-entregas').value.trim(),
     clientes:      document.getElementById('arq-f-clientes').value.trim(),
+    critico:       document.getElementById('arq-f-critico').checked,
   };
 
-  const data = arqGetData();
-  const idxVal = document.getElementById('arq-form-idx').value;
   if(idxVal !== '') {
     data[parseInt(idxVal)] = entry;
     showToast('✅ Processo atualizado!', 'success');
@@ -9845,6 +9927,15 @@ function arqDelete(idx) {
 function arqToggleMapeado(idx) {
   const data = arqGetData();
   data[idx].mapeado = !data[idx].mapeado;
+  DATA._arqOverrides = data;
+  arqSaveToCloud();
+  arqInit();
+}
+
+// Toggle processo crítico
+function arqToggleCritico(idx) {
+  const data = arqGetData();
+  data[idx].critico = !data[idx].critico;
   DATA._arqOverrides = data;
   arqSaveToCloud();
   arqInit();
@@ -10407,7 +10498,7 @@ function homeRefresh() {
   // Stats
   const macros      = new Set(data.map(r => r.macroprocesso)).size;
   const procs       = new Set(data.map(r => r.macroprocesso + '|' + r.processo)).size;
-  const procsMapeados = new Set(data.filter(r => r.mapeado === true).map(r => r.macroprocesso + '|' + r.processo)).size;
+  const procsMapeados = data.filter(r => r.mapeado === true).length;
   const popKeys = Object.keys(DATA).filter(k => k.startsWith('pop_'));
 
   const allPopKeys   = ['d', 'r', ...popKeys];
@@ -10499,6 +10590,7 @@ function npopInitSelects() {
   if(!macroSel) return;
   macroSel.innerHTML = '<option value="">Selecione o macroprocesso...</option>'
     + macros.map(m => `<option value="${m}">${m}</option>`).join('');
+  populatePatrocinadoresSelect('nf-patrocinador');
 }
 
 function npopUpdateProcessoList() {
@@ -12499,7 +12591,7 @@ function openStatusModal(p) {
   document.getElementById('status-modal-efetiva').value    = m.dataEfetiva  || '';
   // Pessoas
   document.getElementById('status-modal-solicitante').value  = m.solicitante  || '';
-  document.getElementById('status-modal-patrocinador').value = m.patrocinador || '';
+  populatePatrocinadoresSelect('status-modal-patrocinador', m.patrocinador || '');
   document.getElementById('status-modal-elaborado').value    = m.elaborado    || '';
   document.getElementById('status-modal-revisado').value     = m.revisado     || '';
   document.getElementById('status-modal-equipe').value       = m.equipe       || '';
@@ -14885,6 +14977,7 @@ function saveStatusModal() {
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="arqShowForm()">＋ Novo Processo</button>
+        <button class="btn btn-outline" onclick="showPatrocinadoresModal()">🤝 Patrocinadores</button>
         <button class="btn btn-outline" onclick="showArqModule(false)">✕ Fechar</button>
       </div>
     </div>
@@ -14910,6 +15003,14 @@ function saveStatusModal() {
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Área</label>
         <select id="arq-filter-area" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
           <option value="">Todas</option>
+        </select>
+      </div>
+      <div style="flex:0 0 140px;">
+        <label style="font-size:12px;font-weight:600;color:#dc2626;display:block;margin-bottom:4px;">Crítico?</label>
+        <select id="arq-filter-critico" onchange="arqApplyFilter()" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:white;">
+          <option value="">Todos</option>
+          <option value="sim">⚠️ Sim</option>
+          <option value="nao">○ Não</option>
         </select>
       </div>
       <div style="flex:0 0 140px;">
@@ -14940,6 +15041,7 @@ function saveStatusModal() {
             <th class="arq-th-sort" data-col="subprocesso" onclick="arqSortBy('subprocesso')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Subprocesso<span class="sort-arrow"> ↕</span></th>
             <th class="arq-th-sort" data-col="natureza" onclick="arqSortBy('natureza')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Natureza<span class="sort-arrow"> ↕</span></th>
             <th class="arq-th-sort" data-col="area" onclick="arqSortBy('area')" style="padding:12px 16px;text-align:left;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;">Área<span class="sort-arrow"> ↕</span></th>
+            <th style="padding:12px 16px;text-align:center;font-weight:600;color:#fca5a5;">Crítico?</th>
             <th style="padding:12px 16px;text-align:center;font-weight:600;color:#6ee7b7;">Mapeado?</th>
             <th style="padding:12px 16px;text-align:center;font-weight:600;">Ações</th>
           </tr>
@@ -14984,6 +15086,10 @@ function saveStatusModal() {
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Gerente do Processo</label>
         <input id="arq-f-gerente" placeholder="Nome ou cargo" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+        <input type="checkbox" id="arq-f-critico" style="width:16px;height:16px;accent-color:#dc2626;cursor:pointer;">
+        <label for="arq-f-critico" style="font-size:13px;font-weight:600;color:#dc2626;cursor:pointer;">⚠️ Processo Crítico</label>
+      </div>
       <div style="grid-column:1/-1;">
         <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Objetivo do Processo</label>
         <textarea id="arq-f-objetivo" rows="3" placeholder="Descreva o objetivo..." style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>
@@ -15008,6 +15114,21 @@ function saveStatusModal() {
   </div>
 </div>
 
+<!-- Modal Patrocinadores -->
+<div id="pat-mgmt-modal" style="display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;width:480px;max-width:96vw;max-height:85vh;overflow-y:auto;padding:28px;box-shadow:0 32px 80px rgba(0,0,0,.25);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:18px;font-weight:700;color:#0a2540;">🤝 Patrocinadores</div>
+      <button onclick="closePatrocinadoresModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:14px;">Lista de patrocinadores disponíveis para seleção nos formulários.</div>
+    <div id="pat-mgmt-list"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <input id="pat-mgmt-new" type="text" placeholder="Novo patrocinador..." class="modal-input" style="flex:1;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;" onkeydown="if(event.key==='Enter')patAddNew()">
+      <button class="btn btn-primary" onclick="patAddNew()" style="white-space:nowrap;">＋ Adicionar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════ -->
 <!-- MODAL: EDITAR FICHA TÉCNICA DO MAPEAMENTO   -->
@@ -15118,7 +15239,7 @@ function saveStatusModal() {
             </div>
             <div>
               <label class="gmod-label">Patrocinador</label>
-              <input class="modal-input" id="status-modal-patrocinador" type="text" placeholder="Gestor que apoia o projeto">
+              <select class="modal-input" id="status-modal-patrocinador"><option value="">— selecione —</option></select>
             </div>
           </div>
           <div class="gmod-row">
