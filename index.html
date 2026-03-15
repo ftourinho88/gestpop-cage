@@ -929,15 +929,18 @@
     }
 }
 
+/* ── Flow Designer: modo texto/Mermaid ────────────────────────── */
+#fd-left-panel { width:260px; flex-shrink:0; display:flex; flex-direction:column; border-right:1px solid var(--cage-border); transition:width .2s; }
+#fd-left-panel.collapsed { width:0 !important; overflow:hidden; border-right:none; }
+#fd-collapse-btn { padding:4px 8px; background:rgba(255,255,255,.1); color:white; border:1px solid rgba(255,255,255,.2); border-radius:5px; font-size:11px; cursor:pointer; flex-shrink:0; }
 /* ── Flow Designer: BPMN 2.0 (bpmn-js) ───────────────────────── */
 #fd-module { background:#f0f2f7; }
+#fd-mode-bar { display:flex; gap:0; background:#0d2e52; border-bottom:1px solid rgba(255,255,255,.1); padding:0 14px; }
+.fd-mode-btn { padding:8px 16px; font-size:12px; font-weight:600; color:rgba(255,255,255,.55); background:none; border:none; border-bottom:3px solid transparent; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.fd-mode-btn.active { color:white; border-bottom-color:#00a86b; }
 #fd-bpmn-toolbar { height:46px; padding:0 14px; background:var(--cage-blue); display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow-x:auto; }
-#fd-bpmn-container { height:calc(100vh - 222px); min-height:400px; background:#fff; }
-/* Override bpmn-js default container padding */
-.bjs-container { background:#f8fafc !important; }
-/* bpmn-js canvas dot grid */
-.djs-container svg.djs-overlay-container ~ * { /* noop */ }
-.bpmn-icon-bpmn-io { display:none !important; } /* hide bpmn.io logo */
+#fd-bpmn-container { height:calc(100vh - 262px); min-height:400px; background:#fff; }
+.bpmn-icon-bpmn-io { display:none !important; }
 
 
   /* ══════════════════════════════════════════════
@@ -1264,6 +1267,12 @@
       <div class="home-card-title">Indicadores CAGE</div>
       <div class="home-card-desc">Gerencie indicadores de desempenho, importe resultados do SISPLAN e acompanhe a evolução e comparativos anuais.</div>
       <div class="home-card-footer" id="home-indcage-count">—</div>
+    </div>
+    <div class="home-card" onclick="showBpmnFromHome()" style="border-top:4px solid #6366f1;">
+      <div class="home-card-icon" style="background:#eef2ff;color:#6366f1;">🏗️</div>
+      <div class="home-card-title">Modelador BPMN 2.0</div>
+      <div class="home-card-desc">Editor visual de processos no padrão BPMN 2.0 com paleta completa, swimlanes, gateways e exportação de diagramas.</div>
+      <div class="home-card-footer">bpmn-js · BPMN 2.0 ISO/IEC 19510</div>
     </div>
     <div class="home-card" onclick="window.open('https://forms.office.com/Pages/ResponsePage.aspx?id=Cwm9g251AkqlEuXqAsAwQbvi0Bx7w-FOk8Rk-2iAB21UMFlRV0szV09JTlBMSzEzNlVJS1Y4UjA5Qy4u&origin=Invitation&channel=1','_blank')" style="border-top:4px solid #ec4899;">
       <div class="home-card-icon" style="background:#fdf2f8;color:#ec4899;">💡</div>
@@ -2362,27 +2371,102 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
-<!-- FLOW DESIGNER MODULE — BPMN 2.0 (bpmn-js)                 -->
+<!-- FLOW DESIGNER MODULE — Mermaid.js + BPMN 2.0              -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div id="fd-module" style="display:none;">
 
-  <!-- Toolbar -->
-  <div id="fd-bpmn-toolbar">
-    <span style="font-size:13px;font-weight:700;color:white;white-space:nowrap;">🎨 BPMN 2.0 — <span id="fd-bpmn-pop-name" style="font-weight:400;opacity:.8;"></span></span>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
-    <button onclick="fdUndo()" title="Desfazer (Ctrl+Z)" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">↩ Desfazer</button>
-    <button onclick="fdRedo()" title="Refazer (Ctrl+Y)" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">↪ Refazer</button>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
-    <button onclick="fdFitView()" title="Ajustar ao canvas" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⊞ Ajustar</button>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
-    <button onclick="fdExportSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ SVG</button>
-    <button onclick="fdExportPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ PNG</button>
-    <button onclick="fdExportBPMN()" title="Baixar arquivo .bpmn" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ BPMN</button>
-    <button onclick="fdSave()" title="Salvar (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.35);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;flex-shrink:0;">💾 Salvar</button>
+  <!-- Seletor de modo -->
+  <div id="fd-mode-bar">
+    <button id="fd-btn-mermaid" class="fd-mode-btn active" onclick="fdSetMode('mermaid')">📝 Texto → Mermaid</button>
+    <button id="fd-btn-bpmn"    class="fd-mode-btn"        onclick="fdSetMode('bpmn')">🏗️ Editor BPMN 2.0</button>
   </div>
 
-  <!-- bpmn-js canvas -->
-  <div id="fd-bpmn-container"></div>
+  <!-- ── MODO TEXTO / MERMAID ───────────────────────────────── -->
+  <div id="fd-text-mode" style="display:flex;height:calc(100vh - 218px);min-height:520px;background:white;border-radius:var(--radius);border:1px solid var(--cage-border);overflow:hidden;box-shadow:var(--shadow-md);">
+
+    <!-- LEFT: collapsible text input panel -->
+    <div id="fd-left-panel">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:white;margin-bottom:1px;">Texto do Fluxo</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;">Um passo por linha. Termine com ? para decisão.</div>
+        </div>
+        <button id="fd-collapse-btn" title="Recolher painel" onclick="fdToggleLeftPanel()">◀</button>
+      </div>
+      <textarea id="fd-text-input" style="flex:1;border:none;outline:none;resize:none;padding:12px 14px;font-size:12px;font-family:'JetBrains Mono',monospace;line-height:1.65;background:#f8fafc;color:var(--text-primary);" placeholder="Início
+Receber solicitação [Auditor]
+Analisar documentação
+Documentação completa?
+  Sim: Elaborar parecer -> Assinar -> Arquivar -> Fim
+  Não: Notificar solicitante -> Receber solicitação
+Fim"></textarea>
+      <div style="padding:10px 12px;border-top:1px solid var(--cage-border);background:#f8fafc;display:flex;flex-direction:column;gap:6px;">
+        <button onclick="fdGenerateFromText()" style="padding:9px;background:var(--cage-accent);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">▶ Gerar Fluxo</button>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.5;"><strong>Tipos:</strong> "Início/Fim" = evento · "?" = decisão · <code>[Ator]</code> no fim</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Mermaid canvas -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <!-- Toolbar -->
+      <div style="padding:7px 12px;border-bottom:1px solid var(--cage-border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--cage-blue);">
+        <button id="fd-expand-btn" title="Expandir painel de texto" onclick="fdToggleLeftPanel()" style="display:none;padding:4px 8px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">▶ Texto</button>
+        <button onclick="fdZoom(1.2)" title="Zoom +" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">＋</button>
+        <button onclick="fdZoom(0.83)" title="Zoom -" style="padding:4px 10px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:13px;cursor:pointer;">－</button>
+        <button onclick="fdZoomReset()" title="Zoom 100%" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;">100%</button>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
+        <label style="font-size:11px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="checkbox" id="fd-lr-toggle" onchange="fdToggleDirection(this.checked)" checked style="cursor:pointer;">
+          Esquerda→Direita
+        </label>
+        <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 2px;"></div>
+        <button onclick="fdExportSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ SVG</button>
+        <button onclick="fdExportPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;">⬇ PNG</button>
+        <button onclick="fdSave()" title="Salvar (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.3);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;">☁️ Salvar</button>
+      </div>
+      <!-- Mermaid output -->
+      <div id="fd-canvas-wrap" style="flex:1;overflow:auto;background:#f8fafc;display:flex;align-items:flex-start;justify-content:center;padding:20px 16px;">
+        <div id="fd-mermaid-out" style="transform-origin:top center;transition:transform .15s;">
+          <div style="color:#94a3b8;font-size:14px;padding:60px 20px;text-align:center;font-family:'DM Sans',sans-serif;">
+            Cole o texto no painel e clique em "Gerar Fluxo"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Mermaid code panel -->
+    <div style="width:230px;flex-shrink:0;border-left:1px solid var(--cage-border);display:flex;flex-direction:column;background:#f8fafc;">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--cage-border);background:var(--cage-blue);">
+        <div style="font-size:12px;font-weight:700;color:white;">Código Mermaid</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;">Edite e clique em Renderizar</div>
+      </div>
+      <textarea id="fd-mermaid-code" spellcheck="false"
+        style="flex:1;border:none;outline:none;resize:none;padding:10px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.65;background:#f8fafc;color:var(--text-primary);"
+        placeholder="flowchart LR&#10;  subgraph Auditor&#10;    A([Início])&#10;    B[Registrar]&#10;  end&#10;  A --> B"></textarea>
+      <div style="padding:8px 10px;border-top:1px solid var(--cage-border);background:#f0f4f8;">
+        <button onclick="fdRenderCode()" style="width:100%;padding:7px;background:var(--cage-mid);color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">▶ Renderizar</button>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;">Mermaid.js · <a href="https://mermaid.js.org/syntax/flowchart.html" target="_blank" style="color:var(--cage-mid);">sintaxe</a></div>
+      </div>
+    </div>
+  </div><!-- /fd-text-mode -->
+
+  <!-- ── MODO BPMN 2.0 ──────────────────────────────────────── -->
+  <div id="fd-bpmn-mode" style="display:none;">
+    <div id="fd-bpmn-toolbar">
+      <span style="font-size:13px;font-weight:700;color:white;white-space:nowrap;margin-right:4px;">🏗️ <span id="fd-bpmn-pop-name" style="font-weight:400;opacity:.8;"></span></span>
+      <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
+      <button onclick="fdUndo()" title="Desfazer (Ctrl+Z)" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">↩ Desfazer</button>
+      <button onclick="fdRedo()" title="Refazer (Ctrl+Y)" style="padding:4px 9px;background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">↪ Refazer</button>
+      <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
+      <button onclick="fdFitView()" title="Ajustar ao canvas" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⊞ Ajustar</button>
+      <div style="width:1px;height:18px;background:rgba(255,255,255,.2);margin:0 4px;flex-shrink:0;"></div>
+      <button onclick="fdExportBpmnSVG()" title="Exportar SVG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ SVG</button>
+      <button onclick="fdExportBpmnPNG()" title="Exportar PNG" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ PNG</button>
+      <button onclick="fdExportBPMN()" title="Baixar arquivo .bpmn" style="padding:4px 9px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);border-radius:5px;font-size:11px;cursor:pointer;flex-shrink:0;">⬇ BPMN</button>
+      <button onclick="fdSaveBpmn()" title="Salvar BPMN (Ctrl+S)" style="padding:4px 9px;background:rgba(0,168,107,.35);color:#4ade80;border:1px solid rgba(0,168,107,.5);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;flex-shrink:0;">💾 Salvar</button>
+    </div>
+    <div id="fd-bpmn-container"></div>
+  </div><!-- /fd-bpmn-mode -->
 
 </div><!-- /fd-module -->
 
@@ -10466,6 +10550,22 @@ showPatModule = function(show=true) {
 const _origShowArq = showArqModule;
 showArqModule = function(show=true) { if(show) hideHome(); _origShowArq(show); };
 
+// ── Atalho da home para o Modelador BPMN 2.0 ─────────────────────
+function showBpmnFromHome() {
+  // Usa o primeiro POP disponível (d, r ou pop_*) como contexto
+  if (!currentPop) {
+    const pops = ['d', 'r', ...Object.keys(DATA).filter(k => k.startsWith('pop_'))];
+    if (pops.length) {
+      // Simula seleção do primeiro POP sem mudar a navegação visual
+      currentPop = pops[0] === 'd' ? 'denuncias' : pops[0] === 'r' ? 'representacoes' : pops[0];
+    }
+  }
+  const tab = document.getElementById('tab-fd');
+  showFlowDesigner(tab);
+  // Abre diretamente no modo BPMN
+  if (typeof fdSetMode === 'function') fdSetMode('bpmn');
+}
+
 // ══════════════════════════════════════════════════════════════
 // NOVO POP — Smart autocomplete from CAGE_PROCESSOS
 // ══════════════════════════════════════════════════════════════
@@ -12568,10 +12668,279 @@ function saveStatusModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// FLOW DESIGNER — BPMN 2.0 (bpmn-js)
+// FLOW DESIGNER — Mermaid.js + BPMN 2.0 (bpmn-js)
 // ═══════════════════════════════════════════════════════════════════
 (function() {
-  // ── Default empty BPMN process ─────────────────────────────────
+  // ── Initialize Mermaid ────────────────────────────────────────
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 20, useMaxWidth: false },
+    securityLevel: 'loose',
+  });
+
+  let _direction = 'LR';
+  let _zoom      = 1;
+  let _savedCode = '';
+  let _currentMode = 'mermaid'; // 'mermaid' | 'bpmn'
+
+  // ── Mode switching ────────────────────────────────────────────
+  window.fdSetMode = function(mode) {
+    _currentMode = mode;
+    document.getElementById('fd-text-mode').style.display  = mode === 'mermaid' ? 'flex'  : 'none';
+    document.getElementById('fd-bpmn-mode').style.display  = mode === 'bpmn'    ? 'block' : 'none';
+    document.getElementById('fd-btn-mermaid').classList.toggle('active', mode === 'mermaid');
+    document.getElementById('fd-btn-bpmn').classList.toggle('active', mode === 'bpmn');
+    if (mode === 'bpmn') { _initModeler(); _loadDiagram(); }
+  };
+
+  // ── Show tab (entry point) ────────────────────────────────────
+  window.showFlowDesigner = function(tab) {
+    hideBpmnIfNeeded();
+    hideHome();
+    document.querySelectorAll('.pop-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    if (tab) tab.classList.add('active');
+    ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+    });
+    document.getElementById('fd-module').style.display = 'block';
+    // Always open in mermaid mode; load saved mermaid diagram
+    fdSetMode('mermaid');
+    _fdLoad();
+  };
+
+  // ── Load saved mermaid diagram ────────────────────────────────
+  function _fdLoad() {
+    const p = popPrefix(currentPop);
+    const fd = DATA[p]?.flowDiagram;
+    if (fd?.mermaid) {
+      _savedCode = fd.mermaid;
+      document.getElementById('fd-mermaid-code').value = _savedCode;
+      _render(_savedCode);
+    } else {
+      _savedCode = '';
+      document.getElementById('fd-mermaid-out').innerHTML =
+        '<div style="color:#94a3b8;font-size:14px;padding:60px 20px;text-align:center;">Cole o texto e clique em "Gerar Fluxo"</div>';
+    }
+    if (fd?.text) document.getElementById('fd-text-input').value = fd.text;
+  }
+
+  // ── Textarea auto-save (mermaid code) ─────────────────────────
+  const _codeArea = document.getElementById('fd-mermaid-code');
+  if (_codeArea) {
+    let _autoT;
+    _codeArea.addEventListener('input', () => {
+      clearTimeout(_autoT);
+      _autoT = setTimeout(() => {
+        const code = _codeArea.value.trim();
+        const p = popPrefix(currentPop);
+        if (!p || !DATA[p] || !code) return;
+        if (!DATA[p].flowDiagram) DATA[p].flowDiagram = {};
+        DATA[p].flowDiagram.mermaid = code;
+        _savedCode = code;
+        markChanged();
+      }, 900);
+    });
+  }
+
+  // ── Render Mermaid code ───────────────────────────────────────
+  async function _render(code) {
+    const out = document.getElementById('fd-mermaid-out');
+    if (!code || !code.trim()) return;
+    try {
+      const id = 'mmd-' + Date.now();
+      const { svg } = await mermaid.render(id, code.trim());
+      out.innerHTML = svg;
+      out.style.transform = `scale(${_zoom})`;
+      const svgEl = out.querySelector('svg');
+      if (svgEl) { svgEl.style.maxWidth = 'none'; svgEl.style.display = 'block'; }
+    } catch(err) {
+      out.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:20px;color:#dc2626;font-size:13px;">
+        <strong>Erro no diagrama:</strong><br><pre style="white-space:pre-wrap;font-size:11px;margin-top:8px;">${err.message||err}</pre></div>`;
+    }
+  }
+
+  // ── DSL text → Mermaid syntax ─────────────────────────────────
+  function _dslToMermaid(raw) {
+    const lines = raw.split('\n');
+    const nodes = [], edges = [];
+    let uid = 0;
+    const nid = () => 'n' + (uid++);
+    const labelMap = {};
+    function ensureNode(label, type) {
+      const key = label.trim().toLowerCase();
+      if (labelMap[key]) return labelMap[key];
+      const id = nid();
+      labelMap[key] = id;
+      nodes.push({ id, label: label.trim(), type: type || _guessType(label), actor: '' });
+      return id;
+    }
+    let lastId = null;
+    for (let i = 0; i < lines.length; i++) {
+      const raw2 = lines[i], line = raw2.trim();
+      if (!line) continue;
+      const indent = raw2.length - raw2.trimStart().length;
+      if (indent >= 2 && lastId) {
+        const bm = line.match(/^([^:]{1,20})\s*:\s*(.+)$/);
+        if (bm) {
+          const brLabel = bm[1].trim();
+          const steps   = bm[2].split('->').map(s => s.trim()).filter(Boolean);
+          let prev = lastId;
+          steps.forEach((s, si) => {
+            const nId = ensureNode(s);
+            edges.push({ from: prev, to: nId, label: si === 0 ? brLabel : '' });
+            prev = nId;
+          });
+          continue;
+        }
+      }
+      const actorMatch = line.match(/^(.+?)\s*\[([^\]]+)\]$/);
+      const label = actorMatch ? actorMatch[1].trim() : line;
+      const actor = actorMatch ? actorMatch[2].trim() : '';
+      const isDecision = label.endsWith('?');
+      const id = ensureNode(label, isDecision ? 'decision' : null);
+      if (actor) nodes.find(n => n.id === id).actor = actor;
+      if (lastId) edges.push({ from: lastId, to: id, label: '' });
+      lastId = id;
+    }
+    return _buildMermaid(nodes, edges);
+  }
+
+  function _guessType(label) {
+    const l = label.toLowerCase();
+    if (l === 'início' || l === 'inicio' || l === 'start') return 'start';
+    if (l === 'fim' || l === 'end') return 'end';
+    if (l.endsWith('?')) return 'decision';
+    return 'task';
+  }
+
+  function _buildMermaid(nodes, edges) {
+    const dir = _direction || 'LR';
+    const lines = [`flowchart ${dir}`];
+    nodes.forEach(n => {
+      const lbl = n.label.replace(/"/g, "'");
+      if (n.type === 'start' || n.type === 'end') lines.push(`  ${n.id}(["${lbl}"])`);
+      else if (n.type === 'decision') lines.push(`  ${n.id}{"${lbl}"}`);
+      else lines.push(`  ${n.id}["${lbl}"]`);
+    });
+    edges.forEach(e => {
+      lines.push(e.label ? `  ${e.from} -->|"${e.label}"| ${e.to}` : `  ${e.from} --> ${e.to}`);
+    });
+    return lines.join('\n');
+  }
+
+  function _flowJsonToMermaid(flowArr) {
+    const dir = _direction || 'LR';
+    const lines = [`flowchart ${dir}`];
+    flowArr.forEach(n => {
+      const lbl = (n.name || n.id).replace(/"/g, "'");
+      if (n.type === 'start' || n.type === 'end') lines.push(`  ${n.id}(["${lbl}"])`);
+      else if (n.type === 'decision') lines.push(`  ${n.id}{"${lbl}"}`);
+      else lines.push(`  ${n.id}["${lbl}"]`);
+    });
+    flowArr.forEach(n => {
+      (n.next || []).forEach(nx => {
+        lines.push(nx.label ? `  ${n.id} -->|"${nx.label}"| ${nx.id}` : `  ${n.id} --> ${nx.id}`);
+      });
+    });
+    return lines.join('\n');
+  }
+
+  // ── Mermaid save ──────────────────────────────────────────────
+  window.fdSave = function() {
+    const code = document.getElementById('fd-mermaid-code').value.trim();
+    const text = document.getElementById('fd-text-input').value.trim();
+    const p = popPrefix(currentPop);
+    if (!p || !DATA[p]) return;
+    if (!DATA[p].flowDiagram) DATA[p].flowDiagram = {};
+    if (code) DATA[p].flowDiagram.mermaid = code;
+    if (text) DATA[p].flowDiagram.text = text;
+    _savedCode = code;
+    markChanged();
+    saveToCloud();
+    showToast('✅ Fluxo Mermaid salvo!', 'success');
+  };
+
+  window.fdGenerateFromText = function() {
+    const raw = document.getElementById('fd-text-input').value.trim();
+    if (!raw) return;
+    const code = _dslToMermaid(raw);
+    document.getElementById('fd-mermaid-code').value = code;
+    _render(code);
+  };
+
+  window.fdRenderCode = function() {
+    _render(document.getElementById('fd-mermaid-code').value.trim());
+  };
+
+  window.fdZoom = function(f) {
+    _zoom = Math.min(3, Math.max(0.3, _zoom * f));
+    const out = document.getElementById('fd-mermaid-out');
+    if (out) out.style.transform = `scale(${_zoom})`;
+  };
+  window.fdZoomReset = function() {
+    _zoom = 1;
+    const out = document.getElementById('fd-mermaid-out');
+    if (out) out.style.transform = 'scale(1)';
+  };
+
+  window.fdToggleDirection = function(isLR) {
+    _direction = isLR ? 'LR' : 'TD';
+    const code = document.getElementById('fd-mermaid-code').value.trim();
+    if (code) {
+      const updated = code.replace(/^flowchart\s+(LR|TD|RL|BT)/m, `flowchart ${_direction}`);
+      document.getElementById('fd-mermaid-code').value = updated;
+      _render(updated);
+    }
+  };
+
+  window.fdToggleLeftPanel = function() {
+    const panel  = document.getElementById('fd-left-panel');
+    const colBtn = document.getElementById('fd-collapse-btn');
+    const expBtn = document.getElementById('fd-expand-btn');
+    const collapsed = panel.classList.toggle('collapsed');
+    if (colBtn) colBtn.style.display = collapsed ? 'none' : '';
+    if (expBtn) expBtn.style.display = collapsed ? '' : 'none';
+  };
+
+  // ── Export from Mermaid (SVG/PNG) ────────────────────────────
+  window.fdExportSVG = function() {
+    const svg = document.querySelector('#fd-mermaid-out svg');
+    if (!svg) { showToast('Gere o fluxo antes de exportar.', 'warn'); return; }
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'fluxo.svg'; a.click();
+  };
+  window.fdExportPNG = function() {
+    const svg = document.querySelector('#fd-mermaid-out svg');
+    if (!svg) { showToast('Gere o fluxo antes de exportar.', 'warn'); return; }
+    const box = svg.getBoundingClientRect();
+    const W = box.width * 2 || 1200, H = box.height * 2 || 800;
+    const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white'; ctx.fillRect(0, 0, W, H);
+    const data = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0, W, H); const a = document.createElement('a'); a.download = 'fluxo.png'; a.href = canvas.toDataURL('image/png'); a.click(); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+  };
+
+  // ── Build from flow[] JSON (called after POP import) ──────────
+  window.fdBuildFromFlowJSON = function(flowArr) {
+    if (!Array.isArray(flowArr) || !flowArr.length) return;
+    const code = _flowJsonToMermaid(flowArr);
+    const p = popPrefix(currentPop);
+    if (!DATA[p]) DATA[p] = {};
+    if (!DATA[p].flowDiagram) DATA[p].flowDiagram = {};
+    DATA[p].flowDiagram.mermaid = code;
+    DATA[p].flowDiagram.flow    = flowArr;
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // BPMN 2.0 (bpmn-js)
+  // ═══════════════════════════════════════════════════════════════
   const DEFAULT_BPMN = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
@@ -12629,25 +12998,8 @@ function saveStatusModal() {
     if (titleEl) titleEl.textContent = DATA[p]?.meta?.name || p;
   }
 
-  // ── Show flow designer tab ─────────────────────────────────────
-  window.showFlowDesigner = function(tab) {
-    hideBpmnIfNeeded();
-    hideHome();
-    document.querySelectorAll('.pop-content').forEach(e => e.classList.remove('active'));
-    document.querySelectorAll('.section').forEach(e => e.classList.remove('active'));
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    if (tab) tab.classList.add('active');
-    ['repo-module','drops-module','pat-module','bi-module','quadro-module','arq-module'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.style.display = 'none'; el.classList.remove('active'); }
-    });
-    document.getElementById('fd-module').style.display = 'block';
-    _initModeler();
-    _loadDiagram();
-  };
-
-  // ── Save to DATA + cloud ───────────────────────────────────────
-  window.fdSave = async function() {
+  // ── Save BPMN to DATA + cloud ─────────────────────────────────
+  window.fdSaveBpmn = async function() {
     if (!_modeler) { showToast('Editor não inicializado.', 'warn'); return; }
     try {
       const { xml } = await _modeler.saveXML({ format: true });
@@ -12676,8 +13028,8 @@ function saveStatusModal() {
     try { _modeler?.get('commandStack').redo(); } catch(e) {}
   };
 
-  // ── Export SVG ────────────────────────────────────────────────
-  window.fdExportSVG = async function() {
+  // ── Export BPMN SVG ───────────────────────────────────────────
+  window.fdExportBpmnSVG = async function() {
     if (!_modeler) return;
     try {
       const { svg } = await _modeler.saveSVG();
@@ -12689,8 +13041,8 @@ function saveStatusModal() {
     } catch(e) { showToast('Erro ao exportar SVG: ' + e.message, 'warn'); }
   };
 
-  // ── Export PNG (SVG → canvas → PNG) ───────────────────────────
-  window.fdExportPNG = async function() {
+  // ── Export BPMN PNG ────────────────────────────────────────────
+  window.fdExportBpmnPNG = async function() {
     if (!_modeler) return;
     try {
       const { svg } = await _modeler.saveSVG();
@@ -12733,21 +13085,14 @@ function saveStatusModal() {
     } catch(e) { showToast('Erro ao exportar BPMN: ' + e.message, 'warn'); }
   };
 
-  // ── fdBuildFromFlowJSON — called on POP import (legacy compat) ─
-  window.fdBuildFromFlowJSON = function(flowArr) {
-    // Store the legacy flow array; the diagram will start blank when
-    // opened — user can rebuild in BPMN 2.0 format.
-    const p = popPrefix(currentPop);
-    if (!DATA[p]) return;
-    if (!DATA[p].flowDiagram) DATA[p].flowDiagram = {};
-    DATA[p].flowDiagram.legacyFlow = flowArr;
-  };
-
-  // ── Keyboard shortcut Ctrl+S ───────────────────────────────────
+  // ── Keyboard shortcut Ctrl+S ──────────────────────────────────
   document.addEventListener('keydown', e => {
     const fd = document.getElementById('fd-module');
     if (!fd || fd.style.display === 'none') return;
-    if (e.ctrlKey && e.key === 's') { e.preventDefault(); fdSave(); }
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      if (_currentMode === 'bpmn') fdSaveBpmn(); else fdSave();
+    }
   });
 
 })(); // end Flow Designer IIFE
